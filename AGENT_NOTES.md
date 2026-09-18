@@ -9,14 +9,13 @@ The automation is split into modules:
 - `utils.py` — movement, affordability, water helpers
 - `workers.py` — multi-drone worker pool and hats
 - `farm.py` — normal mixed farm, sunflowers, carrots, resources, polyculture
-- `maze.py` — fresh maze creation + wall-following solver
+- `maze.py` — persistent Maze reuse using the reference tree-rebalancing strategy
 - `pumpkin.py` — full-field giant pumpkin job
 - `cactus.py` — full-field cactus job
 - `unlocks.py` — upgrade selection, cost analysis, resource focus, unlock purchases
 - `production.py` — resource-to-production dispatcher and prerequisite resolution
-- `benmain.py` — simulation benchmark controller for maze strategies
-- `benchmaze.py` — benchmark worker implementing our fresh/reuse routing variants
-- `benchmaze_reference.py` — separate behavioral port of the Pastebin tree-rebalancing reference
+- `bench_maze.py` — all Maze benchmark strategies, including the reference port
+- `bench_maze_run.py` — Maze simulation matrix, seeds, `simulate()` calls, and result aggregation
 
 Always use `import module`, not `from module import ...`.
 
@@ -266,54 +265,96 @@ Do not drop 7-petal sunflowers from the cache. The external community example be
 
 ## Maze
 
-Fresh mazes have no loops, so the current production solver can safely use a right-hand wall follower.
+Production now uses the benchmark-winning reference architecture based on:
 
-Gold production has a special restore rule:
+https://pastebin.com/KzGvn6nc
 
-- while Gold remains the selected resource, `production.run_gold()` must **not** rebuild the sunflower L after each fresh Maze
-- a subsequent non-Gold producer will restore/clear what it needs
+The Maze is **stateful and reused across consecutive Gold-focused planner iterations**.
 
-This fixes the obvious waste where a Maze run was followed by sunflower planting only for the next Gold iteration to immediately `clear()` the farm again.
+### Production lifecycle
 
-### Maze-reuse benchmark
+1. The first Gold-focused `maze.run()` clears the field, creates one fresh Maze, and maps the full loop-free Maze into an ordered tree.
+2. During the initial DFS mapping, encountered Treasures may already be relocated with Weird Substance, so mapping and Gold production can overlap.
+3. Later Gold-focused `maze.run()` calls keep the same Maze and the same in-memory tree.
+4. Tree routing uses node metadata: `val`, `max_val`, `level`, `parent`, and ordered child slots.
+5. Greedy target-directed shortcuts begin after `config.MAZE_GREEDY_AFTER`.
+6. The tree is rerooted around `config.MAZE_REROOT_AT`.
+7. Newly opened walls can trigger branch rotation/reindexing during the configured rebalancing window.
+8. After `config.MAZE_REUSE_LIMIT` relocations, route to the final Treasure, harvest it, reset the in-memory Maze state, and create a fresh Maze on the next Gold request.
 
-Maze reuse is currently being evaluated rather than enabled blindly in production.
+Current production thresholds are in `config.py`:
 
-`benmain.py` calls `simulate("benchmaze", ...)` with identical seeds and start inventories. Because every strategy solves the same number of Treasures, the runtime returned by `simulate()` is directly comparable.
+- `MAZE_REUSE_LIMIT = 300`
+- `MAZE_GREEDY_AFTER = 30`
+- `MAZE_REROOT_AT = 40`
+- `MAZE_REBALANCE_FROM = 40`
+- `MAZE_REBALANCE_ACTIVE_UNTIL = 80`
+- `MAZE_REBALANCE_UNTIL = 140`
 
-`benchmaze.py` currently contains five modes:
+The node dictionaries contain parent/child cycles. **Never compare whole node dictionaries with `==` or `!=`.** Compare stable fields such as `node["coord"]` instead; the game interpreter can hit its maximum comparison depth on cyclic structures.
 
-0. fresh Maze + right-hand wall follower (current-production baseline)
-1. reused Maze + dynamic BFS on the discovered/opening graph
-2. reused Maze + initial spanning tree + greedy shortcut attempts
+### Gold planner interaction
+
+- Gold -> Gold: keep the Maze and tree; do not rebuild sunflowers.
+- Gold -> non-Gold: call `maze.reset()`, clear once, and rebuild the normal farm.
+- If a reusable Maze runs out of Weird Substance, abandoning it is acceptable because normal farming is needed to make more Weird Substance.
+- Farm expansion invalidates the Maze coordinates/tree, so `production.reset_state()` is called before rebuilding the expanded farm.
+
+### Benchmark structure
+
+All benchmarks should follow this repository convention:
+
+- `bench_<name>.py` — contains all implementations/modes for one benchmark topic.
+- `bench_<name>_run.py` — owns the benchmark matrix, seeds, simulation globals, `simulate()` calls, and result aggregation.
+
+For Maze benchmarks:
+
+- `bench_maze.py` contains all six strategies.
+- `bench_maze_run.py` runs them all through the same simulation matrix.
+
+Do **not** create separate files for individual variants such as a standalone reference implementation. Add additional modes to `bench_maze.py` and manage them from `bench_maze_run.py`.
+
+Current Maze modes:
+
+0. fresh Maze + right-hand wall follower
+1. reused Maze + dynamic BFS
+2. reused Maze + initial tree + greedy shortcut attempts
 3. reused Maze + tree + greedy + lazy parent rebalancing
-4. reused Maze + tree + greedy + rebalancing plus our approximate full depth reindex
-5. **reference-tree-rebalancing** — separate behavioral port of the Pastebin reference
+4. reused Maze + tree + greedy + approximate full reindex
+5. reference tree-rebalancing behavioral port
 
-Default benchmark matrix:
+Current benchmark matrix:
 
-- world sizes: 8, 16, and 32
-- Weird-Substance relocations per Maze workload: 25, 100, 300, followed by the final Treasure harvest
+- world sizes: 8, 16, 32
+- relocations: 25, 100, 300 plus final Treasure harvest
 - seeds: 1, 2, 3
 - simulation speedup: 64
-- greedy begins after solve 30
-- rebalancing is limited to the first 140 solves
 
-The benchmark intentionally uses oversized resources so it measures routing/maze overhead rather than farming prerequisites.
+### Benchmark evidence used for the production decision
 
-Set `BENCH_VERBOSE = True` in `benmain.py` to have each simulated worker additionally `quick_print()` its ending `get_tick_count()` and `get_time()`. `quick_print()`/the timing calls are free according to the game timing model, so this is useful for diagnosis without adding benchmark actions.
+The reference implementation clearly won the completed 8x8 tests and the initial 16x16 test.
 
-### Tree-rebalancing source
+| Relocations | Fresh | BFS | Tree | Lazy rebalance | Full reindex | Reference |
+| ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| 25 | 62.27 | 38.53 | 26.05 | 26.05 | 26.05 | **21.91** |
+| 100 | 231.51 | 110.34 | 96.54 | 95.35 | 101.09 | **74.77** |
+| 300 | 687.52 | 255.61 | 267.08 | 243.28 | 251.45 | **174.61** |
 
-- **npcompl33t — `maze single - tree rebalancing`**  
-  https://pastebin.com/KzGvn6nc  
-  Community leaderboard implementation. Relevant ideas used for the benchmark are: map the initial loop-free Maze as a tree, route using tree metadata, begin direct greedy shortcut attempts after a number of solves, and rotate/reindex the tree when newly opened walls provide substantially shallower adjacency.
+16x16 / 25 average:
 
-The source implementation performs a full `reindex_tree()` after some rotations. Benchmark modes 3 and 4 deliberately separate **our own interpretation of rebalancing** from **full-tree reindex overhead**.
+- fresh: 220.85
+- BFS: 126.09
+- tree: 85.54
+- lazy rebalance: 85.57
+- full reindex: 85.57
+- reference: **75.66**
 
-Mode 5 is different: it lives in `benchmaze_reference.py` and independently ports the characteristic reference algorithm instead of sharing our tree implementation. It preserves the reference's ordered child slots, `val/max_val/level` subtree routing, greedy attempts after roughly 30 solves, center reroot around solve 40, early/mid-run shortcut rotations, and full-tree reindexing after rotation. This is a behavioral port for benchmarking, not a verbatim copy of the Pastebin source.
+These results are why the reference architecture was promoted into production `maze.py`.
 
-Do not promote a reuse strategy into production solely because it is conceptually shorter or more complex. Compare identical seeds and choose based on measured runtime/ticks.
+### Sources
+
+- Reference tree-rebalancing implementation: https://pastebin.com/KzGvn6nc
+- Tooltips Code: https://thefarmerwasreplaced.wiki.gg/wiki/Tooltips_Code
 
 ## Future optimization ideas
 
