@@ -19,8 +19,21 @@ _gold_active = False
 # RESTORE NORMAL FARM
 # ==================================================
 
+def reset_state():
+    global _gold_active
+
+    _gold_active = False
+
+    maze.reset()
+
+
+
 def restore_normal_farm():
     global _gold_active
+
+    # Any normal farm restore destroys a reusable Maze.
+    # Reset the in-memory tree before clearing the field.
+    maze.reset()
 
     clear()
 
