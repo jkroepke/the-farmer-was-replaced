@@ -16,6 +16,7 @@ The automation is split into modules:
 - `production.py` — resource-to-production dispatcher and prerequisite resolution
 - `bench_maze.py` — all Maze benchmark strategies, including the reference port
 - `bench_maze_run.py` — Maze simulation matrix, seeds, `simulate()` calls, and result aggregation
+- `docs/MAZE.md` — canonical Maze design, benchmark results, and optimization notes
 
 Always use `import module`, not `from module import ...`.
 
@@ -122,9 +123,9 @@ Unlike the source repository, this project does **not** use huge static inventor
 
 Before expensive full-field crops, the dispatcher also checks the producer's own `get_cost(entity)` and recursively farms missing seed/input resources. For example, if Pumpkin is the needed unlock resource but there are not enough resources to plant the Pumpkin field, the planner first produces the Pumpkin plant's missing input.
 
-If Gold is needed but a Maze cannot start yet, normal fertilized farming is used to generate Weird Substance until `maze.can_start()` succeeds.
+Gold/Maze has a persistent lifecycle and Weird Substance handling that differs from the other producers. See `docs/MAZE.md`.
 
-After Pumpkin, Cactus, or Dinosaur full-field jobs, rebuild the permanent sunflower edges immediately. **Gold/Maze is the exception:** consecutive Gold runs must not rebuild sunflowers between mazes.
+After Pumpkin, Cactus, or Dinosaur full-field jobs, rebuild the permanent sunflower edges immediately.
 
 If `Unlocks.Expand` changes `get_world_size()`, clear/rebuild the layout and sunflower cache because the top-edge coordinates changed.
 
@@ -218,12 +219,13 @@ Current tuning lives in `config.py`:
 
 Energy matters a lot because active energy doubles drone speed.
 
-Sunflowers are permanent and live on the left and top farm edges. They should be rebuilt immediately after full-field jobs such as:
+Sunflowers are permanent and live on the left and top farm edges. They should be rebuilt immediately after destructive full-field jobs such as:
 
-- Maze
 - Pumpkin
 - Cactus
 - Dinosaur
+
+Maze/Gold is intentionally different because an active Maze is reused; see `docs/MAZE.md`.
 
 Do not harvest arbitrary sunflowers.
 
@@ -265,103 +267,17 @@ Do not drop 7-petal sunflowers from the cache. The external community example be
 
 ## Maze
 
-Production now uses the benchmark-winning reference architecture based on:
+All Maze mechanics, persistent Gold lifecycle, production thresholds, reference-source notes, benchmark data, benchmark interpretation, and future optimization ideas are maintained in:
 
-https://pastebin.com/KzGvn6nc
+`docs/MAZE.md`
 
-The Maze is **stateful and reused across consecutive Gold-focused planner iterations**.
-
-### Production lifecycle
-
-1. The first Gold-focused `maze.run()` clears the field, creates one fresh Maze, and maps the full loop-free Maze into an ordered tree.
-2. During the initial DFS mapping, encountered Treasures may already be relocated with Weird Substance, so mapping and Gold production can overlap.
-3. Later Gold-focused `maze.run()` calls keep the same Maze and the same in-memory tree.
-4. Tree routing uses node metadata: `val`, `max_val`, `level`, `parent`, and ordered child slots.
-5. Greedy target-directed shortcuts begin after `config.MAZE_GREEDY_AFTER`.
-6. The tree is rerooted around `config.MAZE_REROOT_AT`.
-7. Newly opened walls can trigger branch rotation/reindexing during the configured rebalancing window.
-8. After `config.MAZE_REUSE_LIMIT` relocations, route to the final Treasure, harvest it, reset the in-memory Maze state, and create a fresh Maze on the next Gold request.
-
-Current production thresholds are in `config.py`:
-
-- `MAZE_REUSE_LIMIT = 300`
-- `MAZE_GREEDY_AFTER = 30`
-- `MAZE_REROOT_AT = 40`
-- `MAZE_REBALANCE_FROM = 40`
-- `MAZE_REBALANCE_ACTIVE_UNTIL = 80`
-- `MAZE_REBALANCE_UNTIL = 140`
-
-The node dictionaries contain parent/child cycles. **Never compare whole node dictionaries with `==` or `!=`.** Compare stable fields such as `node["coord"]` instead; the game interpreter can hit its maximum comparison depth on cyclic structures.
-
-### Gold planner interaction
-
-- Gold -> Gold: keep the Maze and tree; do not rebuild sunflowers.
-- Gold -> non-Gold: call `maze.reset()`, clear once, and rebuild the normal farm.
-- If a reusable Maze runs out of Weird Substance, abandoning it is acceptable because normal farming is needed to make more Weird Substance.
-- Farm expansion invalidates the Maze coordinates/tree, so `production.reset_state()` is called before rebuilding the expanded farm.
-
-### Benchmark structure
-
-All benchmarks should follow this repository convention:
-
-- `bench_<name>.py` — contains all implementations/modes for one benchmark topic.
-- `bench_<name>_run.py` — owns the benchmark matrix, seeds, simulation globals, `simulate()` calls, and result aggregation.
-
-For Maze benchmarks:
-
-- `bench_maze.py` contains all six strategies.
-- `bench_maze_run.py` runs them all through the same simulation matrix.
-
-Do **not** create separate files for individual variants such as a standalone reference implementation. Add additional modes to `bench_maze.py` and manage them from `bench_maze_run.py`.
-
-Current Maze modes:
-
-0. fresh Maze + right-hand wall follower
-1. reused Maze + dynamic BFS
-2. reused Maze + initial tree + greedy shortcut attempts
-3. reused Maze + tree + greedy + lazy parent rebalancing
-4. reused Maze + tree + greedy + approximate full reindex
-5. reference tree-rebalancing behavioral port
-
-Current benchmark matrix:
-
-- world sizes: 8, 16, 32
-- relocations: 25, 100, 300 plus final Treasure harvest
-- seeds: 1, 2, 3
-- simulation speedup: 64
-
-### Benchmark evidence used for the production decision
-
-The reference implementation clearly won the completed 8x8 tests and the initial 16x16 test.
-
-| Relocations | Fresh | BFS | Tree | Lazy rebalance | Full reindex | Reference |
-| ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| 25 | 62.27 | 38.53 | 26.05 | 26.05 | 26.05 | **21.91** |
-| 100 | 231.51 | 110.34 | 96.54 | 95.35 | 101.09 | **74.77** |
-| 300 | 687.52 | 255.61 | 267.08 | 243.28 | 251.45 | **174.61** |
-
-16x16 / 25 average:
-
-- fresh: 220.85
-- BFS: 126.09
-- tree: 85.54
-- lazy rebalance: 85.57
-- full reindex: 85.57
-- reference: **75.66**
-
-These results are why the reference architecture was promoted into production `maze.py`.
-
-### Sources
-
-- Reference tree-rebalancing implementation: https://pastebin.com/KzGvn6nc
-- Tooltips Code: https://thefarmerwasreplaced.wiki.gg/wiki/Tooltips_Code
+Do not duplicate Maze benchmark tables or strategy notes here.
 
 ## Future optimization ideas
 
 - Measure job timings with `get_tick_count()` and `get_time()`.
 - Tune pumpkin initial/patch waits empirically.
 - Consider using fertilizer during Cactus jobs.
-- If maze reuse becomes desirable, use sets/dicts for visited-state pathfinding.
 
 
 ## Dinosaur
