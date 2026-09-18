@@ -14,6 +14,8 @@ The automation is split into modules:
 - `cactus.py` — full-field cactus job
 - `unlocks.py` — upgrade selection, cost analysis, resource focus, unlock purchases
 - `production.py` — resource-to-production dispatcher and prerequisite resolution
+- `benmain.py` — simulation benchmark controller for maze strategies
+- `benchmaze.py` — benchmark worker implementing fresh/reuse routing variants
 
 Always use `import module`, not `from module import ...`.
 
@@ -122,7 +124,7 @@ Before expensive full-field crops, the dispatcher also checks the producer's own
 
 If Gold is needed but a Maze cannot start yet, normal fertilized farming is used to generate Weird Substance until `maze.can_start()` succeeds.
 
-After any full-field job, rebuild the permanent sunflower edges immediately.
+After Pumpkin, Cactus, or Dinosaur full-field jobs, rebuild the permanent sunflower edges immediately. **Gold/Maze is the exception:** consecutive Gold runs must not rebuild sunflowers between mazes.
 
 If `Unlocks.Expand` changes `get_world_size()`, clear/rebuild the layout and sunflower cache because the top-edge coordinates changed.
 
@@ -263,9 +265,51 @@ Do not drop 7-petal sunflowers from the cache. The external community example be
 
 ## Maze
 
-Fresh mazes have no loops, so the right-hand wall-following solver is sufficient.
+Fresh mazes have no loops, so the current production solver can safely use a right-hand wall follower.
 
-Maze reuse is intentionally not enabled yet because reused mazes can gain loops and require a more robust visited/pathfinding solver.
+Gold production has a special restore rule:
+
+- while Gold remains the selected resource, `production.run_gold()` must **not** rebuild the sunflower L after each fresh Maze
+- a subsequent non-Gold producer will restore/clear what it needs
+
+This fixes the obvious waste where a Maze run was followed by sunflower planting only for the next Gold iteration to immediately `clear()` the farm again.
+
+### Maze-reuse benchmark
+
+Maze reuse is currently being evaluated rather than enabled blindly in production.
+
+`benmain.py` calls `simulate("benchmaze", ...)` with identical seeds and start inventories. Because every strategy solves the same number of Treasures, the runtime returned by `simulate()` is directly comparable.
+
+`benchmaze.py` currently contains five modes:
+
+0. fresh Maze + right-hand wall follower (current-production baseline)
+1. reused Maze + dynamic BFS on the discovered/opening graph
+2. reused Maze + initial spanning tree + greedy shortcut attempts
+3. reused Maze + tree + greedy + lazy parent rebalancing
+4. reused Maze + tree + greedy + rebalancing plus a source-like full depth reindex
+
+Default benchmark matrix:
+
+- world sizes: 8 and 16
+- solves per Maze workload: 25, 100, 250
+- seeds: 1, 2, 3
+- simulation speedup: 64
+- greedy begins after solve 30
+- rebalancing is limited to the first 140 solves
+
+The benchmark intentionally uses oversized resources so it measures routing/maze overhead rather than farming prerequisites.
+
+Set `BENCH_VERBOSE = True` in `benmain.py` to have each simulated worker additionally `quick_print()` its ending `get_tick_count()` and `get_time()`. `quick_print()`/the timing calls are free according to the game timing model, so this is useful for diagnosis without adding benchmark actions.
+
+### Tree-rebalancing source
+
+- **npcompl33t — `maze single - tree rebalancing`**  
+  https://pastebin.com/KzGvn6nc  
+  Community leaderboard implementation. Relevant ideas used for the benchmark are: map the initial loop-free Maze as a tree, route using tree metadata, begin direct greedy shortcut attempts after a number of solves, and rotate/reindex the tree when newly opened walls provide substantially shallower adjacency.
+
+The source implementation performs a full `reindex_tree()` after some rotations. Benchmark modes 3 and 4 deliberately separate **rebalancing itself** from **full-tree reindex overhead** so we can determine which part affects performance on our 16x16 workload.
+
+Do not promote a reuse strategy into production solely because it is conceptually shorter or more complex. Compare identical seeds and choose based on measured runtime/ticks.
 
 ## Future optimization ideas
 
