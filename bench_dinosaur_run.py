@@ -35,7 +35,8 @@ MODE_NAMES = [
     "hamiltonian-skyscraper",
     "safe-shortcuts-annealed-50",
     "safe-shortcuts-hard-25",
-    "safe-shortcuts-hard-50"
+    "safe-shortcuts-hard-50",
+    "skysdottir-tfwr-reference"
 ]
 
 
