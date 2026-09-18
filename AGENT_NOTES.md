@@ -16,6 +16,8 @@ The automation is split into modules:
 - `production.py` — resource-to-production dispatcher and prerequisite resolution
 - `bench_maze.py` — all Maze benchmark strategies, including the reference port
 - `bench_maze_run.py` — Maze simulation matrix, seeds, `simulate()` calls, and result aggregation
+- `bench_dinosaur.py` — Dinosaur benchmark implementations/modes
+- `bench_dinosaur_run.py` — Dinosaur simulation matrix, seeds, `simulate()` calls, and aggregation
 - `docs/MAZE.md` — canonical Maze design, benchmark results, and optimization notes
 
 Always use `import module`, not `from module import ...`.
@@ -282,51 +284,8 @@ Do not duplicate Maze benchmark tables or strategy notes here.
 
 ## Dinosaur
 
-The Dinosaur Hat is special:
+All Dinosaur mechanics, current strategy, external algorithm research, and benchmark methodology are maintained in:
 
-- `change_hat(Hats.Dinosaur_Hat)` equips it.
-- `clear()` wipes the farm **and resets the drone to the Straw Hat**, so always call `clear()` before equipping the Dinosaur Hat.
-- There is only **one** Dinosaur Hat.
-- Do not put `Hats.Dinosaur_Hat` into the normal repeating worker hat pool.
-- Equipping the hat buys/places an Apple if enough Cactus is available.
-- Moving away from a tile containing an Apple consumes it and grows the tail by one.
-- A new Apple is then bought and placed at a random location if affordable.
-- Apples cannot spawn on blocked/planted locations.
-- `measure()` on the **current Apple**, before moving away and consuming it, returns the `(x, y)` position of the next Apple.
-- Moving onto the dinosaur's own tail fails and returns `False`.
-- The tail end moves away during normal movement.
-- When the tail fills the whole farm, movement is no longer possible.
-- Removing the Dinosaur Hat harvests the tail.
-- A tail of length `n` yields `n**2` `Items.Bone`.
-- Dinosaur movement cannot wrap around the farm boundary.
-- Base Dinosaur `move()` cost is 400 ticks and becomes ~3% cheaper per collected Apple.
+`docs/DINOSAUR.md`
 
-### Current Dinosaur strategy
-
-`dinosaur.py` uses one drone and clears the farm first.
-
-For the current even-sized 16x16 farm it follows a Hamiltonian cycle:
-
-1. Start at `(0,0)`.
-2. Move up the left column.
-3. Snake through columns `1..N-1`, keeping the bottom row open.
-4. Move onto the bottom row at the far right.
-5. Move West across the bottom row back to `(0,0)`.
-6. Repeat the same cycle.
-
-This is intentionally safer than greedily pathfinding directly to the next Apple. A direct shortest path can cut across the current tail and trap the snake.
-
-On a Hamiltonian cycle, every Apple will eventually be visited while the snake keeps a safe ordering around the cycle.
-
-The implementation stops when:
-
-- `move()` fails, normally meaning the snake has filled the map, or
-- a complete Hamiltonian cycle consumes no Apple, meaning no reachable/new Apple currently exists (for example because Cactus ran out).
-
-In either case the code removes the Dinosaur Hat to harvest the accumulated tail as Bones.
-
-### Future Dinosaur optimization
-
-`measure()` on the current Apple exposes the next Apple position **before the move that eats the current Apple**. This could be used to reduce travel, but only if a shortcut algorithm proves that the shortcut cannot intersect the existing tail. Until then the Hamiltonian cycle is the safe default.
-
-For small experiments, `set_world_size(n)` can temporarily shrink the farm (minimum 3) and also clears it. Do not use that in normal production automation unless explicitly desired, because it changes the active farm size for the running program.
+Do not duplicate Dinosaur benchmark tables or strategy notes here.
