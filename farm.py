@@ -341,8 +341,53 @@ def farm_sunflower():
 # ==================================================
 # RESSOURCENFELDER
 # ==================================================
+#
+# focus_item comes from the upgrade planner.
+#
+# Permanent sunflower/carrot support tiles keep their dedicated
+# roles. Only the normal resource area changes its production mix.
+# ==================================================
 
-def farm_resource(min_x, max_x):
+def farm_resource(min_x, max_x, focus_item):
+    if focus_item == Items.Hay:
+        farm_grass(
+            min_x,
+            max_x
+        )
+        return
+
+    if focus_item == Items.Wood:
+        # 50% checkerboard trees:
+        # no north/east/south/west tree adjacency, but much more
+        # wood throughput than the normal 25% mixed-farm pattern.
+        if (
+            get_pos_x()
+            + get_pos_y()
+        ) % 2 == 0:
+            farm_tree(
+                min_x,
+                max_x
+            )
+        else:
+            farm_grass(
+                min_x,
+                max_x
+            )
+
+        return
+
+    if focus_item == Items.Carrot:
+        farm_carrot(
+            min_x,
+            max_x
+        )
+        return
+
+    # Power is produced by the permanent sunflower L and therefore
+    # does not require converting the rest of the farm to sunflowers.
+    #
+    # Unknown/non-basic resources also fall back to this mixed layout;
+    # their dedicated production jobs are handled in production.py.
     if (
         get_pos_x()
         + get_pos_y()
@@ -362,7 +407,7 @@ def farm_resource(min_x, max_x):
 # AKTUELLES FELD
 # ==================================================
 
-def farm_current_field(min_x, max_x):
+def farm_current_field(min_x, max_x, focus_item):
     x = get_pos_x()
     y = get_pos_y()
 
@@ -379,7 +424,8 @@ def farm_current_field(min_x, max_x):
 
     farm_resource(
         min_x,
-        max_x
+        max_x,
+        focus_item
     )
 
 
@@ -657,7 +703,7 @@ def refresh_energy():
 # X-Bereich und fährt darin Snake/Zickzack.
 # ==================================================
 
-def _make_chunk_task(start_x, end_x):
+def _make_chunk_task(start_x, end_x, focus_item):
     def task():
         world_size = utils.size()
         local_column = 0
@@ -678,7 +724,8 @@ def _make_chunk_task(start_x, end_x):
             for step in range(world_size):
                 farm_current_field(
                     start_x,
-                    end_x
+                    end_x,
+                    focus_item
                 )
 
                 if step < world_size - 1:
@@ -705,7 +752,7 @@ def _make_chunk_task(start_x, end_x):
 # Weniger Leerbewegung, keine separaten Spalten-Tasks.
 # ==================================================
 
-def run():
+def run(focus_item = None):
     world_size = utils.size()
 
     refresh_energy()
@@ -726,7 +773,8 @@ def run():
         tasks.append(
             _make_chunk_task(
                 start_x,
-                end_x
+                end_x,
+                focus_item
             )
         )
 
