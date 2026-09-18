@@ -149,11 +149,13 @@ def run_bones():
 
 def run_gold():
     if maze.can_start():
-        success = maze.run()
-
-        restore_normal_farm()
-
-        return success
+        # Gold focus may immediately request another Maze.
+        #
+        # Do NOT rebuild the normal farm here. Rebuilding the permanent
+        # sunflower L between consecutive Maze runs only adds movement
+        # and planting work. If the planner switches away from Gold,
+        # the next normal/special producer restores what it needs.
+        return maze.run()
 
     # First ensure the Bush itself is affordable.
     bush_focus = unlocks.choose_focus_from_cost(
