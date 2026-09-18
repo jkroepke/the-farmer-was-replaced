@@ -35,6 +35,7 @@ Keep the existing modular design.
 - `production.py`: maps required resources to normal/special production jobs and resolves producer prerequisites.
 - `bench_maze.py`: all Maze benchmark implementations/modes.
 - `bench_maze_run.py`: Maze simulation matrix and benchmark orchestration.
+- `docs/MAZE.md`: canonical Maze mechanics, production design, benchmark data, and optimization notes.
 
 Prefer extending an existing module over adding logic to `main.py`.
 
@@ -162,7 +163,7 @@ Do not assume costs are constant across upgrades.
 
 Do not spend reserved resources without considering the configuration in `config.py`.
 
-In particular, preserve the existing relationship between fertilizer and Weird Substance stockpiling for mazes unless intentionally redesigning it.
+Maze/Gold resource handling is documented in `docs/MAZE.md`.
 
 ## Upgrade-driven production
 
@@ -204,9 +205,9 @@ Lower score means higher production focus. Preserve `RESOURCE_PLANS` order as th
 
 Before starting a producer, inspect `get_cost(producer)` and farm missing producer inputs first. Full-field Pumpkin/Cactus requirements must account for the number of tiles they need to plant.
 
-Gold is special: when the Maze cannot start because Weird Substance is missing, keep running fertilized normal farming until `maze.can_start()` is true.
+Gold/Maze has a persistent production lifecycle that differs from the other full-field jobs. Read `docs/MAZE.md` before changing it.
 
-After Pumpkin, Cactus, or Dinosaur full-field jobs, restore the permanent sunflower edges immediately. Gold/Maze is the exception: do not rebuild sunflowers between consecutive Gold-focused Maze runs.
+After Pumpkin, Cactus, or Dinosaur full-field jobs, restore the permanent sunflower edges immediately.
 
 If an `Unlocks.Expand` purchase changes `get_world_size()`, rebuild the entire normal layout and sunflower cache because edge coordinates changed.
 
@@ -287,34 +288,20 @@ The current code sorts rows and columns separately using adjacent swaps. Keep so
 
 ## Mazes
 
-Production `maze.py` uses a persistent reference-style tree-rebalancing strategy, based on:
+All Maze-specific mechanics, production invariants, benchmark results, sources, and optimization notes live in:
 
-https://pastebin.com/KzGvn6nc
+`docs/MAZE.md`
 
-Important rules:
+Read that document before modifying `maze.py`, Maze-related Gold production, or Maze benchmarks. Do not duplicate Maze strategy details in this file.
 
-- The first Gold-focused run creates and fully maps one fresh loop-free Maze.
-- Consecutive Gold runs reuse the same Maze and in-memory tree.
-- Do not rebuild sunflowers between Gold -> Gold iterations.
-- When leaving Gold, call `maze.reset()` before clearing/rebuilding the normal farm.
-- Farm expansion invalidates the Maze tree and must reset it.
-- After the configured reuse limit, route to the final Treasure, harvest, reset, and create a new Maze next time.
-- Greedy shortcuts and tree rebalancing are enabled according to the constants in `config.py`.
-- Node dictionaries are cyclic through parent/child references. Never compare whole nodes with `==` or `!=`; compare coordinates or other scalar identifiers.
+## Benchmark layout
 
-Benchmark naming convention for every future benchmark topic:
+For every benchmark topic, use exactly:
 
-- `bench_<name>.py` contains every implementation/mode being compared.
-- `bench_<name>_run.py` owns simulation matrices, seeds, globals, `simulate()` calls, and aggregation.
+- `bench_<name>.py` for all implementations/modes being compared
+- `bench_<name>_run.py` for matrices, seeds, globals, `simulate()` calls, and result aggregation
 
-For Maze benchmarks use only:
-
-- `bench_maze.py`
-- `bench_maze_run.py`
-
-Do not split one strategy into a separate benchmark file. Add it as another mode in the shared benchmark implementation file.
-
-The reference architecture was promoted to production because it was the fastest tested strategy across all completed 8x8 workloads and the completed 16x16/25 workload. Detailed measurements are recorded in `AGENT_NOTES.md`.
+Do not create one benchmark file per variant. Add variants as modes to the shared `bench_<name>.py`.
 
 ## Dinosaurs
 
