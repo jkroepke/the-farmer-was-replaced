@@ -162,6 +162,77 @@ A Moore implementation should therefore either:
 - prove that its shortcut rules preserve the contiguous-cycle invariant, or
 - track actual tail positions as well.
 
+
+### 6. Steam discussion: hybrid startup pathfinding + Hamiltonian fallback
+
+Source:
+
+- https://steamcommunity.com/app/2060160/discussions/0/600768831220139619/
+
+This thread contains several implementations of the same broad idea that appears in the Reddit/GitHub research:
+
+> use aggressive direct Apple routing while the tail is short, then fall back to a deterministic Hamiltonian/full-coverage path once the tail becomes dangerous.
+
+Useful observations:
+
+- One author explicitly describes a "startup_sequence" that targets Apples directly first and switches to the full loop when the tail becomes too long.
+- A later 32x32 implementation does opportunistic direct routing while the snake length is below half of the board, then switches completely to the full Hamiltonian-style path after 50% occupancy.
+- Another recent implementation reports a leaderboard time of about **21.35** and uses multiple phases:
+  - direct routing for roughly the first 20-30 Apples
+  - side-oriented sweeps afterward
+  - skip portions of the path that do not contain the Apple
+  - gradually fill lower rows as the tail grows to reduce self-collision risk
+  - even-sized worlds only
+- The same author notes that the algorithm can still fail on unlucky early Apple placements, roughly "once every 10 times". Treat it as performance evidence, not a correctness reference.
+
+This reinforces the benchmark priority already identified here: **hybrid early shortcuts + deterministic late Hamiltonian** is more promising than replacing the Hamiltonian path entirely.
+
+### 7. Steam discussion: exact tail simulation with DFS/A*
+
+The same Steam thread also contains two attempts at generic pathfinding.
+
+One DFS implementation:
+
+- tracks the full current snake/tail state
+- tries directions ordered by a Manhattan-like score toward the Apple
+- simulates the body shifting on each candidate move
+- backtracks when a route would collide with the tail
+
+Another much larger A*-style implementation:
+
+- keeps an explicit deque of tail positions
+- simulates the tail while evaluating a candidate path
+- correctly recognizes an important Snake rule: the oldest tail segment can be treated specially because it may move away on the next successful step
+- uses Manhattan distance as the pathfinding heuristic
+- backtracks and restores the simulated tail when a route fails
+
+However, the posted A* code is **not a production-quality reference**:
+
+- another participant reports multiple errors in the pasted implementation
+- the thread mentions invalid indexing / tuple mutation / missing globals
+- the author-side comments themselves show unfinished logic
+- generic DFS/A* can take seconds to calculate in some cases
+
+This makes it useful as a source of **safety invariants**, but not as a direct implementation candidate.
+
+Key invariant worth preserving:
+
+> A safe planner should simulate the tail's movement, not merely treat every currently occupied tail tile as permanently blocked.
+
+That observation can improve shortcut validation without paying the full cost of DFS/A*.
+
+### 8. Steam discussion: do not assume maximum tail is optimal
+
+An early thread calculation argues that a shorter target tail can produce Bones more efficiently per tick than always maximizing the board.
+
+Its numeric examples use an old **800-tick** Dinosaur movement model and are therefore outdated, but the optimization question remains valid:
+
+- a full-board run gives quadratic Bone yield
+- reaching that full board can require a large amount of movement
+- an upgrade-driven planner may need far fewer Bones than the maximum harvest
+
+This independently supports benchmarking target-tail production instead of always filling the complete farm.
+
 ## Important research conclusion: our baseline is already skyscraper-like
 
 The current repository path and the external `skyscraper.py` share the same core geometry:
