@@ -36,6 +36,7 @@ Keep the existing modular design.
 - `bench_maze.py`: all Maze benchmark implementations/modes.
 - `bench_maze_run.py`: Maze simulation matrix and benchmark orchestration.
 - `docs/MAZE.md`: canonical Maze mechanics, production design, benchmark data, and optimization notes.
+- `docs/DINOSAUR.md`: canonical Dinosaur mechanics, external strategy research, and optimization/benchmark plan.
 
 Prefer extending an existing module over adding logic to `main.py`.
 
@@ -305,19 +306,11 @@ Do not create one benchmark file per variant. Add variants as modes to the share
 
 ## Dinosaurs
 
-Only add or change dinosaur logic with the special movement rules in mind.
+All Dinosaur-specific mechanics, production invariants, external strategy research, and benchmark plans live in:
 
-- Equip with `change_hat(Hats.Dinosaur_Hat)`.
-- Only one drone can wear the Dinosaur Hat.
-- Apples consume cactus automatically.
-- Moving away from an apple eats it and grows the tail.
-- `measure()` on an apple returns the next apple coordinates.
-- The dinosaur cannot wrap across farm edges.
-- Moving into the tail can fail.
-- Unequipping the hat harvests the tail.
-- A tail of length `n` yields `n ** 2` bones.
+`docs/DINOSAUR.md`
 
-Because dinosaur movement differs from normal farm movement, do not blindly reuse wrap-aware movement helpers.
+Read that document before modifying `dinosaur.py`, Bone production, or Dinosaur benchmarks.
 
 ## Concurrency safety
 
