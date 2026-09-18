@@ -17,7 +17,7 @@ BENCH_WORLD_SIZES = [
 BENCH_SOLVE_COUNTS = [
     25,
     100,
-    250
+    300
 ]
 
 BENCH_SEEDS = [
@@ -45,7 +45,8 @@ MODE_NAMES = [
     "reuse-bfs",
     "reuse-tree-greedy",
     "reuse-tree-greedy-lazy-rebalance",
-    "reuse-tree-greedy-full-reindex"
+    "reuse-tree-greedy-full-reindex",
+    "reference-tree-rebalancing"
 ]
 
 
@@ -82,8 +83,13 @@ def run_one(
         "BENCH_VERBOSE": BENCH_VERBOSE
     }
 
+    filename = "benchmaze"
+
+    if mode == 5:
+        filename = "benchmaze_reference"
+
     return simulate(
-        "benchmaze",
+        filename,
         Unlocks,
         simulation_items(),
         globals,
@@ -96,29 +102,14 @@ def benchmark_case(
     world_size,
     solves
 ):
-    totals = [
-        0,
-        0,
-        0,
-        0,
-        0
-    ]
+    totals = []
+    minimums = []
+    maximums = []
 
-    minimums = [
-        -1,
-        -1,
-        -1,
-        -1,
-        -1
-    ]
-
-    maximums = [
-        0,
-        0,
-        0,
-        0,
-        0
-    ]
+    for _ in MODE_NAMES:
+        totals.append(0)
+        minimums.append(-1)
+        maximums.append(0)
 
     quick_print(
         "CASE",
