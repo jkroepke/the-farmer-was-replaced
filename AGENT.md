@@ -204,7 +204,7 @@ Before starting a producer, inspect `get_cost(producer)` and farm missing produc
 
 Gold is special: when the Maze cannot start because Weird Substance is missing, keep running fertilized normal farming until `maze.can_start()` is true.
 
-After any full-field job, restore the permanent sunflower edges immediately.
+After Pumpkin, Cactus, or Dinosaur full-field jobs, restore the permanent sunflower edges immediately. Gold/Maze is the exception: do not rebuild sunflowers between consecutive Gold-focused Maze runs.
 
 If an `Unlocks.Expand` purchase changes `get_world_size()`, rebuild the entire normal layout and sunflower cache because edge coordinates changed.
 
@@ -298,9 +298,25 @@ For a fresh maze:
 
 A wall-following solver is sufficient for fresh mazes.
 
-Reused mazes can gain loops, so do not reuse a simple wall-following solver for reused mazes without adding loop-safe logic.
+Gold production must not rebuild the normal sunflower farm between consecutive Maze runs. The next fresh Maze would immediately `clear()` those sunflowers again.
 
-The current repository intentionally runs mazes serially. Keep it serial unless a redesigned solution has a concrete benefit.
+Maze reuse is under simulation benchmark in `benmain.py` + `benchmaze.py`; do not replace production `maze.py` with an unmeasured strategy.
+
+The benchmark compares:
+
+- fresh/right-hand baseline
+- reuse + BFS
+- reuse + initial tree + greedy shortcuts
+- reuse + tree + greedy + lazy rebalancing
+- reuse + tree + greedy + rebalancing + source-like full reindex
+
+Use identical seeds, world sizes, solve counts, unlocks, and starting items. Promote the fastest correct strategy based on `simulate()` runtime / optional ending tick counts, not code simplicity.
+
+The rebalancing benchmark is inspired by:
+
+https://pastebin.com/KzGvn6nc
+
+Detailed methodology and thresholds are documented in `AGENT_NOTES.md`.
 
 ## Dinosaurs
 
