@@ -20,7 +20,7 @@
 
 # Maze benchmark worker.
 #
-# This file is executed through simulate() from benmain.py.
+# This file is executed through simulate() from bench_maze_run.py.
 # The controller injects:
 #
 # BENCH_MODE
@@ -922,8 +922,8 @@ def run_standard():
 #
 # https://pastebin.com/KzGvn6nc
 #
-# This is intentionally kept separate from benchmaze.py so the
-# reference strategy is not mixed with our own simplified variants.
+# The reference strategy is kept as its own mode in this shared
+# benchmark file so every Maze strategy uses the same simulation entrypoint.
 #
 # The port preserves the important algorithmic behavior:
 #
