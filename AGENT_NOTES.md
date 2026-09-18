@@ -292,7 +292,7 @@ Maze reuse is currently being evaluated rather than enabled blindly in productio
 
 Default benchmark matrix:
 
-- world sizes: 8 and 16
+- world sizes: 8, 16, and 32
 - Weird-Substance relocations per Maze workload: 25, 100, 300, followed by the final Treasure harvest
 - seeds: 1, 2, 3
 - simulation speedup: 64
