@@ -4,39 +4,34 @@ import farm
 import maze
 import pumpkin
 import cactus
+import dinosaur
 import workers
 
 
 def main():
     clear()
 
-    # Die Hauptdrohne trägt immer den ersten Hut.
+    # Die Hauptdrohne trägt im normalen Betrieb
+    # immer den ersten Hut aus workers.py.
     workers.set_main_hat()
 
-    # Nach dem Start zuerst die Energieversorgung aufbauen.
+    # Nach dem Start zuerst die permanente
+    # Energieversorgung am linken/oberen Rand aufbauen.
     farm.rebuild_sunflowers()
 
     # Gesamtzahl normaler Mischfarm-Runden.
     production_runs = 0
 
-    # Produktionsrunden seit dem letzten Maze.
+    # Produktionsrunden seit dem letzten Spezialjob.
     maze_runs = 0
-
-    # Produktionsrunden seit dem letzten Pumpkin.
     pumpkin_runs = 0
-
-    # Produktionsrunden seit dem letzten Cactus.
     cactus_runs = 0
-
+    dinosaur_runs = 0
 
     while True:
 
         # =================================================
         # NORMALE MEGA-FARM
-        # =================================================
-        #
-        # farm.run() verteilt die Spalten automatisch
-        # auf mehrere Drohnen.
         # =================================================
 
         farm.run()
@@ -45,6 +40,7 @@ def main():
         maze_runs += 1
         pumpkin_runs += 1
         cactus_runs += 1
+        dinosaur_runs += 1
 
         pet_the_piggy()
 
@@ -59,9 +55,6 @@ def main():
         # =================================================
         # MAZE
         # =================================================
-        #
-        # Maze bleibt bewusst seriell.
-        # =================================================
 
         if (
             maze_runs >= config.MAZE_EVERY
@@ -72,8 +65,6 @@ def main():
 
                 clear()
 
-                # Nach Full-Field-Jobs Sonnenblumen
-                # sofort wieder parallel aufbauen.
                 farm.rebuild_sunflowers()
 
                 unlocks.run()
@@ -84,50 +75,70 @@ def main():
         # =================================================
         # PUMPKIN
         # =================================================
-        #
-        # Pumpkin-Scans laufen spaltenweise parallel.
-        # =================================================
 
         elif (
             pumpkin_runs >= config.PUMPKIN_EVERY
             and pumpkin.can_start()
         ):
-            pumpkin.run()
+            if pumpkin.run():
+                pumpkin_runs = 0
 
-            pumpkin_runs = 0
+                clear()
 
-            clear()
+                farm.rebuild_sunflowers()
 
-            farm.rebuild_sunflowers()
+                unlocks.run()
 
-            unlocks.run()
-
-            pet_the_piggy()
+                pet_the_piggy()
 
 
         # =================================================
         # CACTUS
-        # =================================================
-        #
-        # Pflanzen, Warten und Sortieren werden
-        # soweit möglich über mehrere Drohnen verteilt.
         # =================================================
 
         elif (
             cactus_runs >= config.CACTUS_EVERY
             and cactus.can_start()
         ):
-            cactus.run()
+            if cactus.run():
+                cactus_runs = 0
 
-            cactus_runs = 0
+                clear()
 
-            clear()
+                farm.rebuild_sunflowers()
 
-            farm.rebuild_sunflowers()
+                unlocks.run()
 
-            unlocks.run()
+                pet_the_piggy()
 
-            pet_the_piggy()
+
+        # =================================================
+        # DINOSAURIER
+        # =================================================
+        #
+        # Exklusiver Single-Drone-Job.
+        #
+        # Das Feld wird geleert und der Dinosaur folgt
+        # einem Hamiltonian Cycle, bis der Schwanz die Farm
+        # füllt oder keine Apples mehr entstehen.
+        # =================================================
+
+        elif (
+            dinosaur_runs >= config.DINOSAUR_EVERY
+            and dinosaur.can_start()
+        ):
+            if dinosaur.run():
+                dinosaur_runs = 0
+
+                clear()
+
+                # Dinosaur entfernt den normalen Farm-Inhalt.
+                # Danach sofort wieder Sonnenblumen aufbauen.
+                farm.rebuild_sunflowers()
+
+                unlocks.run()
+
+                pet_the_piggy()
 
 
 if __name__ == "__main__":

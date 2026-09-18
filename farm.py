@@ -49,61 +49,63 @@ def fertilize():
 # ==================================================
 # FARM-LAYOUT
 # ==================================================
-
-def sunflower_start():
-    return (
-        utils.size()
-        - config.SUNFLOWER_SIZE
-    ) // 2
-
-
-def sunflower_end():
-    return (
-        sunflower_start()
-        + config.SUNFLOWER_SIZE
-    )
-
+#
+# Sonnenblumen:
+#
+#   permanentes L am linken und oberen Rand
+#
+#   x = 0
+#   oder
+#   y = world_size - 1
+#
+# Karotten:
+#
+#   direkt dahinter als zweites L
+#
+#   x = 1
+#   oder
+#   y = world_size - 2
+#
+# Bei Breite 1.
+# ==================================================
 
 def is_sunflower_position(x, y):
-    start = sunflower_start()
-    end = sunflower_end()
+    world_size = utils.size()
+    width = config.SUNFLOWER_EDGE_WIDTH
 
     return (
-        x >= start
-        and x < end
-        and y >= start
-        and y < end
+        x < width
+        or y >= world_size - width
     )
 
 
 def is_carrot_position(x, y):
-    start = sunflower_start()
-    end = sunflower_end()
+    world_size = utils.size()
 
-    outer_start = max(
-        0,
-        start - config.CARROT_RING_WIDTH
-    )
+    sunflower_width = config.SUNFLOWER_EDGE_WIDTH
+    carrot_width = config.CARROT_SUPPORT_EDGE_WIDTH
 
-    outer_end = min(
-        utils.size(),
-        end + config.CARROT_RING_WIDTH
-    )
-
-    inside_outer = (
-        x >= outer_start
-        and x < outer_end
-        and y >= outer_start
-        and y < outer_end
-    )
-
-    if not inside_outer:
-        return False
-
+    # Sonnenblumen haben Priorität.
     if is_sunflower_position(x, y):
         return False
 
-    return True
+    left_start = sunflower_width
+    left_end = sunflower_width + carrot_width
+
+    top_end = world_size - sunflower_width
+    top_start = top_end - carrot_width
+
+    return (
+        (
+            x >= left_start
+            and x < left_end
+        )
+        or
+        (
+            y >= top_start
+            and y < top_end
+        )
+    )
 
 
 def is_protected_position(x, y):
@@ -387,77 +389,98 @@ def farm_current_field(min_x, max_x):
 # ==================================================
 # SONNENBLUMEN SOFORT WIEDER AUFBAUEN
 # ==================================================
+#
+# Zwei kurze Tasks:
+#
+# 1. linke Spalte
+# 2. obere Reihe (ohne doppelte Ecke)
+#
+# Dadurch ist der Energiebereich nach Maze/Pumpkin/Cactus
+# sofort wieder vorhanden, ohne eine große Fläche zu scannen.
+# ==================================================
 
-def _make_rebuild_chunk_task(start_x, end_x):
-    def task():
-        start_y = sunflower_start()
-        end_y = sunflower_end()
-        all_planted = True
+def _rebuild_left_edge():
+    world_size = utils.size()
 
-        for x in range(start_x, end_x):
-            utils.move_to(x, start_y)
+    x = 0
 
-            for y in range(start_y, end_y):
-                utils.water()
+    for y in range(world_size - 1):
+        utils.move_to(
+            x,
+            y
+        )
 
-                if get_ground_type() != Grounds.Soil:
-                    till()
+        utils.water()
 
-                entity = get_entity_type()
+        if get_ground_type() != Grounds.Soil:
+            till()
 
-                if entity != Entities.Sunflower:
-                    if entity != None:
-                        if can_harvest():
-                            harvest()
-                        else:
-                            all_planted = False
+        entity = get_entity_type()
 
-                    if get_entity_type() == None:
-                        if utils.can_afford(Entities.Sunflower):
-                            plant(Entities.Sunflower)
-                        else:
-                            all_planted = False
+        if entity != Entities.Sunflower:
+            if entity != None:
+                if can_harvest():
+                    harvest()
+                else:
+                    continue
 
-                if y < end_y - 1:
-                    move(North)
+            if utils.can_afford(
+                Entities.Sunflower
+            ):
+                plant(
+                    Entities.Sunflower
+                )
 
-        return all_planted
+    return True
 
-    return task
+
+def _rebuild_top_edge():
+    world_size = utils.size()
+
+    y = world_size - 1
+
+    for x in range(world_size):
+        utils.move_to(
+            x,
+            y
+        )
+
+        utils.water()
+
+        if get_ground_type() != Grounds.Soil:
+            till()
+
+        entity = get_entity_type()
+
+        if entity != Entities.Sunflower:
+            if entity != None:
+                if can_harvest():
+                    harvest()
+                else:
+                    continue
+
+            if utils.can_afford(
+                Entities.Sunflower
+            ):
+                plant(
+                    Entities.Sunflower
+                )
+
+    return True
 
 
 def rebuild_sunflowers():
-    start = sunflower_start()
-    end = sunflower_end()
-    width = end - start
+    tasks = [
+        _rebuild_left_edge,
+        _rebuild_top_edge
+    ]
 
-    # Maximal vier Worker für das kleine zentrale Feld.
-    worker_count = min(
-        max_drones(),
-        width,
-        4
+    workers.run(tasks)
+
+    utils.move_to(
+        0,
+        0
     )
-
-    chunks = workers.make_chunks(
-        width,
-        worker_count
-    )
-
-    tasks = []
-
-    for chunk_start, chunk_end in chunks:
-        tasks.append(
-            _make_rebuild_chunk_task(
-                start + chunk_start,
-                start + chunk_end
-            )
-        )
-
-    results = workers.run(tasks)
-
-    for result in results:
-        if not result:
-            return False
 
     return True
 
@@ -466,97 +489,123 @@ def rebuild_sunflowers():
 # ENERGIE NACHLADEN
 # ==================================================
 #
-# Das zentrale Sonnenblumenfeld wird in wenige Chunks
-# geteilt. Keine einzelne Scanner-Drohne pro Spalte.
+# Die Sonnenblumen liegen bereits am Rand.
+# Deshalb genügen zwei kurze Scans.
+#
+# Rückgabe eines Scan-Tasks:
+#
+# (count, max_petals, best_x, best_y)
 # ==================================================
 
-def _make_energy_chunk_task(start_x, end_x):
-    def task():
-        start_y = sunflower_start()
-        end_y = sunflower_end()
+def _scan_left_edge():
+    world_size = utils.size()
 
-        sunflower_count = 0
-        max_petals = 0
-        best_x = -1
-        best_y = -1
+    count = 0
+    max_petals = 0
 
-        for x in range(start_x, end_x):
-            utils.move_to(x, start_y)
+    best_x = -1
+    best_y = -1
 
-            for y in range(start_y, end_y):
-                if get_entity_type() == Entities.Sunflower:
-                    sunflower_count += 1
-                    petals = measure()
+    x = 0
 
-                    if petals > max_petals:
-                        max_petals = petals
-                        best_x = -1
-                        best_y = -1
-
-                        if can_harvest():
-                            best_x = x
-                            best_y = y
-
-                    elif petals == max_petals:
-                        if best_x == -1 and can_harvest():
-                            best_x = x
-                            best_y = y
-
-                if y < end_y - 1:
-                    move(North)
-
-        return (
-            sunflower_count,
-            max_petals,
-            best_x,
-            best_y
+    for y in range(world_size - 1):
+        utils.move_to(
+            x,
+            y
         )
 
-    return task
+        if get_entity_type() == Entities.Sunflower:
+            count += 1
+            petals = measure()
+
+            if petals > max_petals:
+                max_petals = petals
+                best_x = -1
+                best_y = -1
+
+                if can_harvest():
+                    best_x = x
+                    best_y = y
+
+            elif petals == max_petals:
+                if best_x == -1 and can_harvest():
+                    best_x = x
+                    best_y = y
+
+    return (
+        count,
+        max_petals,
+        best_x,
+        best_y
+    )
+
+
+def _scan_top_edge():
+    world_size = utils.size()
+
+    count = 0
+    max_petals = 0
+
+    best_x = -1
+    best_y = -1
+
+    y = world_size - 1
+
+    for x in range(world_size):
+        utils.move_to(
+            x,
+            y
+        )
+
+        if get_entity_type() == Entities.Sunflower:
+            count += 1
+            petals = measure()
+
+            if petals > max_petals:
+                max_petals = petals
+                best_x = -1
+                best_y = -1
+
+                if can_harvest():
+                    best_x = x
+                    best_y = y
+
+            elif petals == max_petals:
+                if best_x == -1 and can_harvest():
+                    best_x = x
+                    best_y = y
+
+    return (
+        count,
+        max_petals,
+        best_x,
+        best_y
+    )
 
 
 def refresh_energy():
     original_x = get_pos_x()
     original_y = get_pos_y()
 
-    start = sunflower_start()
-    end = sunflower_end()
-    width = end - start
-
-    worker_count = min(
-        max_drones(),
-        width,
-        4
-    )
-
-    chunks = workers.make_chunks(
-        width,
-        worker_count
-    )
-
-    tasks = []
-
-    for chunk_start, chunk_end in chunks:
-        tasks.append(
-            _make_energy_chunk_task(
-                start + chunk_start,
-                start + chunk_end
-            )
-        )
-
-    results = workers.run(tasks)
+    results = workers.run([
+        _scan_left_edge,
+        _scan_top_edge
+    ])
 
     sunflower_count = 0
     global_max = 0
+
     best_x = -1
     best_y = -1
 
     for result in results:
         count, petals, x, y = result
+
         sunflower_count += count
 
         if petals > global_max:
             global_max = petals
+
             best_x = -1
             best_y = -1
 
@@ -569,8 +618,14 @@ def refresh_energy():
                 best_x = x
                 best_y = y
 
-    if sunflower_count >= 10 and best_x >= 0:
-        utils.move_to(best_x, best_y)
+    if (
+        sunflower_count >= 10
+        and best_x >= 0
+    ):
+        utils.move_to(
+            best_x,
+            best_y
+        )
 
         if (
             get_entity_type() == Entities.Sunflower
@@ -579,8 +634,12 @@ def refresh_energy():
         ):
             harvest()
 
-            if utils.can_afford(Entities.Sunflower):
-                plant(Entities.Sunflower)
+            if utils.can_afford(
+                Entities.Sunflower
+            ):
+                plant(
+                    Entities.Sunflower
+                )
 
     utils.move_to(
         original_x,

@@ -9,6 +9,9 @@
 # Hüte werden einfach zyklisch auf die Worker verteilt.
 # ==================================================
 
+# Hats.Dinosaur_Hat gehört absichtlich NICHT in diese Liste.
+# Davon existiert nur ein Exemplar und es wird ausschließlich
+# vom Dinosaur-Spezialjob verwendet.
 HATS = [
     Hats.Straw_Hat,
     Hats.Gray_Hat,
