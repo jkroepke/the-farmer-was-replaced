@@ -11,7 +11,8 @@
 
 BENCH_WORLD_SIZES = [
     8,
-    16
+    16,
+    32
 ]
 
 BENCH_SOLVE_COUNTS = [
