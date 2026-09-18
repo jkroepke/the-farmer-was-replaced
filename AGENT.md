@@ -300,6 +300,11 @@ A wall-following solver is sufficient for fresh mazes.
 
 Gold production must not rebuild the normal sunflower farm between consecutive Maze runs. The next fresh Maze would immediately `clear()` those sunflowers again.
 
+`production.py` tracks this with a Gold-active state:
+- Gold -> Gold: keep the farm in Maze mode; no sunflower rebuild
+- Gold -> non-Gold: restore the normal farm exactly once
+- Gold with missing Maze prerequisites: restore once, then farm the missing input / Weird Substance
+
 Maze reuse is under simulation benchmark in `benmain.py` + `benchmaze.py`; do not replace production `maze.py` with an unmeasured strategy.
 
 The benchmark compares:
@@ -308,13 +313,16 @@ The benchmark compares:
 - reuse + BFS
 - reuse + initial tree + greedy shortcuts
 - reuse + tree + greedy + lazy rebalancing
-- reuse + tree + greedy + rebalancing + source-like full reindex
+- reuse + tree + greedy + rebalancing + our approximate full reindex
+- separate reference behavioral port in `benchmaze_reference.py`
 
 Use identical seeds, world sizes, solve counts, unlocks, and starting items. Promote the fastest correct strategy based on `simulate()` runtime / optional ending tick counts, not code simplicity.
 
 The rebalancing benchmark is inspired by:
 
 https://pastebin.com/KzGvn6nc
+
+Do not confuse our modes 3/4 with the reference port. Mode 5 runs `benchmaze_reference.py`, which independently preserves the reference algorithm's ordered tree metadata, subtree-range routing, greedy phase, reroot, rotations, and full reindex behavior.
 
 Detailed methodology and thresholds are documented in `AGENT_NOTES.md`.
 
