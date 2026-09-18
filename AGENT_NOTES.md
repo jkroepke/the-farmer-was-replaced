@@ -4,7 +4,7 @@
 
 The automation is split into modules:
 
-- `main.py` — orchestration and periodic special jobs
+- `main.py` — upgrade-driven orchestration
 - `config.py` — tuning knobs
 - `utils.py` — movement, affordability, water helpers
 - `workers.py` — multi-drone worker pool and hats
@@ -12,7 +12,8 @@ The automation is split into modules:
 - `maze.py` — fresh maze creation + wall-following solver
 - `pumpkin.py` — full-field giant pumpkin job
 - `cactus.py` — full-field cactus job
-- `unlocks.py` — automatic unlock purchases
+- `unlocks.py` — upgrade selection, cost analysis, resource focus, unlock purchases
+- `production.py` — resource-to-production dispatcher and prerequisite resolution
 
 Always use `import module`, not `from module import ...`.
 
@@ -47,6 +48,97 @@ Because the map wraps, the top edge is one `South` move away from `(0,0)`.
 A carrot support L sits directly inside the sunflower L.
 
 Water production is high (~3.2/s) and fertilizer production is high (~0.8/s), so both may be used aggressively.
+
+## Upgrade and resource planner
+
+The main loop is **not cycle-driven anymore**. Do not reintroduce fixed counters such as `PUMPKIN_EVERY`, `CACTUS_EVERY`, or `DINOSAUR_EVERY`.
+
+The current planner works in two stages.
+
+### 1. Choose the next unlock
+
+`config.AUTO_UNLOCKS` defines progression order:
+
+1. `Unlocks.Speed`
+2. `Unlocks.Expand`
+3. `Unlocks.Watering`
+4. `Unlocks.Grass`
+5. `Unlocks.Cactus`
+6. `Unlocks.Plant`
+7. `Unlocks.Carrots`
+8. `Unlocks.Trees`
+9. `Unlocks.Pumpkins`
+10. `Unlocks.Polyculture`
+11. `Unlocks.Dinosaurs`
+12. `Unlocks.Megafarm`
+
+To avoid skipping progression dependencies, `unlocks.next_target()` only considers:
+
+- every upgrade line that has already been unlocked at least once
+- plus the first entry in the list that has never been unlocked
+
+Within that candidate set, selection is cost-driven:
+
+1. lowest **remaining total cost** wins (`sum(max(required - inventory, 0))`)
+2. lowest nominal total `get_cost()` wins a tie
+3. configured unlock order wins the remaining tie
+
+`get_cost(unlock)` is queried every planner loop. Do not cache upgrade costs because they change with levels. Current game behavior/documentation returns `{}` for an upgradeable unlock that is already maxed.
+
+### 2. Choose which resource to produce
+
+`config.RESOURCE_PLANS` is based on the plant/item order and priority values in Thorrdu's `parameters.py`:
+
+| Output | Producer | Priority |
+| --- | --- | ---: |
+| `Items.Power` | `Entities.Sunflower` | 7 |
+| `Items.Hay` | `Entities.Grass` | 5 |
+| `Items.Wood` | `Entities.Tree` | 5 |
+| `Items.Carrot` | `Entities.Carrot` | 5 |
+| `Items.Pumpkin` | `Entities.Pumpkin` | 4 |
+| `Items.Cactus` | `Entities.Cactus` | 4 |
+| `Items.Bone` | Dinosaur job | 3 |
+| `Items.Gold` | Maze job | 3 |
+
+For all missing items in the selected unlock's real `get_cost()` dictionary, `unlocks.choose_focus_from_cost()` computes:
+
+`score = (current_amount / required_amount) / priority`
+
+The lowest score is farmed first. `RESOURCE_PLANS` order is the deterministic tie-breaker.
+
+Unlike the source repository, this project does **not** use huge static inventory targets. Required amounts always come from the current unlock's `get_cost()`.
+
+### Production dispatch
+
+`production.py` maps the selected output to the correct strategy:
+
+- Power/Hay/Wood/Carrot → normal chunked farm with the resource area biased toward that output
+- Pumpkin → full-field Pumpkin job
+- Cactus → full-field Cactus job
+- Bone → Dinosaur job
+- Gold → Maze job
+
+Before expensive full-field crops, the dispatcher also checks the producer's own `get_cost(entity)` and recursively farms missing seed/input resources. For example, if Pumpkin is the needed unlock resource but there are not enough resources to plant the Pumpkin field, the planner first produces the Pumpkin plant's missing input.
+
+If Gold is needed but a Maze cannot start yet, normal fertilized farming is used to generate Weird Substance until `maze.can_start()` succeeds.
+
+After any full-field job, rebuild the permanent sunflower edges immediately.
+
+If `Unlocks.Expand` changes `get_world_size()`, clear/rebuild the layout and sunflower cache because the top-edge coordinates changed.
+
+### Planner sources
+
+- **Thorrdu — `parameters.py`**  
+  https://github.com/Thorrdu/the-farmer-was-replaced/blob/main/parameters.py  
+  Source for the plant → item mapping, resource ordering, and priority values.
+
+- **Thorrdu — `tools.py` / `priority_crop()`**  
+  https://github.com/Thorrdu/the-farmer-was-replaced/blob/main/tools.py  
+  Source for the `progressRatio / priority` resource-selection idea. Our implementation replaces static targets with live `get_cost()` requirements.
+
+- **Tooltips Code / game API**  
+  https://thefarmerwasreplaced.wiki.gg/wiki/Tooltips_Code  
+  Primary reference for `get_cost()`, `num_items()`, `num_unlocked()`, and `unlock()` behavior.
 
 ## Pumpkin rules
 
