@@ -7,6 +7,8 @@
 # 1 = skyscraper + safe shortcuts + source-like annealing, stop at 50%
 # 2 = skyscraper + safe shortcuts, hard stop at 25%
 # 3 = skyscraper + safe shortcuts, hard stop at 50%
+# 4 = skysdottir/tfwr behavioral reference:
+#     Hilbert cycle + source-like safe shortcutting/annealing
 #
 # Shortcut logic is based on:
 # https://github.com/skysdottir/tfwr
@@ -671,6 +673,528 @@ def run_shortcuts():
 
 
 # ==================================================
+# SKYSDOTTIR/TFWR REFERENCE
+# ==================================================
+#
+# Behavioral port of:
+# https://github.com/skysdottir/tfwr/blob/main/dinos3.py
+# https://github.com/skysdottir/tfwr/blob/main/hilbert.py
+#
+# Keep this mode source-like. It intentionally uses Hilbert rather
+# than our production/skyscraper path, source-style tail anticipation
+# on arrival at the Apple, and the source annealing formula.
+#
+# REF_ACTUAL_TAIL_LENGTH is separate from REF_TAIL_LENGTH:
+# - REF_TAIL_LENGTH preserves the source's logical accounting
+# - REF_ACTUAL_TAIL_LENGTH gives the benchmark a fair stop condition
+#   based on Apples actually consumed by leaving their tile.
+# ==================================================
+
+REF_PATH_IDS = {}
+
+REF_TAIL_LENGTH = 1
+REF_ACTUAL_TAIL_LENGTH = 1
+REF_CYCLE_LENGTH = 0
+REF_FULL_CYCLE_LENGTH = 0
+REF_NEXT_APPLE = None
+
+REF_DIR_2_ENTRY_CORNER = {
+    East: (0, 1),
+    West: (1, 0),
+    South: (0, 1),
+    North: (1, 0)
+}
+
+REF_HILBERT_PATHS = {
+    (North, North): [
+        West,
+        North,
+        East,
+        North
+    ],
+    (South, South): [
+        East,
+        South,
+        West,
+        South
+    ],
+    (East, East): [
+        South,
+        East,
+        North,
+        East
+    ],
+    (West, West): [
+        North,
+        West,
+        South,
+        West
+    ],
+    (North, East): [
+        West,
+        North,
+        East,
+        East
+    ],
+    (North, West): [
+        North,
+        West,
+        South,
+        West
+    ],
+    (East, North): [
+        South,
+        East,
+        North,
+        North
+    ],
+    (East, South): [
+        East,
+        South,
+        West,
+        South
+    ],
+    (South, East): [
+        South,
+        East,
+        North,
+        East
+    ],
+    (South, West): [
+        East,
+        South,
+        West,
+        West
+    ],
+    (West, North): [
+        West,
+        North,
+        East,
+        North
+    ],
+    (West, South): [
+        North,
+        West,
+        South,
+        South
+    ]
+}
+
+
+def ref_hilbert_move(
+    location,
+    delta,
+    direction
+):
+    x, y = location
+
+    if direction == North:
+        return (
+            x,
+            y + delta
+        )
+
+    if direction == South:
+        return (
+            x,
+            y - delta
+        )
+
+    if direction == East:
+        return (
+            x + delta,
+            y
+        )
+
+    if direction == West:
+        return (
+            x - delta,
+            y
+        )
+
+    return location
+
+
+def ref_hilbert_recurse(
+    enter,
+    exit_direction,
+    location,
+    delta,
+    range_start
+):
+    global REF_PATH_IDS
+
+    if delta == 1:
+        REF_PATH_IDS[
+            location
+        ] = [
+            range_start,
+            exit_direction
+        ]
+
+        return
+
+    half = delta // 2
+
+    path = REF_HILBERT_PATHS[
+        (
+            enter,
+            exit_direction
+        )
+    ]
+
+    entry_corner = (
+        REF_DIR_2_ENTRY_CORNER[
+            enter
+        ]
+    )
+
+    sub_square = (
+        location[0]
+        + entry_corner[0]
+        * half,
+        location[1]
+        + entry_corner[1]
+        * half
+    )
+
+    current_enter = enter
+
+    for index in range(
+        len(path)
+    ):
+        direction = path[index]
+
+        ref_hilbert_recurse(
+            current_enter,
+            direction,
+            sub_square,
+            half,
+            range_start
+            + (
+                index
+                * half
+                * half
+            )
+        )
+
+        sub_square = (
+            ref_hilbert_move(
+                sub_square,
+                half,
+                direction
+            )
+        )
+
+        current_enter = (
+            direction
+        )
+
+
+def ref_build_hilbert_path():
+    global REF_PATH_IDS
+    global REF_FULL_CYCLE_LENGTH
+    global REF_CYCLE_LENGTH
+
+    REF_PATH_IDS = {}
+
+    world_size = get_world_size()
+
+    REF_FULL_CYCLE_LENGTH = (
+        world_size
+        * world_size
+    )
+
+    REF_CYCLE_LENGTH = (
+        REF_FULL_CYCLE_LENGTH
+    )
+
+    half = world_size // 2
+
+    location = (
+        0,
+        0
+    )
+
+    enter = West
+
+    path = [
+        North,
+        East,
+        South,
+        West
+    ]
+
+    for index in range(4):
+        direction = path[index]
+
+        ref_hilbert_recurse(
+            enter,
+            direction,
+            location,
+            half,
+            index
+            * half
+            * half
+        )
+
+        location = ref_hilbert_move(
+            location,
+            half,
+            direction
+        )
+
+        enter = direction
+
+
+def ref_get_target(
+    here,
+    direction
+):
+    return neighbor(
+        here,
+        direction
+    )
+
+
+def ref_can_shortcut(
+    here,
+    direction
+):
+    global SHORTCUT_ATTEMPTS
+
+    SHORTCUT_ATTEMPTS += 1
+
+    if not can_move(
+        direction
+    ):
+        return 0
+
+    threshold = (
+        1
+        - (
+            REF_TAIL_LENGTH
+            * 2
+            / REF_FULL_CYCLE_LENGTH
+        )
+    )
+
+    if random() > threshold:
+        return 0
+
+    tail = tail_peek()
+    tail_location = tail[0]
+
+    target = ref_get_target(
+        here,
+        direction
+    )
+
+    if mod_between(
+        REF_PATH_IDS[target][0],
+        REF_PATH_IDS[tail_location][0],
+        REF_PATH_IDS[here][0],
+        REF_FULL_CYCLE_LENGTH
+    ):
+        return 0
+
+    if not mod_between(
+        REF_PATH_IDS[target][0],
+        REF_PATH_IDS[here][0],
+        REF_PATH_IDS[REF_NEXT_APPLE][0],
+        REF_FULL_CYCLE_LENGTH
+    ):
+        return 0
+
+    here_index = (
+        REF_PATH_IDS[here][0]
+    )
+
+    target_index = (
+        REF_PATH_IDS[target][0]
+    )
+
+    if target_index < here_index:
+        target_index += (
+            REF_FULL_CYCLE_LENGTH
+        )
+
+    removed = (
+        target_index
+        - here_index
+        - 1
+    )
+
+    if (
+        REF_CYCLE_LENGTH
+        - removed
+        > REF_TAIL_LENGTH + 1
+    ):
+        return removed
+
+    return 0
+
+
+def ref_scoot(
+    direction,
+    saved
+):
+    global REF_TAIL_LENGTH
+    global REF_ACTUAL_TAIL_LENGTH
+    global REF_CYCLE_LENGTH
+    global REF_NEXT_APPLE
+    global SHORTCUTS_TAKEN
+    global SHORTCUT_STEPS_SAVED
+    global MOVES_MADE
+
+    on_apple = (
+        get_entity_type()
+        == Entities.Apple
+    )
+
+    if not move(
+        direction
+    ):
+        return -1
+
+    MOVES_MADE += 1
+
+    if on_apple:
+        REF_ACTUAL_TAIL_LENGTH += 1
+
+    here = coord()
+
+    REF_CYCLE_LENGTH -= (
+        saved
+    )
+
+    tail_push([
+        here,
+        saved
+    ])
+
+    if saved > 0:
+        SHORTCUTS_TAKEN += 1
+        SHORTCUT_STEPS_SAVED += (
+            saved
+        )
+
+    # Source behavior: logical tail accounting advances on ARRIVAL
+    # at the current Apple, then measure() reveals the following Apple.
+    if here == REF_NEXT_APPLE:
+        REF_TAIL_LENGTH += 1
+        REF_NEXT_APPLE = measure()
+
+        return 1
+
+    old_tail = tail_pop()
+
+    REF_CYCLE_LENGTH += (
+        old_tail[1]
+    )
+
+    return 0
+
+
+def ref_dino_iter():
+    here = coord()
+
+    direction = REF_PATH_IDS[
+        here
+    ][1]
+
+    saved = 0
+
+    # Exact source policy: once at half-board, stop shortcutting.
+    if (
+        REF_TAIL_LENGTH
+        >= REF_FULL_CYCLE_LENGTH / 2
+    ):
+        return ref_scoot(
+            direction,
+            saved
+        )
+
+    wanted = []
+
+    if here[0] > REF_NEXT_APPLE[0]:
+        wanted.append(
+            West
+        )
+
+    if here[0] < REF_NEXT_APPLE[0]:
+        wanted.append(
+            East
+        )
+
+    if here[1] > REF_NEXT_APPLE[1]:
+        wanted.append(
+            South
+        )
+
+    if here[1] < REF_NEXT_APPLE[1]:
+        wanted.append(
+            North
+        )
+
+    for candidate in wanted:
+        candidate_saved = (
+            ref_can_shortcut(
+                here,
+                candidate
+            )
+        )
+
+        if candidate_saved > saved:
+            direction = candidate
+            saved = candidate_saved
+            break
+
+    return ref_scoot(
+        direction,
+        saved
+    )
+
+
+def run_skysdottir_reference():
+    while (
+        REF_ACTUAL_TAIL_LENGTH
+        < target_tail_length()
+    ):
+        result = ref_dino_iter()
+
+        if result < 0:
+            return False
+
+    return True
+
+
+def setup_skysdottir_reference():
+    global REF_TAIL_LENGTH
+    global REF_ACTUAL_TAIL_LENGTH
+    global REF_NEXT_APPLE
+
+    # The reference Hilbert generator requires a 2^n world size.
+    # Current benchmark sizes 8, 16, and 32 all satisfy this.
+    ref_build_hilbert_path()
+
+    tail_reset()
+
+    REF_TAIL_LENGTH = 1
+    REF_ACTUAL_TAIL_LENGTH = 1
+
+    REF_NEXT_APPLE = measure()
+
+    tail_push([
+        (
+            0,
+            0
+        ),
+        0
+    ])
+
+
+# ==================================================
 # SETUP / ENTRYPOINT
 # ==================================================
 
@@ -722,7 +1246,10 @@ def setup():
     SHORTCUT_STEPS_SAVED = 0
     MOVES_MADE = 0
 
-    if BENCH_MODE != 0:
+    if BENCH_MODE == 4:
+        setup_skysdottir_reference()
+
+    elif BENCH_MODE != 0:
         build_path()
         tail_reset()
 
@@ -738,6 +1265,8 @@ def setup():
 
 
 def main():
+    global CURRENT_TAIL_LENGTH
+
     if not setup():
         quick_print(
             "DINOSAUR BENCH INVALID",
@@ -750,6 +1279,16 @@ def main():
 
     if BENCH_MODE == 0:
         success = run_baseline()
+
+    elif BENCH_MODE == 4:
+        success = (
+            run_skysdottir_reference()
+        )
+
+        CURRENT_TAIL_LENGTH = (
+            REF_ACTUAL_TAIL_LENGTH
+        )
+
     else:
         success = run_shortcuts()
 
