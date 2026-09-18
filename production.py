@@ -123,9 +123,7 @@ def run_cactus():
     if prerequisite != None:
         return run(prerequisite)
 
-    farm.run(Items.Pumpkin)
-
-    return True
+    return run(Items.Pumpkin)
 
 
 # ==================================================
