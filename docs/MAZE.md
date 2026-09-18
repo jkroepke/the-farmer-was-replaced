@@ -363,22 +363,41 @@ Lower is better. Values are simulation runtime returned by `simulate()`.
 | reuse-tree-greedy-full-reindex | 257.85 | 313.90 | 311.95 | 294.57 | 257.85 | 313.90 |
 | **reference-tree-rebalancing** | **221.29** | **270.30** | **273.24** | **254.94** | **221.29** | **273.24** |
 
-## 32x32, 100 relocations — partial run
+## 32x32, 100 relocations
 
-The full benchmark was intentionally stopped because these simulations take a long time. The available values are still useful and the direction is already clear.
+| Strategy | Seed 1 | Seed 2 | Seed 3 | Average | Min | Max |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| fresh-right-hand | 3588.08 | 3580.60 | 3640.59 | 3603.09 | 3580.60 | 3640.59 |
+| reuse-bfs | 1078.71 | 910.70 | 1022.18 | 1003.86 | 910.70 | 1078.71 |
+| reuse-tree-greedy | 2270.39 | 2087.10 | 2012.77 | 2123.42 | 2012.77 | 2270.39 |
+| reuse-tree-greedy-lazy-rebalance | 1113.70 | 1625.50 | 1411.72 | 1383.64 | 1113.70 | 1625.50 |
+| reuse-tree-greedy-full-reindex | 8627.46 | 9923.28 | 11679.18 | 10076.64 | 8627.46 | 11679.18 |
+| **reference-tree-rebalancing** | **975.35** | **930.96** | **945.66** | **950.66** | **930.96** | **975.35** |
 
-| Strategy | Seed 1 | Seed 2 | Seed 3 |
-| --- | ---: | ---: | ---: |
-| fresh-right-hand | 3588.08 | 3580.60 | not run |
-| reuse-bfs | 1078.71 | 910.70 | not run |
-| reuse-tree-greedy | 2270.39 | 2087.10 | not run |
-| reuse-tree-greedy-lazy-rebalance | 1113.70 | 1625.50 | not run |
-| reuse-tree-greedy-full-reindex | **8627.46** | not completed | not run |
-| reference-tree-rebalancing | **975.35** | not completed | not run |
+This completed case is particularly informative:
 
-32x32 / 300 was not run because the runtime cost was no longer justified after the trend was already clear.
+- the reference strategy remains the fastest
+- BFS becomes very competitive at this size, but still loses to the reference
+- the old static generic tree scales badly
+- lazy rebalancing helps substantially but remains slower than BFS/reference
+- the generic full-reindex strategy becomes catastrophically expensive
 
-This was a deliberate stopping decision, not missing data to silently interpolate. Future agents should preserve the distinction between completed and partial benchmark cases.
+## 32x32, 300 relocations — partial run
+
+The benchmark was intentionally stopped because the runtime cost was no longer justified after the trend was already clear.
+
+Available values:
+
+| Strategy | Seed 1 |
+| --- | ---: |
+| fresh-right-hand | 10685.27 |
+| reuse-bfs | 2611.09 |
+| reuse-tree-greedy | not completed |
+| reuse-tree-greedy-lazy-rebalance | not completed |
+| reuse-tree-greedy-full-reindex | not completed |
+| reference-tree-rebalancing | not completed |
+
+Do not infer missing values from smaller cases. This is intentionally partial benchmark data.
 
 ---
 
@@ -466,19 +485,21 @@ That is a meaningful improvement, but still much slower than the reference at 58
 
 Conclusion: adapting the tree to newly opened Maze edges is important, but our old generic rebalancing design is not sufficient.
 
-## 5. Naive full reindexing can become catastrophically expensive
+## 5. Naive full reindexing becomes catastrophically expensive on large Mazes
 
-The generic `reuse-tree-greedy-full-reindex` mode scales poorly.
+The generic `reuse-tree-greedy-full-reindex` mode scales extremely poorly.
 
 16x16 / 100:
 
 - lazy rebalance: 337.72
 - generic full reindex: 557.25
 
-The partial 32x32 / 100 run is the strongest warning:
+The completed 32x32 / 100 run is the strongest warning:
 
-- generic full reindex, seed 1: **8627.46**
-- reference, seed 1: **975.35**
+- generic full reindex average: **10076.64**
+- reference average: **950.66**
+
+The generic full-reindex mode is therefore more than 10x slower than the reference in this case.
 
 This does **not** prove that full reindexing itself must be removed from the reference strategy.
 
@@ -519,9 +540,9 @@ The reference implementation is the fastest tested strategy in every completed b
 - 16x16 / 100
 - 16x16 / 300
 - 32x32 / 25
-- 32x32 / 100 seed 1 among the completed values
+- 32x32 / 100
 
-This is sufficient evidence to keep the reference architecture in production even though the full 32x32 benchmark matrix was stopped early.
+This is strong evidence to keep the reference architecture in production. The 32x32 / 300 case was stopped early only because the runtime cost of the remaining historical baselines was no longer worth it.
 
 ---
 
