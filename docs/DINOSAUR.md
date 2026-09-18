@@ -399,7 +399,88 @@ Use staged benchmarking:
 
 When tuning shortcut cutoff, compare only the current best path and candidate cutoff values rather than rerunning every historical mode.
 
+# Preliminary benchmark results
+
+These are preview results from the first deterministic benchmark run. Lower is better.
+
+## 8x8
+
+| Target | Hamiltonian | Annealed 50 | Hard 25 | Hard 50 | skysdottir reference |
+| ---: | ---: | ---: | ---: | ---: | ---: |
+| 25% | 17.06 | 15.18 | 14.60 | 14.60 | **11.57** |
+| 50% | 25.90 | **24.03** | 25.14 | 25.70 | 25.38 |
+| 75% | 30.04 | **29.00** | 30.37 | 31.43 | 30.14 |
+| 95% | 31.14 | **30.34** | 31.81 | 32.99 | 31.51 |
+
+Observations:
+
+- At only 25% fill, the reference is about 32% faster than the baseline.
+- At larger 8x8 targets the simple annealed skyscraper shortcut mode is slightly fastest.
+- The advantage becomes small near a full board.
+- Hard cutoff at 50% is consistently unattractive late in the run.
+
+## 16x16
+
+| Target | Hamiltonian | Annealed 50 | Hard 25 | Hard 50 | skysdottir reference |
+| ---: | ---: | ---: | ---: | ---: | ---: |
+| 25% | 173.85 | 146.28 | 142.07 | 142.07 | **93.11** |
+| 50% | 215.90 | 245.25 | 202.12 | 254.54 | **187.03** |
+| 75% | 234.76 | 277.65 | 234.27 | 287.50 | **220.16** |
+| 95% | 241.43 | 287.95 | 245.12 | 298.10 | **230.92** |
+
+Observations:
+
+- The skysdottir reference wins all completed 16x16 cases.
+- Relative to the baseline, its improvement is approximately:
+  - 46% at 25% fill
+  - 13% at 50% fill
+  - 6% at 75% fill
+  - 4% at 95% fill
+- Hard-25 is much better than Hard-50 once the target exceeds 25%.
+- Continuing to evaluate shortcuts too long can be slower than simply following the Hamiltonian cycle.
+- The source-like annealed skyscraper mode also becomes slower than baseline after 25% on 16x16.
+- This strongly supports an early-shortcut / late-Hamiltonian hybrid, but the path geometry matters: the Hilbert-based reference still outperforms our skyscraper adaptation on 16x16 despite earlier community reports that Hilbert can be slower.
+
+## Plausibility check
+
+For a 25% target, `safe-shortcuts-hard-25` and `safe-shortcuts-hard-50` are identical for every shown seed.
+
+That is expected: both modes use identical shortcut behavior until 25% fill, and the benchmark stops there. This is a useful confirmation that the cutoff plumbing behaves as intended.
+
+## 32x32 — partial preview
+
+Only the beginning of the 32x32 / 25% case was available when this preview was recorded:
+
+| Strategy | Seed 1 |
+| --- | ---: |
+| Hamiltonian | 1172.46 |
+| Annealed 50 | 1369.73 |
+| Hard 25 | 1449.68 |
+| Hard 50 | not yet recorded |
+| skysdottir reference | not yet recorded |
+
+This is already an important warning: on 32x32 seed 1, our skyscraper shortcut adaptations are slower than the plain Hamiltonian baseline even at only 25% fill.
+
+Do not conclude that shortcutting itself is bad from this partial case. It may instead mean:
+
+- decision overhead scales badly with board size
+- the skyscraper geometry provides poor shortcut opportunities at 32x32 for this seed
+- the Hilbert/reference geometry may scale differently
+- the current safe-shortcut checks may cost too much relative to saved moves
+
+Wait for the source-reference result before changing production.
+
+## Current benchmark conclusion
+
+Do not promote any strategy into production yet.
+
+The most promising candidate so far is `skysdottir-tfwr-reference`, especially on 16x16. However, 32x32 behavior is not yet known, and the partial result shows that our own shortcut adaptations can regress badly with larger boards.
+
+The data also suggests that the shortcut cutoff must be path- and world-size-aware rather than one global constant.
+
 ## Current next step
+
+Continue the 32x32 / 25% case far enough to obtain the skysdottir reference result. If it remains faster than the baseline, prioritize a source-faithful production adaptation over further tuning of the current skyscraper shortcut variants.
 
 Run `bench_dinosaur_run.py` and record the results here before changing production `dinosaur.py`.
 
