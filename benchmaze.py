@@ -170,7 +170,9 @@ def solve_right_hand():
 
 
 def run_fresh():
-    for _ in range(BENCH_SOLVES):
+    # Reuse strategies perform BENCH_SOLVES relocations and then
+    # harvest the final treasure. Match that total reward count.
+    for _ in range(BENCH_SOLVES + 1):
         create_maze()
 
         solve_right_hand()
@@ -834,13 +836,29 @@ def run_reuse(mode):
             ):
                 return
 
+        target = collect_and_relocate()
+
         solved += 1
 
-        if solved >= BENCH_SOLVES:
-            harvest()
-            break
+    # Same end-of-maze behavior as the reference implementation:
+    # follow the final relocated treasure and harvest it.
+    if mode == 1:
+        move_bfs(
+            graph,
+            target
+        )
 
-        target = collect_and_relocate()
+    else:
+        move_tree(
+            graph,
+            parent,
+            target,
+            solved,
+            False,
+            False
+        )
+
+    harvest()
 
 
 # ==================================================
