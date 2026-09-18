@@ -306,6 +306,8 @@ For every benchmark topic, use exactly:
 
 Do not create one benchmark file per variant. Add variants as modes to the shared `bench_<name>.py`.
 
+**Always include a source-near reference mode when a benchmark is based on an external/community implementation.** The reference may adapt setup and stopping conditions for fair measurement, but preserve the source algorithm's core path, state, and decision rules. This prevents benchmarking only our own interpretation against another one of our own interpretations.
+
 ## Dinosaurs
 
 All Dinosaur-specific mechanics, production invariants, external strategy research, and benchmark plans live in:
