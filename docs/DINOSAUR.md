@@ -240,49 +240,42 @@ Use the repository-wide convention:
 
 Do not create one benchmark file per strategy.
 
-## Recommended initial benchmark modes
+## Implemented initial benchmark modes
 
-Start with:
+The first benchmark now exists in:
 
-| Mode | Strategy | Priority |
+- `bench_dinosaur.py`
+- `bench_dinosaur_run.py`
+
+Current modes:
+
+| Mode | Strategy | Purpose |
 | ---: | --- | --- |
-| 0 | current Hamiltonian/skyscraper baseline | baseline |
-| 1 | skyscraper + safe cycle-index shortcutting | highest |
-| 2 | edge-square + wave | high |
-| 3 | Moore-style indexed loop + safe shortcuts | high after correctness proof |
-| 4 | Hilbert + safe shortcutting | comparison |
-| 5+ | Pastebin strategies | after source can be read |
+| 0 | `hamiltonian-skyscraper` | current production-style baseline |
+| 1 | `safe-shortcuts-annealed-50` | source-like shortcut probability that fades toward 50% fill |
+| 2 | `safe-shortcuts-hard-25` | always evaluate safe shortcuts until 25% fill, then pure Hamiltonian |
+| 3 | `safe-shortcuts-hard-50` | always evaluate safe shortcuts until 50% fill, then pure Hamiltonian |
+
+The shortcut modes deliberately use the same skyscraper/Hamiltonian geometry as production. This isolates shortcut value from path-shape changes.
+
+Future modes can add edge-wave, Moore, Hilbert, and the Pastebin implementations after the current benchmark establishes a shortcut baseline.
 
 Do not replace production `dinosaur.py` until a candidate wins deterministic simulation benchmarks.
 
 ## Benchmark dimensions
 
-World sizes:
+The current runner uses:
 
 ```text
-8
-16
-32
+world sizes: 8, 16, 32
+target tail occupancy: 25%, 50%, 75%, 95%
+seeds: 1, 2, 3
+speedup: 64
 ```
 
-Seeds:
+The benchmark stops at fixed tail occupancy rather than only filling the board. This is important because shortcut value is expected to be concentrated in the early/middle run and because the optimal cutoff may be 25% rather than 50%.
 
-```text
-1
-2
-3
-```
-
-Do not benchmark only "fill the entire board".
-
-Use tail-length checkpoints, because shortcut value is concentrated in the early/middle run:
-
-```text
-25% board occupancy
-50% board occupancy
-75% board occupancy
-near/full board
-```
+The benchmark prints `DINOSAUR BENCH INVALID` if a strategy encounters a failed `move()` before reaching its requested tail target. Treat such a result as invalid even if the returned runtime looks fast.
 
 This also lets us test the claim that shortcut logic should be disabled around 25-50% occupancy.
 
@@ -324,11 +317,13 @@ When tuning shortcut cutoff, compare only the current best path and candidate cu
 
 ## Current next step
 
-Implement the first benchmark pair before changing production:
+Run `bench_dinosaur_run.py` and record the results here before changing production `dinosaur.py`.
 
-1. existing Hamiltonian/skyscraper baseline
-2. same skyscraper cycle with safe shortcutting based on the `skysdottir/tfwr` cycle-index + tail-history approach
+The first benchmark answers two questions:
 
-This gives the cleanest answer to the highest-value question:
+1. How much does safe shortcutting improve the current skyscraper/Hamiltonian path?
+2. Is it better to stop evaluating shortcuts around 25% fill or around 50% fill?
 
-> How much speed can we gain without changing our already-safe Hamiltonian path?
+The source-like annealed mode is included because shortcut decision overhead itself may become significant as Dinosaur moves get cheaper after repeated Apples.
+
+Do not promote a shortcut strategy into production until it reaches all requested tail targets without `DINOSAUR BENCH INVALID` and wins deterministic simulation comparisons.
