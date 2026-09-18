@@ -1,144 +1,105 @@
-import config
 import unlocks
+import production
 import farm
-import maze
-import pumpkin
-import cactus
-import dinosaur
 import workers
+
+
+def restore_after_expand(previous_size):
+    if get_world_size() == previous_size:
+        return
+
+    # Expansion changes the coordinates of the permanent top edge.
+    # Rebuild the farm layout and sunflower cache from a clean state.
+    clear()
+
+    workers.set_main_hat()
+
+    farm.rebuild_sunflowers()
 
 
 def main():
     clear()
 
-    # Die Hauptdrohne trägt im normalen Betrieb
-    # immer den ersten Hut aus workers.py.
     workers.set_main_hat()
 
-    # Nach dem Start zuerst die permanente
-    # Energieversorgung am linken/oberen Rand aufbauen.
+    # Permanent Power source + initial petal cache.
     farm.rebuild_sunflowers()
 
-    # Gesamtzahl normaler Mischfarm-Runden.
-    production_runs = 0
-
-    # Produktionsrunden seit dem letzten Spezialjob.
-    maze_runs = 0
-    pumpkin_runs = 0
-    cactus_runs = 0
-    dinosaur_runs = 0
-
     while True:
+        # =================================================
+        # CHOOSE NEXT UPGRADE
+        # =================================================
+        #
+        # unlocks.next_target() considers:
+        #
+        # - all upgrade lines already unlocked at least once
+        # - the next never-unlocked feature in configured order
+        #
+        # Lowest remaining total get_cost() wins.
+        # =================================================
+
+        target = unlocks.next_target()
+
+        # Everything configured is maxed:
+        # keep the mixed farm productive.
+        if target == None:
+            production.run(None)
+
+            pet_the_piggy()
+
+            continue
+
 
         # =================================================
-        # NORMALE MEGA-FARM
+        # CHEAP FAST-PATH: UNLOCK NOW
         # =================================================
 
-        farm.run()
+        previous_size = get_world_size()
 
-        production_runs += 1
-        maze_runs += 1
-        pumpkin_runs += 1
-        cactus_runs += 1
-        dinosaur_runs += 1
+        if unlocks.try_unlock(target):
+            restore_after_expand(
+                previous_size
+            )
+
+            pet_the_piggy()
+
+            continue
+
+
+        # =================================================
+        # FARM THE MOST NEEDED RESOURCE
+        # =================================================
+        #
+        # Resource choice uses the priority/order inspired by
+        # Thorrdu/parameters.py, but the target quantities are
+        # the real get_cost(target) values.
+        # =================================================
+
+        focus_item = unlocks.focus_item(
+            target
+        )
+
+        production.run(
+            focus_item
+        )
+
+
+        # =================================================
+        # TRY THE SAME TARGET AGAIN
+        # =================================================
+        #
+        # The next loop recalculates the target from all current
+        # inventories/costs, so the plan can naturally change.
+        # =================================================
+
+        previous_size = get_world_size()
+
+        if unlocks.try_unlock(target):
+            restore_after_expand(
+                previous_size
+            )
 
         pet_the_piggy()
-
-
-        # =================================================
-        # AUTOMATISCHE UPGRADES
-        # =================================================
-
-        unlocks.run()
-
-
-        # =================================================
-        # MAZE
-        # =================================================
-
-        if (
-            maze_runs >= config.MAZE_EVERY
-            and maze.can_start()
-        ):
-            if maze.run():
-                maze_runs = 0
-
-                clear()
-
-                farm.rebuild_sunflowers()
-
-                unlocks.run()
-
-                pet_the_piggy()
-
-
-        # =================================================
-        # PUMPKIN
-        # =================================================
-
-        elif (
-            pumpkin_runs >= config.PUMPKIN_EVERY
-            and pumpkin.can_start()
-        ):
-            if pumpkin.run():
-                pumpkin_runs = 0
-
-                clear()
-
-                farm.rebuild_sunflowers()
-
-                unlocks.run()
-
-                pet_the_piggy()
-
-
-        # =================================================
-        # CACTUS
-        # =================================================
-
-        elif (
-            cactus_runs >= config.CACTUS_EVERY
-            and cactus.can_start()
-        ):
-            if cactus.run():
-                cactus_runs = 0
-
-                clear()
-
-                farm.rebuild_sunflowers()
-
-                unlocks.run()
-
-                pet_the_piggy()
-
-
-        # =================================================
-        # DINOSAURIER
-        # =================================================
-        #
-        # Exklusiver Single-Drone-Job.
-        #
-        # Das Feld wird geleert und der Dinosaur folgt
-        # einem Hamiltonian Cycle, bis der Schwanz die Farm
-        # füllt oder keine Apples mehr entstehen.
-        # =================================================
-
-        elif (
-            dinosaur_runs >= config.DINOSAUR_EVERY
-            and dinosaur.can_start()
-        ):
-            if dinosaur.run():
-                dinosaur_runs = 0
-
-                clear()
-
-                # Dinosaur entfernt den normalen Farm-Inhalt.
-                # Danach sofort wieder Sonnenblumen aufbauen.
-                farm.rebuild_sunflowers()
-
-                unlocks.run()
-
-                pet_the_piggy()
 
 
 if __name__ == "__main__":
