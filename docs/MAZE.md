@@ -99,6 +99,10 @@ The important optimization is that a Gold -> Gold transition does **not** rebuil
 
 Defined in `config.py`:
 
+`MAZE_STOCKPILE = 5` controls how many Maze-cost equivalents of Weird Substance normal farming tries to keep available before Gold production needs it.
+
+The routing/reuse thresholds are:
+
 ```text
 MAZE_REUSE_LIMIT = 300
 MAZE_GREEDY_AFTER = 30
@@ -373,6 +377,8 @@ The full benchmark was intentionally stopped because these simulations take a lo
 | reference-tree-rebalancing | **975.35** | not completed | not run |
 
 32x32 / 300 was not run because the runtime cost was no longer justified after the trend was already clear.
+
+This was a deliberate stopping decision, not missing data to silently interpolate. Future agents should preserve the distinction between completed and partial benchmark cases.
 
 ---
 
