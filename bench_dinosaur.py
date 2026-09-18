@@ -539,7 +539,6 @@ def shortcut_move(
 ):
     global CURRENT_TAIL_LENGTH
     global CURRENT_CYCLE_LENGTH
-    global NEXT_APPLE
     global SHORTCUTS_TAKEN
     global SHORTCUT_STEPS_SAVED
     global MOVES_MADE
@@ -548,9 +547,6 @@ def shortcut_move(
         get_entity_type()
         == Entities.Apple
     )
-
-    if on_apple:
-        NEXT_APPLE = measure()
 
     if not move(
         direction
@@ -619,7 +615,18 @@ def greedy_directions(
 
 
 def shortcut_step():
+    global NEXT_APPLE
+
     here = coord()
+
+    # measure() on the current Apple reveals the following Apple.
+    # Update the target before selecting this move so the departure
+    # from an Apple may itself take a safe shortcut.
+    if (
+        get_entity_type()
+        == Entities.Apple
+    ):
+        NEXT_APPLE = measure()
 
     direction = PATH_IDS[
         here
