@@ -15,7 +15,8 @@ The automation is split into modules:
 - `unlocks.py` — upgrade selection, cost analysis, resource focus, unlock purchases
 - `production.py` — resource-to-production dispatcher and prerequisite resolution
 - `benmain.py` — simulation benchmark controller for maze strategies
-- `benchmaze.py` — benchmark worker implementing fresh/reuse routing variants
+- `benchmaze.py` — benchmark worker implementing our fresh/reuse routing variants
+- `benchmaze_reference.py` — separate behavioral port of the Pastebin tree-rebalancing reference
 
 Always use `import module`, not `from module import ...`.
 
@@ -286,12 +287,13 @@ Maze reuse is currently being evaluated rather than enabled blindly in productio
 1. reused Maze + dynamic BFS on the discovered/opening graph
 2. reused Maze + initial spanning tree + greedy shortcut attempts
 3. reused Maze + tree + greedy + lazy parent rebalancing
-4. reused Maze + tree + greedy + rebalancing plus a source-like full depth reindex
+4. reused Maze + tree + greedy + rebalancing plus our approximate full depth reindex
+5. **reference-tree-rebalancing** — separate behavioral port of the Pastebin reference
 
 Default benchmark matrix:
 
 - world sizes: 8 and 16
-- solves per Maze workload: 25, 100, 250
+- Weird-Substance relocations per Maze workload: 25, 100, 300, followed by the final Treasure harvest
 - seeds: 1, 2, 3
 - simulation speedup: 64
 - greedy begins after solve 30
@@ -307,7 +309,9 @@ Set `BENCH_VERBOSE = True` in `benmain.py` to have each simulated worker additio
   https://pastebin.com/KzGvn6nc  
   Community leaderboard implementation. Relevant ideas used for the benchmark are: map the initial loop-free Maze as a tree, route using tree metadata, begin direct greedy shortcut attempts after a number of solves, and rotate/reindex the tree when newly opened walls provide substantially shallower adjacency.
 
-The source implementation performs a full `reindex_tree()` after some rotations. Benchmark modes 3 and 4 deliberately separate **rebalancing itself** from **full-tree reindex overhead** so we can determine which part affects performance on our 16x16 workload.
+The source implementation performs a full `reindex_tree()` after some rotations. Benchmark modes 3 and 4 deliberately separate **our own interpretation of rebalancing** from **full-tree reindex overhead**.
+
+Mode 5 is different: it lives in `benchmaze_reference.py` and independently ports the characteristic reference algorithm instead of sharing our tree implementation. It preserves the reference's ordered child slots, `val/max_val/level` subtree routing, greedy attempts after roughly 30 solves, center reroot around solve 40, early/mid-run shortcut rotations, and full-tree reindexing after rotation. This is a behavioral port for benchmarking, not a verbatim copy of the Pastebin source.
 
 Do not promote a reuse strategy into production solely because it is conceptually shorter or more complex. Compare identical seeds and choose based on measured runtime/ticks.
 
