@@ -38,18 +38,60 @@ MAZE_STOCKPILE = 5
 
 
 # ==================================================
-# SPEZIALJOBS
+# RESSOURCEN-PLANUNG
+# ==================================================
+#
+# Reihenfolge und Prioritäten basieren auf:
+# https://github.com/Thorrdu/the-farmer-was-replaced/blob/main/parameters.py
+#
+# Die statischen "target"-Werte aus dem fremden Repository
+# verwenden wir NICHT. Unser Ziel kommt dynamisch aus get_cost()
+# des aktuell ausgewählten Upgrades.
 # ==================================================
 
-MAZE_EVERY = 2
+RESOURCE_PLANS = [
+    {
+        "item": Items.Power,
+        "plant": Entities.Sunflower,
+        "priority": 7
+    },
+    {
+        "item": Items.Hay,
+        "plant": Entities.Grass,
+        "priority": 5
+    },
+    {
+        "item": Items.Wood,
+        "plant": Entities.Tree,
+        "priority": 5
+    },
+    {
+        "item": Items.Carrot,
+        "plant": Entities.Carrot,
+        "priority": 5
+    },
+    {
+        "item": Items.Pumpkin,
+        "plant": Entities.Pumpkin,
+        "priority": 4
+    },
+    {
+        "item": Items.Cactus,
+        "plant": Entities.Cactus,
+        "priority": 4
+    },
+    {
+        "item": Items.Bone,
+        "plant": None,
+        "priority": 3
+    },
+    {
+        "item": Items.Gold,
+        "plant": None,
+        "priority": 3
+    }
+]
 
-PUMPKIN_EVERY = 5
-
-CACTUS_EVERY = 7
-
-# Dinosaur läuft etwas seltener als Cactus.
-# So kann vorher wieder Cactus als Apple-Währung produziert werden.
-DINOSAUR_EVERY = 8
 
 # Reserve für tote Kürbisse.
 PUMPKIN_COST_FACTOR = 2
@@ -78,5 +120,14 @@ PUMPKIN_PATCH_INTERVAL = 0.25
 AUTO_UNLOCKS = [
     Unlocks.Speed,
     Unlocks.Expand,
-    Unlocks.Watering
+    Unlocks.Watering,
+    Unlocks.Grass,
+    Unlocks.Cactus,
+    Unlocks.Plant,
+    Unlocks.Carrots,
+    Unlocks.Trees,
+    Unlocks.Pumpkins,
+    Unlocks.Polyculture,
+    Unlocks.Dinosaurs,
+    Unlocks.Megafarm
 ]
