@@ -148,7 +148,12 @@ def ref_detach(parent, child):
     for index in range(len(names)):
         name = names[index]
 
-        if parent[name] == child:
+        candidate = parent[name]
+
+        if (
+            candidate != None
+            and candidate["coord"] == child["coord"]
+        ):
             found = index
             break
 
@@ -392,7 +397,7 @@ def ref_is_ancestor(
     current = node
 
     while current != None:
-        if current == ancestor:
+        if current["coord"] == ancestor["coord"]:
             return True
 
         current = current["parent"]
@@ -475,7 +480,7 @@ def ref_find_tree_center():
         node = REF_NODES[coord]
 
         if (
-            node != REF_ROOT
+            node["coord"] != REF_ROOT["coord"]
             and node["val"]
             == node["max_val"]
         ):
@@ -499,7 +504,7 @@ def ref_find_tree_center():
             current = node
 
             if (
-                current != REF_ROOT
+                current["coord"] != REF_ROOT["coord"]
                 and current["level"] == max_depth
             ):
                 current = current["parent"]
@@ -530,14 +535,14 @@ def ref_find_tree_center():
 def ref_reroot(new_root):
     global REF_ROOT
 
-    if new_root == REF_ROOT:
+    if new_root["coord"] == REF_ROOT["coord"]:
         return
 
     path = []
 
     current = new_root
 
-    while current != REF_ROOT:
+    while current["coord"] != REF_ROOT["coord"]:
         path.append(
             current
         )
