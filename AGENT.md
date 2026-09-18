@@ -23,7 +23,7 @@ If sources disagree, prefer the current in-game behavior and current Tooltips Co
 
 Keep the existing modular design.
 
-- `main.py`: orchestration and scheduling of normal farming and special jobs.
+- `main.py`: upgrade-driven orchestration.
 - `config.py`: tuning knobs and scheduling constants.
 - `farm.py`: normal mixed farming, companions, watering, fertilizer, sunflowers, and energy.
 - `workers.py`: multi-drone worker pool, chunking, and hats.
@@ -31,7 +31,8 @@ Keep the existing modular design.
 - `cactus.py`: cactus planting, readiness checks, sorting, and harvest.
 - `maze.py`: maze creation and solving.
 - `utils.py`: shared movement, affordability, watering, and world-size helpers.
-- `unlocks.py`: automatic unlock logic.
+- `unlocks.py`: upgrade target selection, cost analysis, resource focus, and unlock actions.
+- `production.py`: maps required resources to normal/special production jobs and resolves producer prerequisites.
 
 Prefer extending an existing module over adding logic to `main.py`.
 
@@ -160,6 +161,54 @@ Do not assume costs are constant across upgrades.
 Do not spend reserved resources without considering the configuration in `config.py`.
 
 In particular, preserve the existing relationship between fertilizer and Weird Substance stockpiling for mazes unless intentionally redesigning it.
+
+## Upgrade-driven production
+
+The repository no longer schedules Pumpkin/Cactus/Dinosaur/Maze from fixed cycle counters.
+
+The main loop must remain driven by the next upgrade's live `get_cost()` requirements.
+
+### Upgrade frontier
+
+`config.AUTO_UNLOCKS` defines progression order. `unlocks.next_target()` may consider all already-started upgrade lines plus the first never-unlocked entry, but must not jump beyond that frontier.
+
+Within the candidate set, prefer the smallest remaining total resource cost. This lets cheap current levels compete without maxing one line before progressing to the next feature.
+
+Treat `{}` from `get_cost(unlock)` as maxed. Keep compatibility with `None` where older game behavior may still surface it.
+
+Do not cache unlock costs globally; upgrade costs are level-dependent.
+
+### Resource focus
+
+`config.RESOURCE_PLANS` intentionally follows the resource order/priorities from:
+
+https://github.com/Thorrdu/the-farmer-was-replaced/blob/main/parameters.py
+
+The resource score is based on Thorrdu's `priority_crop()` concept:
+
+`score = (current / required) / priority`
+
+but `required` must come from the selected upgrade's current `get_cost()` dictionary, not from static stockpile targets.
+
+Lower score means higher production focus. Preserve `RESOURCE_PLANS` order as the deterministic tie-breaker.
+
+`production.py` owns dispatch:
+
+- Power/Hay/Wood/Carrot -> normal farm focus
+- Pumpkin -> Pumpkin full-field job
+- Cactus -> Cactus full-field job
+- Bone -> Dinosaur job
+- Gold -> Maze job
+
+Before starting a producer, inspect `get_cost(producer)` and farm missing producer inputs first. Full-field Pumpkin/Cactus requirements must account for the number of tiles they need to plant.
+
+Gold is special: when the Maze cannot start because Weird Substance is missing, keep running fertilized normal farming until `maze.can_start()` is true.
+
+After any full-field job, restore the permanent sunflower edges immediately.
+
+If an `Unlocks.Expand` purchase changes `get_world_size()`, rebuild the entire normal layout and sunflower cache because edge coordinates changed.
+
+Detailed rationale and source references live in `AGENT_NOTES.md`.
 
 ## Sunflowers and power
 
