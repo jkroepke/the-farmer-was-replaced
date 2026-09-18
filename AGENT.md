@@ -168,18 +168,26 @@ Sunflower harvesting has special rules.
 - `measure()` returns the sunflower's petal count.
 - If at least 10 sunflowers exist, harvesting a sunflower with the current maximum petal count gives the large power bonus.
 - Harvesting a lower-petal sunflower can lose that bonus opportunity.
+- After every harvest, recompute the current maximum before harvesting another sunflower.
 - Power speeds drone execution.
 
-The current design therefore keeps sunflower harvesting centralized in `farm.refresh_energy()`.
+The current design keeps sunflower harvesting centralized in `farm.refresh_energy()`.
 
-Do not make normal tile farming harvest sunflowers independently.
+Do not make normal tile farming harvest or replant sunflowers independently. Worker drones do not share globals, so they cannot safely maintain the caller's petal cache.
 
-When parallelizing sunflower scans:
+The permanent left/top sunflower L uses a petal cache:
 
-- return local maxima from workers
-- compute the global maximum in the caller
-- harvest only after the global result is known
-- re-check the selected sunflower before harvesting because the farm may have changed
+- rebuild workers return `[x, y, petals]` records
+- the caller merges those return values into `_sunflower_petals`
+- `refresh_energy()` determines the maximum from the cache without rescanning the whole L
+- only cached positions at the current maximum are visited
+- after harvesting, replant immediately, call `measure()`, update that cache entry, and recompute the maximum
+- if the current maximum is not ready, do not harvest a lower petal count
+- keep 7-petal sunflowers in the cache
+
+If the cache no longer matches the farm, rebuild it through `rebuild_sunflowers()` rather than trying to synchronize globals across drones.
+
+Sunflower strategy references are documented in `AGENT_NOTES.md`.
 
 ## Pumpkins
 
