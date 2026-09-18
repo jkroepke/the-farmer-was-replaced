@@ -3,6 +3,16 @@ import utils
 import workers
 
 
+# Petal metadata for the permanent sunflower L.
+#
+# Each entry is:
+#   [x, y, petals]
+#
+# This cache belongs to the current drone. Spawned drones do not share globals,
+# so rebuild workers return their measurements and the caller rebuilds this list.
+_sunflower_petals = []
+
+
 # ==================================================
 # DÜNGER / WEIRD SUBSTANCE
 # ==================================================
@@ -316,29 +326,16 @@ def farm_carrot(min_x, max_x):
 # ==================================================
 # SONNENBLUME
 # ==================================================
+#
+# Die permanenten Sonnenblumen werden ausschließlich von
+# rebuild_sunflowers() und refresh_energy() gepflanzt/geerntet.
+#
+# Normale Farm-Worker dürfen den Petal-Cache nicht verändern,
+# weil Drohnen keinen gemeinsamen Speicher haben.
+# ==================================================
 
 def farm_sunflower():
     utils.water()
-
-    entity = get_entity_type()
-
-    if (
-        entity != None
-        and entity != Entities.Sunflower
-    ):
-        if not can_harvest():
-            return
-
-        harvest()
-
-    if get_ground_type() != Grounds.Soil:
-        till()
-
-    # Sonnenblumen werden nur von refresh_energy()
-    # geerntet, damit der 8x-Bonus erhalten bleibt.
-    if get_entity_type() == None:
-        if utils.can_afford(Entities.Sunflower):
-            plant(Entities.Sunflower)
 
 
 # ==================================================
@@ -387,55 +384,81 @@ def farm_current_field(min_x, max_x):
 
 
 # ==================================================
-# SONNENBLUMEN SOFORT WIEDER AUFBAUEN
+# SONNENBLUMEN-CACHE AUFBAUEN
 # ==================================================
 #
-# Zwei kurze Tasks:
+# Beim Pflanzen bzw. Wiederaufbau wird measure() genau einmal
+# pro Sonnenblume ausgeführt und das Ergebnis gecacht.
 #
-# 1. linke Spalte
-# 2. obere Reihe (ohne doppelte Ecke)
+# Mit zwei Drohnen teilen wir das permanente L natürlich auf:
 #
-# Dadurch ist der Energiebereich nach Maze/Pumpkin/Cactus
-# sofort wieder vorhanden, ohne eine große Fläche zu scannen.
+# - linke Kante
+# - obere Kante
+#
+# Die Worker geben ihre [x, y, petals]-Listen zurück. Erst die
+# aufrufende Drohne schreibt daraus den globalen Cache, weil
+# Drohnen keinen gemeinsamen Speicher besitzen.
 # ==================================================
+
+def _prepare_sunflower():
+    utils.water()
+
+    if get_ground_type() != Grounds.Soil:
+        till()
+
+    entity = get_entity_type()
+
+    if entity != Entities.Sunflower:
+        if entity != None:
+            if not can_harvest():
+                return None
+
+            harvest()
+
+        if get_entity_type() == None:
+            if not utils.can_afford(
+                Entities.Sunflower
+            ):
+                return None
+
+            plant(
+                Entities.Sunflower
+            )
+
+    if get_entity_type() != Entities.Sunflower:
+        return None
+
+    return [
+        get_pos_x(),
+        get_pos_y(),
+        measure()
+    ]
+
 
 def _rebuild_left_edge():
     world_size = utils.size()
+    petals = []
 
     x = 0
 
+    # Ecke oben links wird vom Top-Edge-Worker übernommen.
     for y in range(world_size - 1):
         utils.move_to(
             x,
             y
         )
 
-        utils.water()
+        item = _prepare_sunflower()
 
-        if get_ground_type() != Grounds.Soil:
-            till()
+        if item != None:
+            petals.append(item)
 
-        entity = get_entity_type()
-
-        if entity != Entities.Sunflower:
-            if entity != None:
-                if can_harvest():
-                    harvest()
-                else:
-                    continue
-
-            if utils.can_afford(
-                Entities.Sunflower
-            ):
-                plant(
-                    Entities.Sunflower
-                )
-
-    return True
+    return petals
 
 
 def _rebuild_top_edge():
     world_size = utils.size()
+    petals = []
 
     y = world_size - 1
 
@@ -445,194 +468,146 @@ def _rebuild_top_edge():
             y
         )
 
-        utils.water()
+        item = _prepare_sunflower()
 
-        if get_ground_type() != Grounds.Soil:
-            till()
+        if item != None:
+            petals.append(item)
 
-        entity = get_entity_type()
-
-        if entity != Entities.Sunflower:
-            if entity != None:
-                if can_harvest():
-                    harvest()
-                else:
-                    continue
-
-            if utils.can_afford(
-                Entities.Sunflower
-            ):
-                plant(
-                    Entities.Sunflower
-                )
-
-    return True
+    return petals
 
 
 def rebuild_sunflowers():
-    tasks = [
+    global _sunflower_petals
+
+    original_x = get_pos_x()
+    original_y = get_pos_y()
+
+    results = workers.run([
         _rebuild_left_edge,
         _rebuild_top_edge
-    ]
+    ])
 
-    workers.run(tasks)
+    petals = []
+
+    for result in results:
+        for item in result:
+            petals.append(item)
+
+    _sunflower_petals = petals
 
     utils.move_to(
-        0,
-        0
+        original_x,
+        original_y
     )
 
-    return True
+    return len(_sunflower_petals) >= 10
+
+
+# ==================================================
+# PETAL-CACHE
+# ==================================================
+
+def _cached_sunflower_count():
+    count = 0
+
+    for item in _sunflower_petals:
+        if item[2] >= 0:
+            count += 1
+
+    return count
+
+
+def _cached_max_petals():
+    max_petals = 0
+
+    for item in _sunflower_petals:
+        if item[2] > max_petals:
+            max_petals = item[2]
+
+    return max_petals
 
 
 # ==================================================
 # ENERGIE NACHLADEN
 # ==================================================
 #
-# Die Sonnenblumen liegen bereits am Rand.
-# Deshalb genügen zwei kurze Scans.
+# Kein Full-L-Scan mehr bei jedem Refresh.
 #
-# Rückgabe eines Scan-Tasks:
+# Ablauf:
 #
-# (count, max_petals, best_x, best_y)
+# 1. Maximum nur aus dem Cache bestimmen.
+# 2. Nur Positionen mit diesem Maximum besuchen.
+# 3. Nur ernten, wenn eine Max-Petal-Sonnenblume reif ist.
+# 4. Direkt neu pflanzen und measure() für genau diese Position.
+# 5. Danach Maximum erneut aus dem Cache bestimmen.
+#
+# Wichtig:
+# Wenn eine neu gepflanzte Sonnenblume wieder das höchste
+# Petal-Level hat, aber noch unreif ist, blockiert sie korrekt
+# niedrigere Petal-Level. Dann wird nichts Falsches geerntet.
 # ==================================================
 
-def _scan_left_edge():
-    world_size = utils.size()
-
-    count = 0
-    max_petals = 0
-
-    best_x = -1
-    best_y = -1
-
-    x = 0
-
-    for y in range(world_size - 1):
-        utils.move_to(
-            x,
-            y
-        )
-
-        if get_entity_type() == Entities.Sunflower:
-            count += 1
-            petals = measure()
-
-            if petals > max_petals:
-                max_petals = petals
-                best_x = -1
-                best_y = -1
-
-                if can_harvest():
-                    best_x = x
-                    best_y = y
-
-            elif petals == max_petals:
-                if best_x == -1 and can_harvest():
-                    best_x = x
-                    best_y = y
-
-    return (
-        count,
-        max_petals,
-        best_x,
-        best_y
-    )
-
-
-def _scan_top_edge():
-    world_size = utils.size()
-
-    count = 0
-    max_petals = 0
-
-    best_x = -1
-    best_y = -1
-
-    y = world_size - 1
-
-    for x in range(world_size):
-        utils.move_to(
-            x,
-            y
-        )
-
-        if get_entity_type() == Entities.Sunflower:
-            count += 1
-            petals = measure()
-
-            if petals > max_petals:
-                max_petals = petals
-                best_x = -1
-                best_y = -1
-
-                if can_harvest():
-                    best_x = x
-                    best_y = y
-
-            elif petals == max_petals:
-                if best_x == -1 and can_harvest():
-                    best_x = x
-                    best_y = y
-
-    return (
-        count,
-        max_petals,
-        best_x,
-        best_y
-    )
-
-
 def refresh_energy():
+    global _sunflower_petals
+
     original_x = get_pos_x()
     original_y = get_pos_y()
 
-    results = workers.run([
-        _scan_left_edge,
-        _scan_top_edge
-    ])
+    # Nach clear()/Spezialjobs wird der Cache normalerweise durch
+    # rebuild_sunflowers() aufgebaut. Dieser Fallback schützt den
+    # Start mit leerem/zu kleinem Cache.
+    if _cached_sunflower_count() < 10:
+        rebuild_sunflowers()
 
-    sunflower_count = 0
-    global_max = 0
-
-    best_x = -1
-    best_y = -1
-
-    for result in results:
-        count, petals, x, y = result
-
-        sunflower_count += count
-
-        if petals > global_max:
-            global_max = petals
-
-            best_x = -1
-            best_y = -1
-
-            if x >= 0:
-                best_x = x
-                best_y = y
-
-        elif petals == global_max:
-            if best_x == -1 and x >= 0:
-                best_x = x
-                best_y = y
-
-    if (
-        sunflower_count >= 10
-        and best_x >= 0
-    ):
+    if _cached_sunflower_count() < 10:
         utils.move_to(
-            best_x,
-            best_y
+            original_x,
+            original_y
         )
 
-        if (
-            get_entity_type() == Entities.Sunflower
-            and measure() == global_max
-            and can_harvest()
-        ):
+        return False
+
+    harvested_any = False
+
+    while True:
+        max_petals = _cached_max_petals()
+
+        if max_petals <= 0:
+            break
+
+        harvested = False
+        cache_invalid = False
+
+        for item in _sunflower_petals:
+            if item[2] != max_petals:
+                continue
+
+            utils.move_to(
+                item[0],
+                item[1]
+            )
+
+            if get_entity_type() != Entities.Sunflower:
+                item[2] = -1
+                cache_invalid = True
+                break
+
+            # Petal-Zahl sollte stabil sein. Re-check kostet nur
+            # measure(), verhindert aber einen falschen Harvest,
+            # falls der Cache aus irgendeinem Grund veraltet ist.
+            actual_petals = measure()
+
+            if actual_petals != item[2]:
+                item[2] = actual_petals
+                cache_invalid = True
+                break
+
+            if not can_harvest():
+                continue
+
             harvest()
+            harvested = True
+            harvested_any = True
 
             if utils.can_afford(
                 Entities.Sunflower
@@ -641,10 +616,37 @@ def refresh_energy():
                     Entities.Sunflower
                 )
 
+                # Petal-Wert der neuen Blume sofort cachen.
+                item[2] = measure()
+            else:
+                # Tile ist aktuell leer und darf bei der
+                # Max-Berechnung nicht mehr berücksichtigt werden.
+                item[2] = -1
+
+            # Nach JEDEM Harvest das globale Maximum neu bestimmen.
+            break
+
+        if cache_invalid:
+            # Normalerweise nie nötig. Wenn ein Cache-Eintrag nicht
+            # mehr zur Farm passt, reparieren wir die L-Kante sauber.
+            rebuild_sunflowers()
+
+            if _cached_sunflower_count() < 10:
+                break
+
+            continue
+
+        if not harvested:
+            # Das aktuelle Maximum existiert, ist aber noch nicht reif.
+            # Niedrigere Petal-Level dürfen dann nicht geerntet werden.
+            break
+
     utils.move_to(
         original_x,
         original_y
     )
+
+    return harvested_any
 
 
 # ==================================================
