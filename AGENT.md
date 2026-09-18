@@ -35,6 +35,8 @@ Keep the existing modular design.
 - `production.py`: maps required resources to normal/special production jobs and resolves producer prerequisites.
 - `bench_maze.py`: all Maze benchmark implementations/modes.
 - `bench_maze_run.py`: Maze simulation matrix and benchmark orchestration.
+- `bench_dinosaur.py`: Dinosaur benchmark implementations/modes.
+- `bench_dinosaur_run.py`: Dinosaur simulation matrix and benchmark orchestration.
 - `docs/MAZE.md`: canonical Maze mechanics, production design, benchmark data, and optimization notes.
 - `docs/DINOSAUR.md`: canonical Dinosaur mechanics, external strategy research, and optimization/benchmark plan.
 
