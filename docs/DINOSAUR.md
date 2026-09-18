@@ -231,6 +231,16 @@ Do not implement this blindly yet:
 
 But benchmark both full-tail throughput and smaller target-tail jobs. A path strategy that wins at full board may not win when only 25% of the board is needed.
 
+## Reference requirement
+
+Whenever a benchmark is inspired by or adapted from an external implementation, include a source-near reference mode in the same benchmark.
+
+For Dinosaur work, `skysdottir/tfwr` is therefore not only a design source. Its current `dinos3.py` + `hilbert.py` behavior is preserved as `skysdottir-tfwr-reference`.
+
+The purpose is to catch regressions introduced by our own translation, cleanup, different path geometry, or tuning. Never compare only "our baseline" against "our adaptation" when an external reference implementation exists.
+
+A reference mode may adapt setup/termination to the benchmark contract, but should preserve the reference algorithm's path, decision rules, and state semantics as closely as the game interpreter permits.
+
 ## Benchmark convention
 
 Use the repository-wide convention:
@@ -255,8 +265,11 @@ Current modes:
 | 1 | `safe-shortcuts-annealed-50` | source-like shortcut probability that fades toward 50% fill |
 | 2 | `safe-shortcuts-hard-25` | always evaluate safe shortcuts until 25% fill, then pure Hamiltonian |
 | 3 | `safe-shortcuts-hard-50` | always evaluate safe shortcuts until 50% fill, then pure Hamiltonian |
+| 4 | `skysdottir-tfwr-reference` | source-near behavioral port of `dinos3.py` + `hilbert.py`: Hilbert cycle, source tail queue semantics, annealing, 50% cutoff |
 
-The shortcut modes deliberately use the same skyscraper/Hamiltonian geometry as production. This isolates shortcut value from path-shape changes.
+Modes 1-3 deliberately use the same skyscraper/Hamiltonian geometry as production. This isolates shortcut value from path-shape changes.
+
+Mode 4 is intentionally different: it preserves the current `skysdottir/tfwr` reference path and control flow closely enough to detect performance lost in our adaptations. The benchmark still stops at the same actual consumed-Apple/tail target so runtime remains comparable.
 
 Future modes can add edge-wave, Moore, Hilbert, and the Pastebin implementations after the current benchmark establishes a shortcut baseline.
 
