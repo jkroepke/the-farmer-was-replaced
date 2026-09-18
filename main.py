@@ -8,8 +8,10 @@ def restore_after_expand(previous_size):
     if get_world_size() == previous_size:
         return
 
-    # Expansion changes the coordinates of the permanent top edge.
-    # Rebuild the farm layout and sunflower cache from a clean state.
+    # Expansion invalidates any reusable Maze tree and changes the
+    # coordinates of the permanent top edge.
+    production.reset_state()
+
     clear()
 
     workers.set_main_hat()
