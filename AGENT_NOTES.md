@@ -124,15 +124,50 @@ Current tuning lives in `config.py`:
 
 Energy matters a lot because active energy doubles drone speed.
 
-Sunflowers should be rebuilt immediately after full-field jobs such as:
+Sunflowers are permanent and live on the left and top farm edges. They should be rebuilt immediately after full-field jobs such as:
 
 - Maze
 - Pumpkin
 - Cactus
+- Dinosaur
 
 Do not harvest arbitrary sunflowers.
 
-With at least 10 sunflowers, harvest only a sunflower with the current maximum petal count to preserve the 8x energy bonus.
+With at least 10 sunflowers, harvest only a sunflower with the **current maximum petal count**. After every harvest, determine the maximum again before harvesting another flower.
+
+### Petal cache
+
+The current implementation does **not** rescan the full sunflower L during every energy refresh.
+
+Instead:
+
+1. `rebuild_sunflowers()` plants/repairs the permanent sunflower edges.
+2. Each rebuild worker measures its sunflowers and returns `[x, y, petals]` records.
+3. The calling drone merges those results into `_sunflower_petals`.
+4. `refresh_energy()` computes the current maximum from that in-memory cache.
+5. It visits only cached positions with that maximum.
+6. After harvesting, it immediately replants the sunflower, calls `measure()` once, updates that cache entry, and recomputes the maximum.
+7. If the current maximum exists but is not mature yet, lower-petal sunflowers are **not** harvested.
+
+This design is especially useful with only two drones: the second drone is useful for rebuilding the two sunflower edges, but repeatedly spawning/using drones just to rescan ~31 permanent sunflowers creates unnecessary movement.
+
+Drone memory is not shared. Do not let worker drones mutate the caller's sunflower cache. Workers must return their measurements through `wait_for()` / `workers.run()`, and the caller must rebuild the cache from those return values.
+
+Do not drop 7-petal sunflowers from the cache. The external community example below filters `> 7`, but our implementation keeps every measured sunflower because the current documented/common petal range includes 7.
+
+### Sunflower sources
+
+- **The Farmer Was Replaced — “Sunflower Code — Harvest Max Petals Only”**  
+  https://thefarmerwasreplaced.com/codes/sunflower-code/  
+  Key rules used here: harvest only the current maximum petal count, then determine the maximum again; the page reports sunflower petal counts commonly ranging from 7 to 15.
+
+- **Thorrdu/the-farmer-was-replaced — `sunflowerModule.py`**  
+  https://github.com/Thorrdu/the-farmer-was-replaced/blob/main/sunflowerModule.py  
+  Community implementation that measures a sunflower immediately after planting and stores `[x, y, petals]`. This inspired the persistent petal-cache optimization. We intentionally do not copy its `petalNbr > 7` filter.
+
+- **Tooltips Code**  
+  https://thefarmerwasreplaced.wiki.gg/wiki/Tooltips_Code  
+  Use as the primary reference for the current `measure()`, movement, and tick-cost API when changing this logic.
 
 ## Maze
 
