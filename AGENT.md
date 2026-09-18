@@ -29,10 +29,12 @@ Keep the existing modular design.
 - `workers.py`: multi-drone worker pool, chunking, and hats.
 - `pumpkin.py`: pumpkin planting, patching, readiness checks, and harvest.
 - `cactus.py`: cactus planting, readiness checks, sorting, and harvest.
-- `maze.py`: maze creation and solving.
+- `maze.py`: persistent Maze reuse using the reference tree-rebalancing strategy.
 - `utils.py`: shared movement, affordability, watering, and world-size helpers.
 - `unlocks.py`: upgrade target selection, cost analysis, resource focus, and unlock actions.
 - `production.py`: maps required resources to normal/special production jobs and resolves producer prerequisites.
+- `bench_maze.py`: all Maze benchmark implementations/modes.
+- `bench_maze_run.py`: Maze simulation matrix and benchmark orchestration.
 
 Prefer extending an existing module over adding logic to `main.py`.
 
@@ -285,46 +287,34 @@ The current code sorts rows and columns separately using adjacent swaps. Keep so
 
 ## Mazes
 
-For a fresh maze:
-
-- grow a bush first
-- apply the required Weird Substance
-- the required amount scales with `get_world_size()` and maze upgrade level
-- fresh mazes do not contain loops
-- `can_move(direction)` checks walls without moving
-- `measure()` in a maze returns the treasure coordinates
-- harvesting the treasure gives the reward
-- harvesting elsewhere destroys the maze
-
-A wall-following solver is sufficient for fresh mazes.
-
-Gold production must not rebuild the normal sunflower farm between consecutive Maze runs. The next fresh Maze would immediately `clear()` those sunflowers again.
-
-`production.py` tracks this with a Gold-active state:
-- Gold -> Gold: keep the farm in Maze mode; no sunflower rebuild
-- Gold -> non-Gold: restore the normal farm exactly once
-- Gold with missing Maze prerequisites: restore once, then farm the missing input / Weird Substance
-
-Maze reuse is under simulation benchmark in `benmain.py` + `benchmaze.py`; do not replace production `maze.py` with an unmeasured strategy.
-
-The benchmark compares:
-
-- fresh/right-hand baseline
-- reuse + BFS
-- reuse + initial tree + greedy shortcuts
-- reuse + tree + greedy + lazy rebalancing
-- reuse + tree + greedy + rebalancing + our approximate full reindex
-- separate reference behavioral port in `benchmaze_reference.py`
-
-Use identical seeds, world sizes, solve counts, unlocks, and starting items. Promote the fastest correct strategy based on `simulate()` runtime / optional ending tick counts, not code simplicity.
-
-The rebalancing benchmark is inspired by:
+Production `maze.py` uses a persistent reference-style tree-rebalancing strategy, based on:
 
 https://pastebin.com/KzGvn6nc
 
-Do not confuse our modes 3/4 with the reference port. Mode 5 runs `benchmaze_reference.py`, which independently preserves the reference algorithm's ordered tree metadata, subtree-range routing, greedy phase, reroot, rotations, and full reindex behavior.
+Important rules:
 
-Detailed methodology and thresholds are documented in `AGENT_NOTES.md`.
+- The first Gold-focused run creates and fully maps one fresh loop-free Maze.
+- Consecutive Gold runs reuse the same Maze and in-memory tree.
+- Do not rebuild sunflowers between Gold -> Gold iterations.
+- When leaving Gold, call `maze.reset()` before clearing/rebuilding the normal farm.
+- Farm expansion invalidates the Maze tree and must reset it.
+- After the configured reuse limit, route to the final Treasure, harvest, reset, and create a new Maze next time.
+- Greedy shortcuts and tree rebalancing are enabled according to the constants in `config.py`.
+- Node dictionaries are cyclic through parent/child references. Never compare whole nodes with `==` or `!=`; compare coordinates or other scalar identifiers.
+
+Benchmark naming convention for every future benchmark topic:
+
+- `bench_<name>.py` contains every implementation/mode being compared.
+- `bench_<name>_run.py` owns simulation matrices, seeds, globals, `simulate()` calls, and aggregation.
+
+For Maze benchmarks use only:
+
+- `bench_maze.py`
+- `bench_maze_run.py`
+
+Do not split one strategy into a separate benchmark file. Add it as another mode in the shared benchmark implementation file.
+
+The reference architecture was promoted to production because it was the fastest tested strategy across all completed 8x8 workloads and the completed 16x16/25 workload. Detailed measurements are recorded in `AGENT_NOTES.md`.
 
 ## Dinosaurs
 
