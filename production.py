@@ -9,16 +9,26 @@ import workers
 import utils
 
 
+# True while consecutive Gold-focused Maze runs are active.
+# This lets us avoid rebuilding the normal farm between mazes,
+# while still restoring it exactly once when production focus changes.
+_gold_active = False
+
+
 # ==================================================
 # RESTORE NORMAL FARM
 # ==================================================
 
 def restore_normal_farm():
+    global _gold_active
+
     clear()
 
     workers.set_main_hat()
 
     farm.rebuild_sunflowers()
+
+    _gold_active = False
 
 
 # ==================================================
@@ -148,14 +158,25 @@ def run_bones():
 # ==================================================
 
 def run_gold():
+    global _gold_active
+
     if maze.can_start():
         # Gold focus may immediately request another Maze.
         #
         # Do NOT rebuild the normal farm here. Rebuilding the permanent
         # sunflower L between consecutive Maze runs only adds movement
-        # and planting work. If the planner switches away from Gold,
-        # the next normal/special producer restores what it needs.
-        return maze.run()
+        # and planting work.
+        success = maze.run()
+
+        if success:
+            _gold_active = True
+
+        return success
+
+    # We need normal farming to generate missing inputs / Weird Substance.
+    # Restore exactly once if the previous iteration was a Gold Maze.
+    if _gold_active:
+        restore_normal_farm()
 
     # First ensure the Bush itself is affordable.
     bush_focus = unlocks.choose_focus_from_cost(
@@ -179,6 +200,11 @@ def run_gold():
 # ==================================================
 
 def run(item):
+    global _gold_active
+
+    if item != Items.Gold and _gold_active:
+        restore_normal_farm()
+
     if item == None:
         farm.run()
         return True
