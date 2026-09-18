@@ -36,6 +36,20 @@ FERTILIZER_RESERVE = 10
 # jetzt standardmäßig aktiv genutzt wird.
 MAZE_STOCKPILE = 5
 
+# Reference tree-rebalancing Maze strategy.
+#
+# Source:
+# https://pastebin.com/KzGvn6nc
+#
+# Benchmark results showed this strategy clearly ahead of fresh mazes,
+# BFS, and our simpler tree variants.
+MAZE_REUSE_LIMIT = 300
+MAZE_GREEDY_AFTER = 30
+MAZE_REROOT_AT = 40
+MAZE_REBALANCE_FROM = 40
+MAZE_REBALANCE_ACTIVE_UNTIL = 80
+MAZE_REBALANCE_UNTIL = 140
+
 
 # ==================================================
 # RESSOURCEN-PLANUNG
