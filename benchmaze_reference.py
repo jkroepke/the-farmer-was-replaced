@@ -236,20 +236,13 @@ def ref_explore(
 
     max_value = REF_TOTAL_STEPS
 
-    turns = [
-        ref_left,
-        None,
-        ref_right
+    directions = [
+        ref_left(facing),
+        facing,
+        ref_right(facing)
     ]
 
-    for turn in turns:
-        if turn == None:
-            direction = facing
-        else:
-            direction = turn(
-                facing
-            )
-
+    for direction in directions:
         if (
             can_move(direction)
             and direction not in explored
