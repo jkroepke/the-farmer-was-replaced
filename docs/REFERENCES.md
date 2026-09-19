@@ -18,6 +18,8 @@ Always validate assumptions against:
   - broad MIT-licensed farming reference with persistent column workers, fixed Pumpkin region layouts, parallel Maze wall-followers, Cactus sorting, Polyculture, and Dinosaur restart behavior
   - complete pinned snapshot and detailed review: `external/mateusmarochi-the-farmer-was-replaced-codes/`
 - https://github.com/juritox/the-farmer-was-replaced
+  - older single-drone baseline collection for resource scheduling, descending-petal Sunflowers, Pumpkin hole detection, Cactus relaxation sorting, Maze wall-following, and Dinosaur sweeps
+  - pinned source/text snapshot and detailed review: `external/juritox-the-farmer-was-replaced/`
 - https://github.com/ketrab2004/the-farmer-was-replaced
   - original Dinosaur implementation: https://github.com/ketrab2004/the-farmer-was-replaced/blob/main/dinosaur.py
   - pathfinding helpers: https://github.com/ketrab2004/the-farmer-was-replaced/blob/main/pathfind.py
@@ -263,7 +265,7 @@ Prefer a complex algorithm when it measures faster, but never assume complexity 
 - `external/j4lc-the-farmer-was-replaced/` — user-supplied source snapshot archived on 2026-09-19; archive SHA-256 `6918c9718f9ef2b1d1ef38918e521a33103adb2ea7b16afea46718d44f7da0d0`
 
 - `external/mateusmarochi-the-farmer-was-replaced-codes/` — complete 21-file MIT-licensed snapshot and detailed algorithm review at `d303d81d6a3eb59887eff75ed0454a6d8f4ff5ad`
-- `external/juritox-the-farmer-was-replaced/` — MIT-licensed source/text snapshot at `544bb832ffcec00aacf2c8dd5278bdb534ab674b`; large binary media is provenance-manifested
+- `external/juritox-the-farmer-was-replaced/` — 15/15 upstream source/text blobs mirrored at `544bb832ffcec00aacf2c8dd5278bdb534ab674b`; 9 large media blobs are provenance-manifested because connector transfer is unavailable
 - `external/skysdottir-tfwr/` — complete 8-file source snapshot and Dinosaur analysis at `e15968982e957045c5239e580e2d040a9ac73a52`; source-near behavior is benchmarked locally
 - `external/ketrab2004-the-farmer-was-replaced/` — provenance and analysis at `cdbbcf32ca100237cdfc3b78783cee77722a96fd`; no redistribution license found
 - `external/msmith93-thefarmerwasreplaced/` — complete main-branch source snapshot at `7fef7c327e8d0b6ef34af2fafc3e5aeaf0b89823`; includes the Sunflowers_Single simulator/iteration series and multi-drone reference implementations
