@@ -1072,3 +1072,203 @@ The reviewed skysdottir reference is indexed locally at:
 `external/skysdottir-tfwr/`
 
 The source-near benchmark should remain tied to the upstream revision recorded there.
+
+
+## Flekay deep-dive findings (2026-09-19)
+
+The current upstream `Flekay/The-Farmer-Was-Replaced` still points at revision `567e0ab6f96305cd6c9a05fd5eea2917449c2407` from 2026-01-28, so the local mirror is current as of this review.
+
+### Historical Dinosaur benchmark caveat
+
+Flekay's Dinosaur README reports:
+
+```text
+drone.py    18.741 s
+circle.py   23.924 s
+timon.py    27.889 s
+almighty.py 42.221 s
+```
+
+Do not treat these times as measurements of the files currently present on `main`.
+
+The README was last changed in the 2025-10-05 clean-upload history, while `drone.py` was changed later by commit `d3a0fc555d5e78466fd1eb39e608b9ef0627b6b6` ("Simplify drone's dino movement logic") on 2025-10-18.
+
+That later commit replaced a complete implementation with a three-phase skeleton whose `phase_two()` deliberately contains an unimplemented placeholder. Therefore the published 18.741-second result necessarily refers to an earlier implementation, not the current `drone.py`.
+
+The pre-change `drone.py` is still available through Git history at parent revision `fe4df71ae877a484b091c2fa276cae0a6f0e2039`.
+
+Its useful architecture is:
+
+1. aggressively chase early Apples with parity-based two-direction rules
+2. stop the early phase after 50 collected Apples
+3. derive a deterministic "almighty" route from the current head/body state
+4. follow that route until blocked
+
+The old implementation also contains hard-coded `100`-cell assumptions. Other Flekay Dino files reinforce that historical geometry:
+
+- `circle.py` has explicit coordinate maps for `0..9` and switches around length 38
+- `timon.py` has forbidden cells `(1,1)..(1,9)` and reports length 34 as its tuned transition
+- `hybrid.py` switches greedy -> stack around length 18 and stack -> almighty around 34
+
+These are useful **phase-ratio ideas**, not current 32x32 constants. The v4 diagnostic benchmark therefore tests 10%, 18%, 25%, 34%, and 50% occupancy rather than blindly reusing absolute lengths 18/34/50.
+
+### Failed moves as cheap branch probes
+
+Flekay's early Dinosaur scripts frequently use:
+
+```text
+if not move(preferred):
+    move(fallback)
+```
+
+instead of:
+
+```text
+if can_move(preferred):
+    move(preferred)
+```
+
+Current Flekay tick research records both `can_move()` and a failed `move()` as one tick, while a successful Dinosaur move is the physical action we wanted anyway.
+
+This makes optimistic "try preferred, fall back on failure" a useful early-phase policy when either successful direction is safe. It cannot replace the stronger cycle-order safety checks used by arbitrary Hamiltonian shortcuts.
+
+### Cleanup spawn topology
+
+Flekay's historical `Movement/line_formation` benchmark reports:
+
+```text
+for_all.py                  25006 runtime ticks
+for_all_dual.py             16224 runtime ticks
+for_all_sync_col/row.py     16224 runtime ticks
+```
+
+The important reusable idea is parallelizing the **spawn chain itself**, not only the field work.
+
+The v4 Dinosaur setup sweep now includes:
+
+- Flekay-style sequential line spawning
+- Flekay-style dual-spawner fan-out
+
+in addition to the existing serial/current/skysdottir preparation modes.
+
+These upstream tick numbers are historical evidence only; the local 32x32 setup sweep is the decision source.
+
+### Interpreter hot-path implications
+
+Flekay's measured tick model records, among other things:
+
+- `get_pos_x()`: 1 tick
+- `get_pos_y()`: 1 tick
+- `measure()`: 1 tick
+- `random()`: 1 tick
+- tuple-key dictionary lookup: tuple length in ticks (2 ticks for `(x,y)`)
+- integer-key dictionary lookup: 1 tick
+- list/set/dict construction and mutation are not free
+- list `pop(0)` scales with the list length
+- set/dict membership is 1 tick
+- list/tuple membership is linear
+- `pass`: 1 tick
+- `continue`: 0 ticks
+
+This supports the existing ring-buffer design and suggests a later ablation for the safe-shortcut implementation:
+
+- tuple-key path dictionary vs compact integer/nested-list representation
+- per-step temporary list allocation vs two fixed shortcut candidates
+- annealing/random gate vs fixed early cutoff
+- current coordinate API reads vs explicitly tracked head coordinates
+
+Do not optimize these before the route-level v4 results identify which shortcut family is worth keeping.
+
+### Path precomputation
+
+Flekay's loop-around benchmark shows that precomputed direction sequences can reduce repeated traversal decision overhead after setup.
+
+This suggests a small future Dinosaur ablation:
+
+- current structured skyscraper loops
+- one precomputed skyscraper direction list reused for every cycle
+- indexed path lookup
+
+However, the current plain Hamiltonian baseline is already extremely simple, so this is lower priority than route policy and harvest target.
+
+### Generic pathfinding break-even
+
+Flekay's pathfinding benchmark reinforces that more planning can cost more ticks than it saves.
+
+Historical totals:
+
+```text
+5 points:
+  unordered        5702
+  nearest-neighbor 5030
+
+20 points:
+  unordered        11802
+  nearest-neighbor 10155
+
+60 points:
+  unordered        21602
+  nearest-neighbor 30855
+```
+
+The same README contains `divinepath` result rows, but the pinned/current `benchmark.py` does not import such an implementation and no corresponding source file exists in the directory. Treat those rows as non-reproducible.
+
+For Dinosaur, generic A*/TSP-style planning remains a control experiment rather than a primary production candidate.
+
+### All-pairs non-wrapping route precomputation
+
+Flekay reports:
+
+```text
+goto.py        setup 0.0002 s, 7590 ticks/benchmark
+runto_local.py setup 7.7344 s, 7470 ticks/benchmark
+```
+
+The tiny warm-path saving does not justify the very large precomputation for changing random Apple targets. Do not add an all-pairs Dino routing table based on this evidence.
+
+## Dinosaur benchmark v4
+
+Flekay-derived additions were implemented after the v3 matrix:
+
+- `be91a2d6ad846490130bea03cb965d48d86f085a` — Flekay early-phase diagnostics, dual/line cleanup topologies, repeated Bone-target support
+- `4ed309863c7199b3d3a9bf08bfd1137a7b57093a` — v4 runner matrix
+
+New algorithm diagnostic modes:
+
+- mode 20: simple axis-greedy
+- mode 21: parity-greedy based on Flekay `drone.py` phase one
+
+These are intentionally early-phase diagnostics and are not assumed to survive near-full occupancy.
+
+New setup modes:
+
+- mode 6: Flekay line-spawn Soil cleanup
+- mode 7: Flekay dual-spawner Soil cleanup
+
+New exact leaderboard experiment:
+
+For selected route families, repeatedly harvest at tail targets:
+
+```text
+25%, 33%, 50%, 66%, 75%, 95%, board-1
+```
+
+and restart until:
+
+```text
+num_items(Items.Bone) >= 33488928
+```
+
+This directly tests the leaderboard objective instead of assuming one maximum tail is optimal.
+
+The v4 runner contains:
+
+```text
+main algorithm matrix:       20 * 5 * 3 = 300 simulations
+setup sweep:                  3 * 8 * 3 = 72 simulations
+Flekay early diagnostics:     2 * 5 * 3 = 30 simulations
+leaderboard harvest sweep:    3 * 7 * 3 = 63 simulations
+total:                                      465 simulations
+```
+
+As with v3, runtime correctness and performance are not verified until the in-game simulation output is collected. Reject any candidate/seed that emits `DINOSAUR BENCH INVALID`.
