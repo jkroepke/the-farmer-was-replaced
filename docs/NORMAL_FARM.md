@@ -835,3 +835,129 @@ bench_persist_run.py
 ```
 
 Do not replace the synchronous full-Megafarm production route until this benchmark completes and the results are documented with the benchmark commit above.
+
+
+## Persistent Polyculture maximum benchmark
+
+Benchmark code state: `d1956d30d2e1aa98da49bbccecf8c087b7b72828`.
+
+Files:
+
+- `bench_poly.py`
+- `bench_poly_run.py`
+
+This benchmark extends the earlier persistent-worker work instead of replacing its historical results.
+
+### Why this benchmark exists
+
+The current production farm still pays repeated spawn/barrier costs because `farm.run()` creates a new worker set for each planner pass. Successful `spawn_drone()` is a physical action, so the cost is especially relevant for short planner windows.
+
+Long-lived workers are not enough by themselves. The current same-column companion-following strategy also leaves Polyculture throughput on the table because independent drones cannot share a companion request map.
+
+The new candidate therefore combines three ideas from the mirrored/community references:
+
+1. persistent workers with stable column ownership
+2. a permanent all-Soil checkerboard of Bush companion tiles
+3. rerolling Grass/Tree/Carrot until `get_companion()` requests Bush on an even-parity companion tile
+
+The checkerboard has two useful properties:
+
+- every accepted even-parity coordinate is a known Bush companion
+- odd-parity Tree positions are never orthogonally adjacent
+
+No Python memory is shared between drones. Workers coordinate only through global item counts and the shared farm state.
+
+### Candidate matrix
+
+The benchmark screens:
+
+```text
+sync-selected
+
+current one-max sunflower:
+  stride
+  chunks
+  pairs
+
+current two dumb sunflower columns:
+  stride
+  chunks
+  pairs
+
+polyculture checkerboard + one max-petal sunflower column:
+  stride
+  chunks
+  pairs
+
+polyculture checkerboard + two dumb sunflower columns:
+  stride
+  chunks
+  pairs
+```
+
+The "current" persistent candidates reuse the existing crop logic from `bench_persist.py`. The "poly" candidates use a static Bush checkerboard plus rerolling and keep the companion field across Carrot -> Hay -> Wood -> Carrot transitions.
+
+### Setup cost is part of the result
+
+Every simulation starts from a cold normal-farm state with zero Power. Timing starts before `clear()`, so field reset, layout construction, temporary setup workers, persistent worker creation, Sunflower construction, and production all count.
+
+The poly candidates additionally print:
+
+```text
+FARMX POLY PREP
+FARMX POLY LAUNCH
+```
+
+These expose the explicit all-Soil/Bush preparation and persistent-worker launch portions, but total `simulate()` runtime remains the primary comparison because worker startup and useful production can overlap.
+
+### Workload horizons
+
+The runner deliberately uses multiple horizons so setup-heavy designs are not selected only from a long steady-state benchmark.
+
+```text
+cold-short:
+  Carrot +100k
+  Hay    +100k
+  Wood   +200k
+  Carrot +100k
+
+cold-medium:
+  Carrot +1M
+  Hay    +1M
+  Wood   +2M
+  Carrot +1M
+
+sustained:
+  Carrot +5M
+  Hay    +5M
+  Wood   +10M
+  Carrot +5M
+```
+
+For each partial/max Megafarm profile:
+
+1. all modes run the cold-short screen with seed 1
+2. all modes run the cold-medium screen with seed 1
+3. the fastest current-persistent mode and fastest rerolling mode are selected from the medium screen
+4. `sync-selected`, the current finalist, and the rerolling finalist run the sustained workload over seeds 1, 2, and 3
+
+This keeps the suite broad enough to find setup break-even behavior without running every losing architecture through the expensive three-seed sustained matrix.
+
+### References carried into the benchmark
+
+- `external/msmith93-thefarmerwasreplaced/source/multidrone.py`: static persistent worker lifetime
+- `external/msmith93-thefarmerwasreplaced/source/multidrone/carrot.py`: persistent Carrot workers with companion rerolling
+- `external/msmith93-thefarmerwasreplaced/source/multidrone/wood.py`: persistent Tree workers with companion rerolling
+- `external/msmith93-thefarmerwasreplaced/source/multi_drone_hay_leaderboard.py`: long-lived Hay workers and static companion geometry
+- `external/mateusmarochi-the-farmer-was-replaced-codes/source/polyculture_farm_paralel.py`: persistent fixed-column/pair workers plus dedicated Sunflower area
+- `external/nql1314-the-farmer-was-replaced-ai-code/source/resource_farm_mega.py`: persistent region-pool concept only; its historical shared-memory coordination is not valid in the current runtime
+
+Community rerolling references remain supporting hypotheses rather than benchmark proof. Production must not switch to the new layout until the benchmark completes.
+
+### Run
+
+```text
+bench_poly_run.py
+```
+
+Paste the complete `FARMX ...` output back into the research session. Record measured conclusions only against benchmark commit `d1956d30d2e1aa98da49bbccecf8c087b7b72828`.
