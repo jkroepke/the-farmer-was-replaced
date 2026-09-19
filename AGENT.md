@@ -74,6 +74,8 @@ Keep the existing modular design.
 - `production.py`: maps required resources to normal/special production jobs and resolves producer prerequisites.
 - `bench_farm.py`: normal-farm, Sunflower, and external-reference benchmark implementations/modes.
 - `bench_farm_run.py`: normal-farm benchmark matrix, seeds, simulation profiles, and aggregation.
+- `bench_transition.py`: persistent Carrot -> Hay -> Wood -> Carrot transition implementations.
+- `bench_transition_run.py`: transition benchmark profiles, seeds, simulation calls, and aggregation.
 - `bench_maze.py`: all Maze benchmark implementations/modes.
 - `bench_maze_run.py`: Maze simulation matrix and benchmark orchestration.
 - `bench_dinosaur.py`: Dinosaur benchmark implementations/modes.
@@ -269,7 +271,7 @@ Sunflower harvesting has special rules.
 - After every harvest, recompute the current maximum before harvesting another sunflower.
 - Power speeds drone execution.
 
-The current production design keeps sunflower harvesting centralized in `farm.refresh_energy()`, but that permanent-L architecture is under benchmark review. Read `docs/NORMAL_FARM.md` before changing normal farming or Sunflower placement.
+Production now uses the benchmark-selected adaptive column layout. With fewer drones than columns it reserves one max-petal Sunflower column; with one drone per column it reserves two simple Sunflower columns. The old L remains only as `farm.run_legacy()` for benchmark reproduction. Read `docs/NORMAL_FARM.md` before changing normal farming or Sunflower placement.
 
 Do not assume the current global petal-cache/L design is optimal. Benchmark modes intentionally test integrated Sunflower rows/columns and dedicated workers without shared memory. Production changes must follow measured results from `bench_farm_run.py`.
 
