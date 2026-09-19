@@ -285,38 +285,47 @@ A strategy can have excellent one-run throughput but perform worse over time if 
 
 Conversely, a collision-triggered or target-triggered strategy can be evaluated across several complete cycles.
 
-### Recommended sustained-throughput benchmark
+### Implemented sustained-throughput benchmark
 
-After the current 32x32 single-run benchmark is complete, add a separate benchmark mode/phase that runs multiple Dino harvest cycles, for example:
+The benchmark runner now includes a second phase after the normal fixed-target benchmark.
+
+It runs:
 
 ```text
-32x32
-3-5 complete harvest/restart cycles
-same seed set
-measure total runtime
-sum total expected/observed Bones
-report aggregate Bones/s and Bones/min
+world size: 32
+cycles per simulation: 3
+target tail occupancy: 25%, 50%, 75%, 95%
+seeds: 1, 2, 3
+strategies:
+- hamiltonian-skyscraper
+- skysdottir-tfwr-reference
 ```
 
-Candidates should include:
+Each sustained simulation:
 
-1. plain Hamiltonian, harvest on collision
-2. skysdottir reference, harvest on collision / natural failure
-3. explicit 50%, 75%, 95% target harvest + restart
-4. eventually a planner-derived target based on missing Bones
+1. calls `set_world_size(32)` once
+2. runs three Dinosaur production cycles
+3. harvests the tail after each target is reached
+4. repositions to the origin without clearing/resetting the world again
+5. starts the next Dinosaur cycle
+6. reports aggregate runtime, expected Bones, Bones/s, and Bones/min
 
-Do not replace the current target-percent benchmark. The two tests answer different questions:
+The runner also prints a `SUSTAINED SUMMARY` averaged across seeds.
+
+The two benchmark phases answer different questions:
 
 - fixed target benchmark isolates path efficiency
 - repeated-cycle benchmark measures sustained production efficiency
 
-### Benchmark setup caution
+Collision-triggered/natural-end harvesting is still a future extension because the runner currently needs a deterministic known tail length to compute aggregate expected Bones automatically.
 
-The current simulation setup calls `set_world_size()` and then `clear()`.
+### Benchmark setup
 
-Because `set_world_size()` itself clears/reset the farm, this may add setup work that production does not perform in exactly the same way. This fixed overhead affects all strategies in one case equally, but can bias throughput comparisons between short and long target runs.
+The redundant `clear()` after `set_world_size()` has been removed.
 
-Before making a final production decision from Bones/s across different target percentages, benchmark or remove avoidable setup overhead so the simulation setup matches `dinosaur.run()` as closely as possible.
+`set_world_size()` already clears/resets the field, so the benchmark now pays that setup cost only once per simulation. Sustained cycles do not resize or clear the world again between harvests.
+
+This is important when comparing 25% vs 95% targets because otherwise a fixed setup cost would distort short-run throughput more strongly.
 
 ## Important research conclusion: our baseline is already skyscraper-like
 
