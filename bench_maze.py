@@ -2748,6 +2748,1360 @@ def spec_run_packed_32(
 
 
 # ==================================================
+# EXTENDED SMALL-MAZE SOLVER ABLATIONS
+# ==================================================
+
+
+def spec_unranked_find():
+    x = get_pos_x()
+    y = get_pos_y()
+
+    stack = [
+        (
+            [
+                West,
+                South,
+                East,
+                North
+            ],
+            None
+        )
+    ]
+
+    visited = {
+        (x, y)
+    }
+
+    while (
+        get_entity_type()
+        != Entities.Treasure
+    ):
+        dirs, back = stack[
+            len(stack) - 1
+        ]
+
+        direction = None
+
+        while len(dirs) > 0:
+            candidate = dirs.pop()
+
+            next_coord = spec_neighbor(
+                (x, y),
+                candidate
+            )
+
+            if (
+                next_coord in visited
+                or not move(candidate)
+            ):
+                continue
+
+            direction = candidate
+            x = get_pos_x()
+            y = get_pos_y()
+            break
+
+        if direction == None:
+            stack.pop()
+
+            if back == None:
+                return False
+
+            move(
+                back
+            )
+
+            x = get_pos_x()
+            y = get_pos_y()
+
+        else:
+            visited.add(
+                (x, y)
+            )
+
+            stack.append(
+                (
+                    [
+                        West,
+                        South,
+                        East,
+                        North
+                    ],
+                    spec_back(
+                        direction
+                    )
+                )
+            )
+
+    return True
+
+
+def spec_reddit_score(
+    direction,
+    pos_x,
+    pos_y,
+    goal_x,
+    goal_y
+):
+    if direction == North:
+        return goal_y - pos_y
+
+    if direction == East:
+        return goal_x - pos_x
+
+    if direction == South:
+        return pos_y - goal_y
+
+    return pos_x - goal_x
+
+
+def spec_reddit_rank(
+    options,
+    goal_x,
+    goal_y
+):
+    pool = []
+
+    for direction in options:
+        pool.append(
+            direction
+        )
+
+    ranked = []
+
+    pos_x = get_pos_x()
+    pos_y = get_pos_y()
+
+    while len(pool) > 0:
+        best_index = 0
+        best_score = spec_reddit_score(
+            pool[0],
+            pos_x,
+            pos_y,
+            goal_x,
+            goal_y
+        )
+
+        index = 1
+
+        while index < len(pool):
+            score = spec_reddit_score(
+                pool[index],
+                pos_x,
+                pos_y,
+                goal_x,
+                goal_y
+            )
+
+            if score > best_score:
+                best_score = score
+                best_index = index
+
+            index += 1
+
+        ranked.append(
+            pool.pop(
+                best_index
+            )
+        )
+
+    return ranked
+
+
+def spec_reddit_find(
+    goal_x,
+    goal_y,
+    avoid_visited
+):
+    # Behavioral reconstruction of the September 2026 Reddit description:
+    # keep walking forced corridors, record only intersections, rank branches
+    # toward the Treasure, and rewind the recorded movement on dead ends.
+    trail = []
+    frames = []
+
+    visited = {
+        (
+            get_pos_x(),
+            get_pos_y()
+        )
+    }
+
+    while (
+        get_entity_type()
+        != Entities.Treasure
+    ):
+        back = None
+
+        if len(trail) > 0:
+            back = spec_back(
+                trail[
+                    len(trail) - 1
+                ]
+            )
+
+        options = []
+        current = (
+            get_pos_x(),
+            get_pos_y()
+        )
+
+        for direction in SPEC_DIRECTIONS:
+            if direction == back:
+                continue
+
+            if not can_move(
+                direction
+            ):
+                continue
+
+            next_coord = spec_neighbor(
+                current,
+                direction
+            )
+
+            if (
+                avoid_visited
+                and next_coord in visited
+            ):
+                continue
+
+            options.append(
+                direction
+            )
+
+        if len(options) > 0:
+            ranked = spec_reddit_rank(
+                options,
+                goal_x,
+                goal_y
+            )
+
+            chosen = ranked[0]
+
+            if len(ranked) > 1:
+                remaining = []
+                index = len(ranked) - 1
+
+                while index >= 1:
+                    remaining.append(
+                        ranked[index]
+                    )
+                    index -= 1
+
+                frames.append(
+                    [
+                        len(trail),
+                        remaining
+                    ]
+                )
+
+            if not move(
+                chosen
+            ):
+                return False
+
+            trail.append(
+                chosen
+            )
+
+            if avoid_visited:
+                visited.add(
+                    (
+                        get_pos_x(),
+                        get_pos_y()
+                    )
+                )
+
+            continue
+
+        advanced = False
+
+        while len(frames) > 0:
+            frame = frames[
+                len(frames) - 1
+            ]
+
+            while (
+                len(trail)
+                > frame[0]
+            ):
+                move(
+                    spec_back(
+                        trail.pop()
+                    )
+                )
+
+            if len(frame[1]) > 0:
+                chosen = frame[1].pop()
+
+                if not move(
+                    chosen
+                ):
+                    return False
+
+                trail.append(
+                    chosen
+                )
+
+                if avoid_visited:
+                    visited.add(
+                        (
+                            get_pos_x(),
+                            get_pos_y()
+                        )
+                    )
+
+                advanced = True
+                break
+
+            frames.pop()
+
+        if not advanced:
+            return False
+
+    return True
+
+
+def spec_solver_find(
+    solver_mode,
+    goal_x,
+    goal_y
+):
+    if solver_mode == 0:
+        return spec_zapakh_find(
+            goal_x,
+            goal_y
+        )
+
+    if solver_mode == 1:
+        return spec_unranked_find()
+
+    if solver_mode == 2:
+        return spec_reddit_find(
+            goal_x,
+            goal_y,
+            False
+        )
+
+    return spec_reddit_find(
+        goal_x,
+        goal_y,
+        True
+    )
+
+
+def spec_solver_fresh(
+    start_gold,
+    solver_mode
+):
+    goal = measure()
+
+    if goal == None:
+        return False
+
+    if not spec_solver_find(
+        solver_mode,
+        goal[0],
+        goal[1]
+    ):
+        return False
+
+    if (
+        get_entity_type()
+        != Entities.Treasure
+    ):
+        return False
+
+    harvest()
+
+    return True
+
+
+def spec_solver_reuse(
+    start_gold,
+    maze_size,
+    solver_mode,
+    reuse_limit
+):
+    solved = 0
+
+    while (
+        solved < reuse_limit
+        and not spec_gold_done(
+            start_gold
+        )
+    ):
+        goal = measure()
+
+        if goal == None:
+            return False
+
+        if not spec_solver_find(
+            solver_mode,
+            goal[0],
+            goal[1]
+        ):
+            return False
+
+        if not spec_relocate(
+            maze_size
+        ):
+            harvest()
+            return True
+
+        solved += 1
+
+    if spec_gold_done(
+        start_gold
+    ):
+        return True
+
+    goal = measure()
+
+    if goal != None:
+        if not spec_solver_find(
+            solver_mode,
+            goal[0],
+            goal[1]
+        ):
+            return False
+
+    if (
+        get_entity_type()
+        == Entities.Treasure
+    ):
+        harvest()
+        return True
+
+    return False
+
+
+def spec_search_run(
+    origin_x,
+    origin_y,
+    maze_size,
+    start_gold,
+    maze_ready,
+    solver_mode,
+    reuse_limit
+):
+    while not spec_gold_done(
+        start_gold
+    ):
+        if not maze_ready:
+            spec_create_maze(
+                maze_size
+            )
+
+        maze_ready = False
+
+        if reuse_limit > 0:
+            if not spec_solver_reuse(
+                start_gold,
+                maze_size,
+                solver_mode,
+                reuse_limit
+            ):
+                return
+
+        else:
+            if not spec_solver_fresh(
+                start_gold,
+                solver_mode
+            ):
+                return
+
+        if spec_gold_done(
+            start_gold
+        ):
+            return
+
+        spec_move_to(
+            origin_x,
+            origin_y
+        )
+
+
+def spec_search_worker(
+    origin_x,
+    origin_y,
+    maze_size,
+    start_gold,
+    start_substance,
+    solver_mode,
+    reuse_limit
+):
+    spec_move_to(
+        origin_x,
+        origin_y
+    )
+
+    plant(
+        Entities.Bush
+    )
+
+    while (
+        num_items(
+            Items.Weird_Substance
+        )
+        == start_substance
+    ):
+        pass
+
+    if not spec_relocate(
+        maze_size
+    ):
+        return
+
+    spec_search_run(
+        origin_x,
+        origin_y,
+        maze_size,
+        start_gold,
+        True,
+        solver_mode,
+        reuse_limit
+    )
+
+
+def spec_layout_square(
+    layout_mode,
+    index
+):
+    if layout_mode == 0:
+        return SPEC_PACKED_32[
+            index
+        ]
+
+    if layout_mode == 1:
+        return [
+            (
+                index % 8
+            ) * 4,
+            (
+                index // 8
+            ) * 4,
+            4
+        ]
+
+    # 32 of the 36 non-overlapping 5x5 slots in a 6x6 grid.
+    return [
+        (
+            index % 6
+        ) * 5,
+        (
+            index // 6
+        ) * 5,
+        5
+    ]
+
+
+def spec_run_search_layout(
+    layout_mode,
+    solver_mode,
+    reuse_limit,
+    label
+):
+    clear()
+
+    start_gold = num_items(
+        Items.Gold
+    )
+
+    start_substance = num_items(
+        Items.Weird_Substance
+    )
+
+    child_origins = []
+
+    index = 0
+
+    while index < 31:
+        square = spec_layout_square(
+            layout_mode,
+            index
+        )
+
+        origin = spec_packed_origin(
+            square
+        )
+
+        child_origins.append(
+            origin
+        )
+
+        spawn_drone(
+            spec_search_worker,
+            origin[0],
+            origin[1],
+            square[2],
+            start_gold,
+            start_substance,
+            solver_mode,
+            reuse_limit
+        )
+
+        index += 1
+
+    for origin in child_origins:
+        spec_wait_for_bush(
+            origin[0],
+            origin[1]
+        )
+
+    quick_print(
+        label,
+        "READY",
+        len(child_origins)
+    )
+
+    square = spec_layout_square(
+        layout_mode,
+        31
+    )
+
+    origin = spec_packed_origin(
+        square
+    )
+
+    spec_move_to(
+        origin[0],
+        origin[1]
+    )
+
+    plant(
+        Entities.Bush
+    )
+
+    if not spec_relocate(
+        square[2]
+    ):
+        return
+
+    spec_search_run(
+        origin[0],
+        origin[1],
+        square[2],
+        start_gold,
+        True,
+        solver_mode,
+        reuse_limit
+    )
+
+
+# ==================================================
+# FEB-2026 REDDIT: RIGHT-HAND MAP + BFS + REUSE
+# ==================================================
+
+
+def spec_graph_ensure(
+    graph,
+    coord
+):
+    if coord not in graph:
+        graph[coord] = [
+            False,
+            False,
+            False,
+            False
+        ]
+
+
+def spec_graph_scan(
+    graph
+):
+    current = (
+        get_pos_x(),
+        get_pos_y()
+    )
+
+    spec_graph_ensure(
+        graph,
+        current
+    )
+
+    changed = False
+
+    for index in range(4):
+        direction = SPEC_DIRECTIONS[
+            index
+        ]
+
+        if not can_move(
+            direction
+        ):
+            continue
+
+        next_coord = spec_neighbor(
+            current,
+            direction
+        )
+
+        spec_graph_ensure(
+            graph,
+            next_coord
+        )
+
+        back_index = (
+            index + 2
+        ) % 4
+
+        if not graph[current][index]:
+            graph[current][index] = True
+            changed = True
+
+        if not graph[
+            next_coord
+        ][back_index]:
+            graph[
+                next_coord
+            ][back_index] = True
+            changed = True
+
+    return changed
+
+
+def spec_turn_right(
+    direction
+):
+    if direction == North:
+        return East
+
+    if direction == East:
+        return South
+
+    if direction == South:
+        return West
+
+    return North
+
+
+def spec_turn_left(
+    direction
+):
+    if direction == North:
+        return West
+
+    if direction == West:
+        return South
+
+    if direction == South:
+        return East
+
+    return North
+
+
+def spec_map_right_hand(
+    maze_size
+):
+    graph = {}
+    visited = set()
+
+    start = (
+        get_pos_x(),
+        get_pos_y()
+    )
+
+    direction = North
+    moved = False
+
+    while True:
+        current = (
+            get_pos_x(),
+            get_pos_y()
+        )
+
+        visited.add(
+            current
+        )
+
+        spec_graph_scan(
+            graph
+        )
+
+        if (
+            moved
+            and len(visited)
+            >= maze_size * maze_size
+            and current == start
+        ):
+            return graph
+
+        candidates = [
+            spec_turn_right(
+                direction
+            ),
+            direction,
+            spec_turn_left(
+                direction
+            ),
+            spec_back(
+                direction
+            )
+        ]
+
+        did_move = False
+
+        for candidate in candidates:
+            if move(
+                candidate
+            ):
+                direction = candidate
+                did_move = True
+                moved = True
+                break
+
+        if not did_move:
+            return graph
+
+
+def spec_graph_bfs_path(
+    graph,
+    start,
+    target
+):
+    if start == target:
+        return []
+
+    queue = [
+        start
+    ]
+
+    previous = {
+        start: None
+    }
+
+    queue_index = 0
+
+    while queue_index < len(queue):
+        current = queue[
+            queue_index
+        ]
+
+        queue_index += 1
+
+        if current == target:
+            break
+
+        if current not in graph:
+            continue
+
+        edges = graph[
+            current
+        ]
+
+        for index in range(4):
+            if not edges[index]:
+                continue
+
+            next_coord = spec_neighbor(
+                current,
+                SPEC_DIRECTIONS[
+                    index
+                ]
+            )
+
+            if next_coord in previous:
+                continue
+
+            previous[
+                next_coord
+            ] = current
+
+            queue.append(
+                next_coord
+            )
+
+    if target not in previous:
+        return []
+
+    path = []
+    current = target
+
+    while current != start:
+        path.append(
+            current
+        )
+
+        current = previous[
+            current
+        ]
+
+    return path
+
+
+def spec_graph_move_bfs(
+    graph,
+    target
+):
+    while (
+        (
+            get_pos_x(),
+            get_pos_y()
+        )
+        != target
+    ):
+        current = (
+            get_pos_x(),
+            get_pos_y()
+        )
+
+        spec_graph_scan(
+            graph
+        )
+
+        path = spec_graph_bfs_path(
+            graph,
+            current,
+            target
+        )
+
+        if len(path) == 0:
+            return False
+
+        while len(path) > 0:
+            if spec_graph_scan(
+                graph
+            ):
+                break
+
+            next_coord = path.pop()
+            current = (
+                get_pos_x(),
+                get_pos_y()
+            )
+
+            direction = None
+
+            for candidate in SPEC_DIRECTIONS:
+                if (
+                    spec_neighbor(
+                        current,
+                        candidate
+                    )
+                    == next_coord
+                ):
+                    direction = candidate
+                    break
+
+            if direction == None:
+                return False
+
+            if not move(
+                direction
+            ):
+                break
+
+    return True
+
+
+def spec_map_bfs_run(
+    origin_x,
+    origin_y,
+    maze_size,
+    start_gold,
+    maze_ready
+):
+    while not spec_gold_done(
+        start_gold
+    ):
+        if not maze_ready:
+            spec_create_maze(
+                maze_size
+            )
+
+        maze_ready = False
+
+        graph = spec_map_right_hand(
+            maze_size
+        )
+
+        solved = 0
+
+        while (
+            solved < 300
+            and not spec_gold_done(
+                start_gold
+            )
+        ):
+            target = measure()
+
+            if target == None:
+                return
+
+            if not spec_graph_move_bfs(
+                graph,
+                target
+            ):
+                return
+
+            if not spec_relocate(
+                maze_size
+            ):
+                harvest()
+                break
+
+            solved += 1
+
+        if spec_gold_done(
+            start_gold
+        ):
+            return
+
+        if (
+            get_entity_type()
+            != Entities.Treasure
+        ):
+            target = measure()
+
+            if target != None:
+                spec_graph_move_bfs(
+                    graph,
+                    target
+                )
+
+        if (
+            get_entity_type()
+            == Entities.Treasure
+        ):
+            harvest()
+
+        spec_move_to(
+            origin_x,
+            origin_y
+        )
+
+
+def spec_map_bfs_worker(
+    origin_x,
+    origin_y,
+    maze_size,
+    start_gold,
+    start_substance
+):
+    spec_move_to(
+        origin_x,
+        origin_y
+    )
+
+    plant(
+        Entities.Bush
+    )
+
+    while (
+        num_items(
+            Items.Weird_Substance
+        )
+        == start_substance
+    ):
+        pass
+
+    if not spec_relocate(
+        maze_size
+    ):
+        return
+
+    spec_map_bfs_run(
+        origin_x,
+        origin_y,
+        maze_size,
+        start_gold,
+        True
+    )
+
+
+def spec_run_map_bfs_5x5():
+    clear()
+
+    start_gold = num_items(
+        Items.Gold
+    )
+
+    start_substance = num_items(
+        Items.Weird_Substance
+    )
+
+    origins = []
+
+    index = 0
+
+    while index < 31:
+        square = spec_layout_square(
+            2,
+            index
+        )
+
+        origin = spec_packed_origin(
+            square
+        )
+
+        origins.append(
+            origin
+        )
+
+        spawn_drone(
+            spec_map_bfs_worker,
+            origin[0],
+            origin[1],
+            5,
+            start_gold,
+            start_substance
+        )
+
+        index += 1
+
+    for origin in origins:
+        spec_wait_for_bush(
+            origin[0],
+            origin[1]
+        )
+
+    quick_print(
+        "REDDIT BFS5 READY",
+        len(origins)
+    )
+
+    square = spec_layout_square(
+        2,
+        31
+    )
+
+    origin = spec_packed_origin(
+        square
+    )
+
+    spec_move_to(
+        origin[0],
+        origin[1]
+    )
+
+    plant(
+        Entities.Bush
+    )
+
+    if not spec_relocate(
+        5
+    ):
+        return
+
+    spec_map_bfs_run(
+        origin[0],
+        origin[1],
+        5,
+        start_gold,
+        True
+    )
+
+
+# ==================================================
+# MSMITH93 MULTI-DRONE FULL-MAZE SOURCE-NEAR REFERENCE
+# ==================================================
+
+
+def spec_msmith_dirs(
+    drone_id
+):
+    dirs = [
+        North,
+        South,
+        East,
+        West
+    ]
+
+    if drone_id % 2:
+        dirs = [
+            West,
+            East,
+            South,
+            North
+        ]
+
+    if drone_id % 3:
+        value = dirs[0]
+        dirs[0] = dirs[1]
+        dirs[1] = value
+
+    if drone_id % 5:
+        value = dirs[1]
+        dirs[1] = dirs[3]
+        dirs[3] = value
+
+    return dirs
+
+
+def spec_msmith_explore(
+    start_direction,
+    dirs,
+    start_gold
+):
+    if not move(
+        start_direction
+    ):
+        return False
+
+    path_stack = [
+        (
+            start_direction,
+            0
+        )
+    ]
+
+    while (
+        len(path_stack) > 0
+        and not spec_gold_done(
+            start_gold
+        )
+    ):
+        if (
+            get_entity_type()
+            == Entities.Treasure
+        ):
+            harvest()
+
+            if not spec_gold_done(
+                start_gold
+            ):
+                spec_create_maze(
+                    get_world_size()
+                )
+
+            return True
+
+        last_direction, next_index = (
+            path_stack[
+                len(path_stack) - 1
+            ]
+        )
+
+        moved = False
+
+        while next_index < len(dirs):
+            explore_direction = dirs[
+                next_index
+            ]
+
+            path_stack[
+                len(path_stack) - 1
+            ] = (
+                last_direction,
+                next_index + 1
+            )
+
+            if (
+                spec_back(
+                    explore_direction
+                )
+                != last_direction
+                and move(
+                    explore_direction
+                )
+            ):
+                path_stack.append(
+                    (
+                        explore_direction,
+                        0
+                    )
+                )
+
+                moved = True
+                break
+
+            next_index += 1
+
+        if not moved:
+            path_stack.pop()
+
+            move(
+                spec_back(
+                    last_direction
+                )
+            )
+
+    move(
+        spec_back(
+            start_direction
+        )
+    )
+
+    return False
+
+
+def spec_msmith_search(
+    drone_id,
+    start_gold
+):
+    for _ in range(
+        drone_id
+    ):
+        do_a_flip()
+
+    dirs = spec_msmith_dirs(
+        drone_id
+    )
+
+    while not spec_gold_done(
+        start_gold
+    ):
+        found = False
+
+        for direction in dirs:
+            if spec_msmith_explore(
+                direction,
+                dirs,
+                start_gold
+            ):
+                found = True
+                break
+
+        if not found:
+            return False
+
+    return True
+
+
+def spec_run_msmith93():
+    clear()
+
+    start_gold = num_items(
+        Items.Gold
+    )
+
+    spec_create_maze(
+        get_world_size()
+    )
+
+    handles = []
+
+    drone_id = 1
+
+    while drone_id < max_drones():
+        drone = spawn_drone(
+            spec_msmith_search,
+            drone_id,
+            start_gold
+        )
+
+        if drone == None:
+            break
+
+        handles.append(
+            drone
+        )
+
+        drone_id += 1
+
+    spec_msmith_search(
+        0,
+        start_gold
+    )
+
+    for drone in handles:
+        wait_for(
+            drone
+        )
+
+
+# ==================================================
 # JAN-2026 STEAM: 32 INDEPENDENT 4x4 MAZES
 # ==================================================
 
