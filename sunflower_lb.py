@@ -26,7 +26,9 @@ MODE_NAMES = [
     "tier-linear-water",
     "scan-tree-leave7",
     "scan-tree-counted",
-    "scan-linear-counted"
+    "scan-linear-counted",
+    "dumb-tree-no-care",
+    "equal7-tree-no-care"
 ]
 
 MIN_PETALS = 7
@@ -1625,6 +1627,12 @@ def configure_mode(mode):
         USE_TREE = False
         return True
 
+    if mode == 11:
+        return True
+
+    if mode == 12:
+        return True
+
     return False
 
 
@@ -1650,12 +1658,20 @@ def run(
     ):
         return False
 
-    if mode == 3 or mode == 4:
+    if (
+        mode == 3
+        or mode == 4
+        or mode == 12
+    ):
         return run_ordered(
             True
         )
 
-    if mode == 5 or mode == 6:
+    if (
+        mode == 5
+        or mode == 6
+        or mode == 11
+    ):
         return dumb_tree(
             0,
             WORLD_SIZE
