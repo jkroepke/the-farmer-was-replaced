@@ -19,6 +19,11 @@ _gold_active = False
 # sunflower farm only for pumpkin.run() to clear it again immediately.
 _pumpkin_active = False
 
+# True after a successful full-field Cactus run.
+# Consecutive Cactus runs can reuse the post-harvest Soil field instead of
+# clearing/rebuilding the normal farm between every planner iteration.
+_cactus_active = False
+
 
 # ==================================================
 # RESTORE NORMAL FARM
@@ -27,9 +32,12 @@ _pumpkin_active = False
 def reset_state():
     global _gold_active
     global _pumpkin_active
+    global _cactus_active
 
     _gold_active = False
     _pumpkin_active = False
+    _cactus_active = False
+    _cactus_active = False
 
     maze.reset()
     farm.reset_state()
@@ -39,6 +47,7 @@ def reset_state():
 def restore_normal_farm():
     global _gold_active
     global _pumpkin_active
+    global _cactus_active
 
     # Any normal farm restore destroys a reusable Maze.
     # Reset the in-memory tree before clearing the field.
@@ -54,6 +63,7 @@ def restore_normal_farm():
 
     _gold_active = False
     _pumpkin_active = False
+    _cactus_active = False
 
 
 # ==================================================
@@ -151,10 +161,17 @@ def run_pumpkin():
 # ==================================================
 
 def run_cactus():
-    if cactus.can_start():
-        success = cactus.run()
+    global _cactus_active
 
-        restore_normal_farm()
+    if cactus.can_start():
+        success = cactus.run(
+            _cactus_active
+        )
+
+        if success:
+            _cactus_active = True
+        else:
+            restore_normal_farm()
 
         return success
 
@@ -256,11 +273,15 @@ def run_gold():
 def run(item):
     global _gold_active
     global _pumpkin_active
+    global _cactus_active
 
     if item != Items.Gold and _gold_active:
         restore_normal_farm()
 
     if item != Items.Pumpkin and _pumpkin_active:
+        restore_normal_farm()
+
+    if item != Items.Cactus and _cactus_active:
         restore_normal_farm()
 
     if item == None:
