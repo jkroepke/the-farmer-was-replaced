@@ -3,14 +3,16 @@
 ## Helper script
 
 - Achievement helpers live in `archivments.py`.
-- Select the helper with the `MODE` constant.
+- Enable helpers through the `ACHIEVEMENTS` dictionary with `True` / `False` values.
+- Multiple non-blocking helpers may be enabled together.
+- `master-acrobat` runs forever and `stack-overflow` intentionally crashes, so those blocking helpers should normally be enabled individually.
 - Keep achievement entry points in this shared file instead of creating one user-facing script per achievement.
 - `Circular Import` needs two tiny helper modules because an actual import cycle requires modules to import each other.
 
 ## Stack Overflow
 
 - Steam lists `Stack Overflow` with the requirement: `Cause a stack overflow.`
-- `MODE = "stack-overflow"` calls `cause_stack_overflow()` recursively without a base case, intentionally exhausting the call stack.
+- `ACHIEVEMENTS["stack-overflow"] = True` calls `cause_stack_overflow()` recursively without a base case, intentionally exhausting the call stack.
 - The resulting runtime failure is intentional for this achievement.
 
 ## Master Acrobat
@@ -18,7 +20,7 @@
 - The current game API exposes `do_a_flip()`; it takes 1 second and is not affected by speed upgrades.
 - Steam lists `Master Acrobat` as requiring 1000 flips.
 - The initial drone counts towards `num_drones()` / `max_drones()`. Therefore 32 active drones means spawning 31 additional workers when `max_drones() == 32`.
-- `MODE = "master-acrobat"` fills the available drone slots up to 32 and makes every active drone call `do_a_flip()` forever. Stop the program after the achievement appears.
+- `ACHIEVEMENTS["master-acrobat"] = True` fills the available drone slots up to 32 and makes every active drone call `do_a_flip()` forever. Stop the program after the achievement appears.
 - No built-in API for querying Steam achievement completion was found.
 - [Unverified] I could not verify from official/current documentation whether flip achievement progress is aggregated across all spawned drones.
 
@@ -36,13 +38,13 @@
 - Steam lists `Healer` as: `Cure an infected plant.`
 - Current Fertilizer mechanics: using Fertilizer on a plant infects it.
 - Current Weird Substance mechanics: using Weird Substance on a non-Bush plant toggles infection state for that plant and its adjacent plants.
-- `MODE = "healer"` plants a Carrot, infects it with Fertilizer, then cures it with Weird Substance.
+- `ACHIEVEMENTS["healer"] = True` plants a Carrot, infects it with Fertilizer, then cures it with Weird Substance.
 - If no Fertilizer is available, the helper falls back to using Weird Substance twice on the same Carrot: first infect, then cure.
 
 ## Circular Import
 
 - Steam lists `Circular Import` as: `Create an import cycle.`
-- `MODE = "circular-import"` imports `archivments_cycle_a`.
+- `ACHIEVEMENTS["circular-import"] = True` imports `archivments_cycle_a`.
 - `archivments_cycle_a.py` imports `archivments_cycle_b.py`, and `archivments_cycle_b.py` imports `archivments_cycle_a.py`.
 - The two helper files intentionally contain no other behavior.
 

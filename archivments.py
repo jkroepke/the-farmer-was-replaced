@@ -1,15 +1,19 @@
 # Achievement helpers.
 #
-# Change MODE to select the achievement helper to run.
+# Enable or disable achievement helpers here.
 #
-# Modes:
-#   stack-overflow
-#   master-acrobat
-#   wrong-order
-#   healer
-#   circular-import
+# Multiple non-blocking achievements can be enabled at the same time.
+# master-acrobat runs forever and stack-overflow intentionally crashes,
+# so enable those individually when needed.
 
-MODE = "stack-overflow"
+ACHIEVEMENTS = {
+    "wrong-order": False,
+    "healer": False,
+    "circular-import": False,
+    "master-acrobat": False,
+    "stack-overflow": True,
+}
+
 TARGET_DRONES = 32
 
 
@@ -219,15 +223,18 @@ def circular_import():
     quick_print("Circular import created.")
 
 
-if MODE == "stack-overflow":
-    cause_stack_overflow()
-elif MODE == "master-acrobat":
-    master_acrobat()
-elif MODE == "wrong-order":
+if ACHIEVEMENTS["wrong-order"]:
     wrong_order()
-elif MODE == "healer":
+
+if ACHIEVEMENTS["healer"]:
     healer()
-elif MODE == "circular-import":
+
+if ACHIEVEMENTS["circular-import"]:
     circular_import()
-else:
-    quick_print("Unknown achievement mode:", MODE)
+
+# Blocking modes run last.
+if ACHIEVEMENTS["master-acrobat"]:
+    master_acrobat()
+
+if ACHIEVEMENTS["stack-overflow"]:
+    cause_stack_overflow()
