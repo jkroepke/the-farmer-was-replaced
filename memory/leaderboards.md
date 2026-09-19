@@ -10,6 +10,13 @@ Verification status: the values below are transcribed from that supplied game te
 
 ## General execution rule
 
+Repository execution-speed defaults:
+
+- ordinary `simulate()` benchmark runners request speedup `10000`
+- real `leaderboard_run()` launchers request speedup `256`
+- changing a benchmark speedup requires a `BENCH_VERSION` bump
+- historical results retain the speedup they were actually measured with
+
 Leaderboard runs use:
 
 ```python
