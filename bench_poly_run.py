@@ -1,7 +1,7 @@
 import main
 
 
-BENCH_VERSION = "farmx-v4"
+BENCH_VERSION = "farmx-v5"
 
 BENCH_WORLD_SIZE = 32
 BENCH_SPEEDUP = 10000
@@ -36,25 +36,25 @@ MAX_FOCUS_NAMES = [
     "max-wood"
 ]
 
-# Keep these aligned with the broad bench_farm max-Megafarm targets.
-# Carrot is split across the two Carrot phases in bench_poly, therefore
-# 5M here produces 10M total Carrot gain.
+# Sustained pure-crop targets. v4 showed that the short 10M Grass target
+# had excessive seed variance, so v5 lengthens all three pure-focus runs.
+# Carrot is split across two Carrot phases: 25M here means 50M total.
 MAX_FOCUS_CARROT_GAINS = [
-    5000000,
+    25000000,
     0,
     0
 ]
 
 MAX_FOCUS_HAY_GAINS = [
     0,
-    10000000,
+    50000000,
     0
 ]
 
 MAX_FOCUS_WOOD_GAINS = [
     0,
     0,
-    20000000
+    100000000
 ]
 
 BENCH_SEEDS = [
@@ -84,7 +84,13 @@ MODE_NAMES = [
     "poly-two-sun-pairs",
     "current-one-seven-stride",
     "current-one-seven-chunks",
-    "current-one-seven-pairs"
+    "current-one-seven-pairs",
+    "current-one-row-stride",
+    "current-one-row-chunks",
+    "current-one-row-pairs",
+    "current-one-col-stride",
+    "current-one-col-chunks",
+    "current-one-col-pairs"
 ]
 
 CURRENT_MODE_IDS = [
@@ -94,9 +100,12 @@ CURRENT_MODE_IDS = [
     4,
     5,
     6,
-    13,
-    14,
-    15
+    16,
+    17,
+    18,
+    19,
+    20,
+    21
 ]
 
 POLY_MODE_IDS = [
@@ -106,6 +115,48 @@ POLY_MODE_IDS = [
     10,
     11,
     12
+]
+
+# Seven-petal modes 13..15 remain implemented for reproducibility but are
+# dropped from default screening after losing every farmx-v4 scenario.
+MIXED_SCREEN_MODE_IDS = [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    16,
+    17,
+    18,
+    19,
+    20,
+    21
+]
+
+# Poly lost all three pure-focus v4 finals. Pure crop v5 therefore spends
+# its runtime on the current-layout shootout only.
+MAX_SCREEN_MODE_IDS = [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    16,
+    17,
+    18,
+    19,
+    20,
+    21
 ]
 
 
@@ -185,8 +236,17 @@ def run_focus_one(
     )
 
 
-def screen_horizon(profile, horizon):
+def empty_times():
     times = []
+
+    for _ in range(len(MODE_NAMES)):
+        times.append(-1)
+
+    return times
+
+
+def screen_horizon(profile, horizon):
+    times = empty_times()
 
     quick_print(
         "FARMX SCREEN START",
@@ -194,7 +254,7 @@ def screen_horizon(profile, horizon):
         HORIZON_NAMES[horizon]
     )
 
-    for mode in range(len(MODE_NAMES)):
+    for mode in MIXED_SCREEN_MODE_IDS:
         run_time = run_one(
             profile,
             mode,
@@ -202,7 +262,7 @@ def screen_horizon(profile, horizon):
             1
         )
 
-        times.append(run_time)
+        times[mode] = run_time
 
         quick_print(
             "FARMX SCREEN",
@@ -231,6 +291,33 @@ def best_in_modes(times, modes):
         index += 1
 
     return best_mode
+
+
+def best_three_in_modes(times, modes):
+    selected = []
+
+    while len(selected) < 3:
+        best_mode = -1
+        best_time = -1
+
+        for mode in modes:
+            if mode in selected:
+                continue
+
+            if (
+                best_mode < 0
+                or times[mode] < best_time
+            ):
+                best_mode = mode
+                best_time = times[mode]
+
+        selected.append(
+            best_mode
+        )
+
+    return selected
+
+
 
 
 def benchmark_finalists(
@@ -354,21 +441,21 @@ def benchmark_profile(profile):
 
 
 def benchmark_max_focus(focus):
-    times = []
+    times = empty_times()
 
     quick_print(
         "FARMX MAX SCREEN START",
         MAX_FOCUS_NAMES[focus]
     )
 
-    for mode in range(len(MODE_NAMES)):
+    for mode in MAX_SCREEN_MODE_IDS:
         run_time = run_focus_one(
             mode,
             focus,
             1
         )
 
-        times.append(run_time)
+        times[mode] = run_time
 
         quick_print(
             "FARMX MAX SCREEN",
@@ -377,35 +464,39 @@ def benchmark_max_focus(focus):
             run_time
         )
 
-    current_mode = best_in_modes(
+    finalists = best_three_in_modes(
         times,
         CURRENT_MODE_IDS
     )
-    poly_mode = best_in_modes(
-        times,
-        POLY_MODE_IDS
-    )
 
     modes = [
-        0,
-        current_mode,
-        poly_mode
+        0
     ]
+
+    for mode in finalists:
+        modes.append(
+            mode
+        )
 
     quick_print(
         "FARMX MAX FINALISTS",
         MAX_FOCUS_NAMES[focus],
-        "current",
-        MODE_NAMES[current_mode],
-        times[current_mode],
-        "poly",
-        MODE_NAMES[poly_mode],
-        times[poly_mode]
+        MODE_NAMES[finalists[0]],
+        times[finalists[0]],
+        MODE_NAMES[finalists[1]],
+        times[finalists[1]],
+        MODE_NAMES[finalists[2]],
+        times[finalists[2]]
     )
 
-    totals = [0, 0, 0]
-    minimums = [-1, -1, -1]
-    maximums = [0, 0, 0]
+    totals = []
+    minimums = []
+    maximums = []
+
+    for _ in modes:
+        totals.append(0)
+        minimums.append(-1)
+        maximums.append(0)
 
     for seed in BENCH_SEEDS:
         result_index = 0
