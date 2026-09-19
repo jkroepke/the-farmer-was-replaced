@@ -2327,91 +2327,141 @@ def spec_zapakh_find(
     return True
 
 
-def spec_zapakh_worker(
+def spec_zapakh_solve_current(
+    start_gold
+):
+    solved = 0
+
+    while (
+        solved < 300
+        and not spec_gold_done(
+            start_gold
+        )
+    ):
+        goal = measure()
+
+        if goal == None:
+            if (
+                get_entity_type()
+                == Entities.Treasure
+            ):
+                harvest()
+
+            return True
+
+        goal_x, goal_y = goal
+
+        if not spec_zapakh_find(
+            goal_x,
+            goal_y
+        ):
+            return False
+
+        if not spec_relocate(
+            4
+        ):
+            harvest()
+            return True
+
+        solved += 1
+
+    if spec_gold_done(
+        start_gold
+    ):
+        return True
+
+    goal = measure()
+
+    if (
+        get_entity_type()
+        != Entities.Treasure
+        and goal != None
+    ):
+        goal_x, goal_y = goal
+
+        if not spec_zapakh_find(
+            goal_x,
+            goal_y
+        ):
+            return False
+
+    if (
+        get_entity_type()
+        == Entities.Treasure
+    ):
+        harvest()
+
+    return True
+
+
+def spec_zapakh_run(
     origin_x,
     origin_y,
     start_gold,
-    start_water
+    maze_ready
 ):
-    spec_move_to(
-        origin_x,
-        origin_y
-    )
-
-    while (
-        num_items(Items.Water)
-        == start_water
-    ):
-        pass
-
     while not spec_gold_done(
         start_gold
     ):
-        spec_create_maze(
-            4
-        )
-
-        solved = 0
-        goal = measure()
-
-        while (
-            solved < 300
-            and not spec_gold_done(
-                start_gold
-            )
-        ):
-            goal_x, goal_y = goal
-
-            if not spec_zapakh_find(
-                goal_x,
-                goal_y
-            ):
-                return
-
-            goal = measure()
-
-            if goal == None:
-                harvest()
-                break
-
-            if not spec_relocate(
+        if not maze_ready:
+            spec_create_maze(
                 4
-            ):
-                harvest()
-                break
+            )
 
-            solved += 1
-            goal = measure()
+        maze_ready = False
+
+        if not spec_zapakh_solve_current(
+            start_gold
+        ):
+            return
 
         if spec_gold_done(
             start_gold
         ):
             return
 
-        if (
-            get_entity_type()
-            != Entities.Treasure
-        ):
-            goal = measure()
-
-            if goal != None:
-                goal_x, goal_y = goal
-
-                spec_zapakh_find(
-                    goal_x,
-                    goal_y
-                )
-
-        if (
-            get_entity_type()
-            == Entities.Treasure
-        ):
-            harvest()
-
         spec_move_to(
             origin_x,
             origin_y
         )
+
+
+def spec_zapakh_worker(
+    origin_x,
+    origin_y,
+    start_gold,
+    start_substance
+):
+    spec_move_to(
+        origin_x,
+        origin_y
+    )
+
+    plant(
+        Entities.Bush
+    )
+
+    # The parent changes Weird Substance only after all 31 child origins
+    # have been verified as ready. This is a deterministic shared-world
+    # barrier; unlike Water, the signal action is guaranteed to be the
+    # creation of the parent's own 4x4 Maze.
+    while (
+        num_items(Items.Weird_Substance)
+        == start_substance
+    ):
+        pass
+
+    if not spec_relocate(
+        4
+    ):
+        return
+
+    spec_zapakh_run(
+        origin_x,
+        origin_y,
+        start_gold,
+        True
+    )
 
 
 # ==================================================
@@ -2588,9 +2638,11 @@ def spec_steam_hunt(
                     harvest()
                     return -1
 
-                spec_relocate(
+                if not spec_relocate(
                     4
-                )
+                ):
+                    harvest()
+                    return -1
 
                 found += 1
 
@@ -2643,41 +2695,32 @@ def spec_steam_hunt(
         ):
             depth += 1
 
-        spec_relocate(
+        if not spec_relocate(
             4
-        )
+        ):
+            harvest()
+            return -1
 
         found += 1
 
     return found
 
 
-def spec_steam_worker(
+def spec_steam_run(
     origin_x,
     origin_y,
     start_gold,
-    start_water
+    maze_ready
 ):
-    spec_move_to(
-        origin_x,
-        origin_y
-    )
-
-    # Preserved from the January 2026 community implementation.
-    do_a_flip()
-
-    while (
-        num_items(Items.Water)
-        == start_water
-    ):
-        pass
-
     while not spec_gold_done(
         start_gold
     ):
-        spec_create_maze(
-            4
-        )
+        if not maze_ready:
+            spec_create_maze(
+                4
+            )
+
+        maze_ready = False
 
         found = spec_steam_hunt(
             start_gold
@@ -2696,30 +2739,13 @@ def spec_steam_worker(
             continue
 
         if found >= 300:
-            # Depending on the exact recycle-limit boundary, the worker
-            # may already be standing on the final non-recyclable
-            # Treasure. Handle that before asking for another target.
-            if (
-                get_entity_type()
-                == Entities.Treasure
-                and measure() == None
-            ):
-                harvest()
-
-                spec_move_to(
-                    origin_x,
-                    origin_y
-                )
-
-                continue
-
             target = measure()
 
-            if target != None:
-                # The source algorithm already owns the graph inside
-                # spec_steam_hunt(). Use the ranked DFS reference only
-                # to reach the final Treasure after the source's graph
-                # has gone out of scope.
+            if (
+                get_entity_type()
+                != Entities.Treasure
+                and target != None
+            ):
                 goal_x, goal_y = target
 
                 spec_zapakh_find(
@@ -2739,42 +2765,97 @@ def spec_steam_worker(
         )
 
 
+def spec_steam_worker(
+    origin_x,
+    origin_y,
+    start_gold,
+    start_substance
+):
+    spec_move_to(
+        origin_x,
+        origin_y
+    )
+
+    # Preserved from the January 2026 community implementation.
+    do_a_flip()
+
+    plant(
+        Entities.Bush
+    )
+
+    while (
+        num_items(Items.Weird_Substance)
+        == start_substance
+    ):
+        pass
+
+    if not spec_relocate(
+        4
+    ):
+        return
+
+    spec_steam_run(
+        origin_x,
+        origin_y,
+        start_gold,
+        True
+    )
+
+
 # ==================================================
 # 32-WORKER GRID LAUNCHER
 # ==================================================
 
 
-def spec_run_32x4(
-    worker
+def spec_wait_for_bush(
+    x,
+    y
 ):
+    spec_move_to(
+        x,
+        y
+    )
+
+    while (
+        get_entity_type()
+        != Entities.Bush
+    ):
+        pass
+
+
+def spec_run_32x4():
     clear()
 
     start_gold = num_items(
         Items.Gold
     )
 
-    start_water = num_items(
-        Items.Water
+    start_substance = num_items(
+        Items.Weird_Substance
     )
+
+    child_origins = []
 
     worker_index = 0
     last_x = 30
     last_y = 14
 
-    # Spawn from one location. Each child moves to its own origin in
-    # parallel instead of making the parent serialize all positioning.
     for row in range(4):
         for column in range(8):
             x = column * 4 + 2
             y = row * 4 + 2
 
             if worker_index < 31:
+                child_origins.append(
+                    (x, y)
+                )
+
                 spawn_drone(
-                    worker,
+                    spec_zapakh_worker,
                     x,
                     y,
                     start_gold,
-                    start_water
+                    start_substance
                 )
 
             else:
@@ -2783,20 +2864,38 @@ def spec_run_32x4(
 
             worker_index += 1
 
+    # No Maze exists yet. Verify that every child has reached its assigned
+    # origin and planted its ready Bush before releasing the barrier.
+    for origin in child_origins:
+        spec_wait_for_bush(
+            origin[0],
+            origin[1]
+        )
+
+    quick_print(
+        "ZAPAKH READY",
+        len(child_origins)
+    )
+
     spec_move_to(
         last_x,
         last_y
     )
 
-    use_item(
-        Items.Water
+    plant(
+        Entities.Bush
     )
 
-    worker(
+    if not spec_relocate(
+        4
+    ):
+        return
+
+    spec_zapakh_run(
         last_x,
         last_y,
         start_gold,
-        start_water
+        True
     )
 
 
@@ -2807,38 +2906,76 @@ def spec_run_steam_32x4():
         Items.Gold
     )
 
-    start_water = num_items(
-        Items.Water
+    start_substance = num_items(
+        Items.Weird_Substance
     )
 
-    # Source correction from the Steam thread: keep the parent at
-    # (14, 30), attempt the original 8x8 set of 4x4 origins, then let
-    # the parent itself own the 32nd Maze. Once 31 children exist, the
-    # remaining spawn attempts fail cheaply because max_drones() is 32.
+    parent_x = 14
+    parent_y = 30
+
     spec_move_to(
-        14,
-        30
+        parent_x,
+        parent_y
     )
 
+    child_origins = []
+    worker_index = 0
+
+    # Preserve the source correction's 8x8 spawn attempts. With 32 drones,
+    # the first 31 children wait at their origins and all later attempts fail.
     for i in range(8):
         for j in range(8):
+            x = i * 4 + 2
+            y = j * 4 + 2
+
+            if worker_index < 31:
+                child_origins.append(
+                    (x, y)
+                )
+
             spawn_drone(
                 spec_steam_worker,
-                i * 4 + 2,
-                j * 4 + 2,
+                x,
+                y,
                 start_gold,
-                start_water
+                start_substance
             )
 
-    use_item(
-        Items.Water
+            worker_index += 1
+
+    for origin in child_origins:
+        spec_wait_for_bush(
+            origin[0],
+            origin[1]
+        )
+
+    quick_print(
+        "STEAM READY",
+        len(child_origins)
     )
 
-    spec_steam_worker(
-        14,
-        30,
+    spec_move_to(
+        parent_x,
+        parent_y
+    )
+
+    # Preserved from the source worker.
+    do_a_flip()
+
+    plant(
+        Entities.Bush
+    )
+
+    if not spec_relocate(
+        4
+    ):
+        return
+
+    spec_steam_run(
+        parent_x,
+        parent_y,
         start_gold,
-        start_water
+        True
     )
 
 
@@ -2888,9 +3025,7 @@ def run_special():
         spec_run_double_cover()
 
     elif BENCH_MODE == 10:
-        spec_run_32x4(
-            spec_zapakh_worker
-        )
+        spec_run_32x4()
 
     else:
         spec_run_steam_32x4()
