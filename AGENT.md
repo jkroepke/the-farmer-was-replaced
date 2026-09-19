@@ -342,6 +342,29 @@ All Maze-specific mechanics, production invariants, benchmark results, sources, 
 
 Read that document before modifying `maze.py`, Maze-related Gold production, or Maze benchmarks. Do not duplicate Maze strategy details in this file.
 
+## Benchmark result provenance
+
+Every documented benchmark result must include the full Git commit SHA of the benchmark state that produced it.
+
+The SHA must pin the complete code under test, not only a later documentation commit. Prefer the commit containing the runner plus all implementation changes used by that run.
+
+Required form:
+
+```text
+Benchmark commit: <40-character SHA>
+```
+
+Rules:
+
+- never add benchmark numbers to docs without a benchmark commit SHA
+- use the exact commit that contains the benchmark runner and tested implementation
+- if a later docs-only commit records older results, keep referencing the original benchmark commit
+- when comparing multiple runs produced from different code states, reference each result set separately
+- production decisions derived from benchmark data must cite the benchmark commit in the mechanic-specific documentation
+- code comments may also reference the benchmark SHA when a non-obvious production branch exists specifically because of that result
+
+This makes benchmark conclusions reproducible for future agents and prevents numbers from becoming detached from the code that produced them.
+
 ## Benchmark layout
 
 For every benchmark topic, use exactly:
