@@ -28,7 +28,7 @@ The default target is 200000 Gold, seeds 1/2/3, speedup 64. Results are pending 
 - `simulate()` uses an isolated copy of the inventory. Gold earned by a benchmark does not change the real farm inventory, and `simulate()` returns only runtime.
 - Special Maze modes print `MAZE SPECIAL RESULT <mode> gold gained <value> target <target> PASS|FAIL` inside the simulation so target completion can be verified independently from runtime.
 
-Benchmark implementation commit: `64c5f4bc4a8407303caac6a675d6f4709846bf2`.
+Current benchmark implementation commit: `c9403d86561fa80e28efce42cf97b2c9571d815d`.
 
 ## Stationary coverage design
 
@@ -55,6 +55,20 @@ The root worker is the fixed Maze creator. After the final Treasure is harvested
   - source builds a route/connectivity map, performs route sweeps, then graph path search
   - archived as provenance under `external/steam-32x4x4/`
 - Existing local references remain relevant, especially `external/msmith93-thefarmerwasreplaced/source/multidrone/maze_leaderboard.py` and the prior Pastebin tree-rebalancing reference.
+
+## Partial 200000-Gold results
+
+Tested against benchmark code commit `64c5f4bc4a8407303caac6a675d6f4709846bf2f`, seed 1:
+
+| Mode | Runtime | Gold | Status |
+| --- | ---: | ---: | --- |
+| current-reference-32 | 121.29 | 229376 | PASS |
+| cover-3x3 | 35.27 | 200160 | PASS |
+| cover-4x4 | 28.20 | 200192 | PASS |
+| cover-2x4x4 | 22.54 | 200192 | PASS |
+| zapakh-32x4x4 | n/a | n/a | HUNG |
+
+The zapakh result is invalid. Investigation found that the small-Maze DFS used non-wrapped neighbor coordinates even though the 32x4x4 layout includes Mazes near the toroidal world edge. It also ignored failed Treasure relocation at the reuse cap. Both are fixed in `c9403d86561fa80e28efce42cf97b2c9571d815d`.
 
 ## Open questions
 
