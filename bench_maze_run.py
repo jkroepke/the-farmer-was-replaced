@@ -1,41 +1,118 @@
-# Amount-based Maze benchmark controller for a real 32x32 farm.
+# Extended Maze benchmark controller for a real 32x32 farm.
 #
-# This runner intentionally does NOT call set_world_size(). The farm must
-# already be 32x32. Small mazes are created by changing only the amount passed
-# to use_item(Items.Weird_Substance, amount).
+# The world remains 32x32. Small Mazes are created only through the amount
+# passed to use_item(Items.Weird_Substance, amount).
 #
-# Historical 8/16/32 x 25/100/300 results remain documented in docs/MAZE.md,
-# but this runner no longer executes that old matrix.
+# Benchmark structure:
+# - SCREEN: all current references and mutations, 200k Gold, seeds 1/2/3
+# - SUSTAINED: strongest/most informative families, 1M Gold, seeds 1/2
+#
+# Historical benchmark matrices remain in docs/MAZE.md and are not rerun.
 
-BENCH_SEEDS = [
-    1,
-    2,
-    3
-]
 
 BENCH_SPEEDUP = 64
-BENCH_GOLD_TARGET = 200000
 BENCH_VERBOSE = False
-
-# Keep the historical reference thresholds unchanged for the current-method
-# control mode.
 BENCH_GREEDY_AFTER = 30
 BENCH_REBALANCE_UNTIL = 140
 BENCH_SOLVES = 300
 BENCH_WORLD_SIZE = 32
 
-# The previous 6..11 matrix is already recorded in docs/MAZE.md.
-# New experiments compare only against the current measured winner.
-MODE_IDS = [
-    10,
-    12,
-    13
+SCREEN_TARGET = 200000
+SUSTAINED_TARGET = 1000000
+
+SCREEN_SEEDS = [
+    1,
+    2,
+    3
 ]
 
-MODE_NAMES = [
-    "zapakh-32x4x4",
-    "packed-4to7-fresh",
-    "packed-4to7-reuse"
+SUSTAINED_SEEDS = [
+    1,
+    2
+]
+
+
+SCREEN_MODE_IDS = [
+    10,
+    11,
+    12,
+    13,
+    14,
+    15,
+    16,
+    17,
+    18,
+    19,
+    20,
+    21,
+    22,
+    23,
+    24,
+    25,
+    26,
+    27,
+    28,
+    29,
+    30,
+    31
+]
+
+SCREEN_MODE_NAMES = [
+    "ref-zapakh-4-reuse300",
+    "ref-steam-4-reuse300",
+    "mut-packed-zapakh-fresh",
+    "mut-packed-zapakh-reuse300",
+    "ref-msmith93-full32-fresh",
+    "ref-reddit5-map-bfs-reuse300",
+    "desc-reddit-packed-fresh",
+    "mut-reddit-packed-visited-reuse300",
+    "mut-packed-zapakh-reuse1",
+    "mut-packed-zapakh-reuse2",
+    "mut-packed-zapakh-reuse4",
+    "mut-packed-zapakh-reuse8",
+    "mut-packed-zapakh-reuse16",
+    "mut-packed-unranked-fresh",
+    "mut-packed-unranked-reuse300",
+    "mut-uniform4-zapakh-fresh",
+    "mut-uniform5-zapakh-reuse300",
+    "mut-uniform5-zapakh-fresh",
+    "mut-packed-map-bfs-reuse300",
+    "mut-packed-map-bfs-fresh",
+    "mut-uniform4-map-bfs-reuse300",
+    "mut-uniform4-zapakh-reuse8"
+]
+
+
+# Sustained set deliberately spans different hypotheses rather than only
+# variants expected to be fast:
+# - current measured winner
+# - full-field packing + ranked reuse
+# - Reddit fresh intersection solver
+# - Reddit solver with visited/reuse mutation
+# - source-described 5x5 map+BFS
+# - unranked packed reuse (ranking ablation)
+# - packed map+BFS
+# - short reuse cap
+SUSTAINED_MODE_IDS = [
+    10,
+    13,
+    16,
+    17,
+    15,
+    24,
+    28,
+    21
+]
+
+SUSTAINED_MODE_NAMES = [
+    "ref-zapakh-4-reuse300",
+    "mut-packed-zapakh-reuse300",
+    "desc-reddit-packed-fresh",
+    "mut-reddit-packed-visited-reuse300",
+    "ref-reddit5-map-bfs-reuse300",
+    "mut-packed-unranked-reuse300",
+    "mut-packed-map-bfs-reuse300",
+    "mut-packed-zapakh-reuse8"
 ]
 
 
@@ -57,13 +134,14 @@ def simulation_items():
 
 def run_one(
     mode,
-    seed
+    seed,
+    gold_target
 ):
     globals = {
         "BENCH_MODE": mode,
         "BENCH_SOLVES": BENCH_SOLVES,
         "BENCH_WORLD_SIZE": BENCH_WORLD_SIZE,
-        "BENCH_GOLD_TARGET": BENCH_GOLD_TARGET,
+        "BENCH_GOLD_TARGET": gold_target,
         "BENCH_GREEDY_AFTER": BENCH_GREEDY_AFTER,
         "BENCH_REBALANCE_UNTIL": BENCH_REBALANCE_UNTIL,
         "BENCH_VERBOSE": BENCH_VERBOSE
@@ -76,6 +154,101 @@ def run_one(
         globals,
         seed,
         BENCH_SPEEDUP
+    )
+
+
+def benchmark_group(
+    label,
+    mode_ids,
+    mode_names,
+    seeds,
+    gold_target
+):
+    quick_print(
+        label,
+        "START",
+        "gold target",
+        gold_target,
+        "modes",
+        len(mode_ids),
+        "seeds",
+        len(seeds)
+    )
+
+    totals = []
+    minimums = []
+    maximums = []
+
+    for _ in mode_ids:
+        totals.append(0)
+        minimums.append(-1)
+        maximums.append(0)
+
+    for seed in seeds:
+        quick_print(
+            label,
+            "SEED",
+            seed
+        )
+
+        index = 0
+
+        while index < len(mode_ids):
+            quick_print(
+                "RUN",
+                mode_names[index]
+            )
+
+            run_time = run_one(
+                mode_ids[index],
+                seed,
+                gold_target
+            )
+
+            totals[index] += run_time
+
+            if (
+                minimums[index] < 0
+                or run_time < minimums[index]
+            ):
+                minimums[index] = run_time
+
+            if run_time > maximums[index]:
+                maximums[index] = run_time
+
+            quick_print(
+                mode_names[index],
+                run_time
+            )
+
+            index += 1
+
+    quick_print(
+        label,
+        "SUMMARY",
+        "gold target",
+        gold_target
+    )
+
+    index = 0
+    seed_count = len(seeds)
+
+    while index < len(mode_ids):
+        quick_print(
+            mode_names[index],
+            "avg",
+            totals[index] / seed_count,
+            "min",
+            minimums[index],
+            "max",
+            maximums[index]
+        )
+
+        index += 1
+
+    quick_print(
+        label,
+        "DONE"
     )
 
 
@@ -95,84 +268,27 @@ def main():
         return
 
     quick_print(
-        "MAZE SPECIAL BENCH START",
-        "gold target",
-        BENCH_GOLD_TARGET
+        "MAZE EXTENDED BENCH START"
     )
 
-    totals = []
-    minimums = []
-    maximums = []
+    benchmark_group(
+        "MAZE SCREEN",
+        SCREEN_MODE_IDS,
+        SCREEN_MODE_NAMES,
+        SCREEN_SEEDS,
+        SCREEN_TARGET
+    )
 
-    for _ in MODE_NAMES:
-        totals.append(0)
-        minimums.append(-1)
-        maximums.append(0)
-
-    for seed in BENCH_SEEDS:
-        quick_print(
-            "SEED",
-            seed
-        )
-
-        mode_index = 0
-
-        while mode_index < len(MODE_IDS):
-            quick_print(
-                "RUN",
-                MODE_NAMES[mode_index]
-            )
-
-            run_time = run_one(
-                MODE_IDS[mode_index],
-                seed
-            )
-
-            totals[mode_index] += run_time
-
-            if (
-                minimums[mode_index] < 0
-                or run_time < minimums[mode_index]
-            ):
-                minimums[mode_index] = run_time
-
-            if run_time > maximums[mode_index]:
-                maximums[mode_index] = run_time
-
-            quick_print(
-                MODE_NAMES[mode_index],
-                run_time
-            )
-
-            mode_index += 1
-
-    seed_count = len(
-        BENCH_SEEDS
+    benchmark_group(
+        "MAZE SUSTAINED",
+        SUSTAINED_MODE_IDS,
+        SUSTAINED_MODE_NAMES,
+        SUSTAINED_SEEDS,
+        SUSTAINED_TARGET
     )
 
     quick_print(
-        "SUMMARY",
-        "gold target",
-        BENCH_GOLD_TARGET
-    )
-
-    mode_index = 0
-
-    while mode_index < len(MODE_NAMES):
-        quick_print(
-            MODE_NAMES[mode_index],
-            "avg",
-            totals[mode_index] / seed_count,
-            "min",
-            minimums[mode_index],
-            "max",
-            maximums[mode_index]
-        )
-
-        mode_index += 1
-
-    quick_print(
-        "MAZE SPECIAL BENCH DONE"
+        "MAZE EXTENDED BENCH DONE"
     )
 
 
