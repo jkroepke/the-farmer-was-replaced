@@ -414,7 +414,14 @@ def mod_between(
 
 
 def shortcut_cutoff_percent():
-    if BENCH_MODE == 2:
+    # 25% experiments.
+    if (
+        BENCH_MODE == 2
+        or BENCH_MODE == 13
+        or BENCH_MODE == 14
+        or BENCH_MODE == 15
+        or BENCH_MODE == 16
+    ):
         return 25
 
     return 50
@@ -434,10 +441,18 @@ def shortcut_phase_active():
 
 
 def annealing_allows_shortcut():
-    # Mode 1 follows the source-like behavior:
-    # shortcut attempts become less frequent as the tail approaches
-    # half the board.
-    if BENCH_MODE != 1:
+    # Annealed variants follow the skysdottir idea:
+    # shortcut attempts become less frequent as the tail grows.
+    annealed = (
+        BENCH_MODE == 1
+        or BENCH_MODE == 5
+        or BENCH_MODE == 7
+        or BENCH_MODE == 8
+        or BENCH_MODE == 13
+        or BENCH_MODE == 14
+    )
+
+    if not annealed:
         return True
 
     threshold = (
@@ -448,6 +463,9 @@ def annealing_allows_shortcut():
             / FULL_CYCLE_LENGTH
         )
     )
+
+    if threshold < 0:
+        return False
 
     return (
         random()
@@ -616,6 +634,95 @@ def greedy_directions(
     return directions
 
 
+def append_direction_once(
+    directions,
+    direction
+):
+    if direction not in directions:
+        directions.append(
+            direction
+        )
+
+
+def shortcut_directions(
+    here
+):
+    directions = []
+
+    # Reddit/skysdottir skyscraper fast-lane idea:
+    # when the Apple is behind us, prefer dropping toward the
+    # bottom return lane before evaluating normal greedy moves.
+    skyscraper_fastlane = (
+        BENCH_MODE == 5
+        or BENCH_MODE == 13
+        or BENCH_MODE == 15
+        or BENCH_MODE == 18
+    )
+
+    if (
+        skyscraper_fastlane
+        and here[1] > 1
+        and NEXT_APPLE[0] < here[0]
+    ):
+        append_direction_once(
+            directions,
+            South
+        )
+
+    # Reddit/skysdottir heartbeat fast-lane idea:
+    # move toward the central return lane when the Apple is in
+    # the opposite half / behind the current sweep.
+    heartbeat_fastlane = (
+        BENCH_MODE == 8
+        or BENCH_MODE == 14
+        or BENCH_MODE == 16
+        or BENCH_MODE == 19
+    )
+
+    if heartbeat_fastlane:
+        half = (
+            get_world_size()
+            // 2
+        )
+
+        if (
+            here[1] > half
+            and (
+                NEXT_APPLE[1] < half
+                or NEXT_APPLE[0] < here[0]
+            )
+        ):
+            append_direction_once(
+                directions,
+                South
+            )
+
+        if (
+            here[1] < half - 1
+            and (
+                NEXT_APPLE[1] >= half
+                or NEXT_APPLE[0] > here[0]
+            )
+        ):
+            append_direction_once(
+                directions,
+                North
+            )
+
+    greedy = greedy_directions(
+        here,
+        NEXT_APPLE
+    )
+
+    for candidate in greedy:
+        append_direction_once(
+            directions,
+            candidate
+        )
+
+    return directions
+
+
 def shortcut_step():
     global NEXT_APPLE
 
@@ -630,6 +737,9 @@ def shortcut_step():
     ):
         NEXT_APPLE = measure()
 
+    if NEXT_APPLE == None:
+        return False
+
     direction = PATH_IDS[
         here
     ][1]
@@ -637,9 +747,8 @@ def shortcut_step():
     saved = 0
 
     if shortcut_phase_active():
-        directions = greedy_directions(
-            here,
-            NEXT_APPLE
+        directions = shortcut_directions(
+            here
         )
 
         for candidate in directions:
@@ -1195,6 +1304,798 @@ def setup_skysdottir_reference():
 
 
 # ==================================================
+# ADDITIONAL PATH / REDDIT / SETUP EXPERIMENTS
+# ==================================================
+#
+# Additional modes:
+#
+#  5 = skyscraper fast-lane + annealed shortcuts, cutoff 50%
+#  6 = heartbeat Hamiltonian only
+#  7 = heartbeat + annealed shortcuts, cutoff 50%
+#  8 = heartbeat fast-lane + annealed shortcuts, cutoff 50%
+#  9 = Hilbert Hamiltonian only
+# 10 = Reddit coil/strike, safe transition at 33%
+# 11 = Reddit coil/strike, source-like safe transition at 50%
+# 12 = Reddit coil/strike, safe transition at 66%
+# 13 = skyscraper fast-lane + annealed shortcuts, cutoff 25%
+# 14 = heartbeat fast-lane + annealed shortcuts, cutoff 25%
+# 15 = skyscraper fast-lane + hard shortcuts, cutoff 25%
+# 16 = heartbeat fast-lane + hard shortcuts, cutoff 25%
+# 17 = heartbeat + hard shortcuts, cutoff 50%
+# 18 = skyscraper fast-lane + hard shortcuts, cutoff 50%
+# 19 = heartbeat fast-lane + hard shortcuts, cutoff 50%
+#
+# Setup modes:
+#
+# 0 = no cleanup
+# 1 = clear()
+# 2 = serial harvest + convert every tile to Soil
+# 3 = parallel harvest only
+# 4 = parallel harvest + convert every tile to Soil
+# 5 = source-style Sunflower Hat + parallel harvest + Soil
+#
+# Reddit references:
+# https://www.reddit.com/r/TheFarmerWasReplaced/comments/1p0ox9z/
+# https://www.reddit.com/r/TheFarmerWasReplaced/comments/1omrxi4/
+#
+# The coil/strike implementation below is an independent benchmark
+# implementation of the published four-phase algorithm description.
+# It is not a verbatim copy of the unlicensed Pastebin source.
+# ==================================================
+
+
+def build_heartbeat_path():
+    global PATH_IDS
+    global FULL_CYCLE_LENGTH
+    global CURRENT_CYCLE_LENGTH
+
+    world_size = get_world_size()
+
+    FULL_CYCLE_LENGTH = (
+        world_size
+        * world_size
+    )
+
+    CURRENT_CYCLE_LENGTH = (
+        FULL_CYCLE_LENGTH
+    )
+
+    next_directions = {}
+
+    half = (
+        world_size
+        // 2
+    )
+
+    # Upper half: left-to-right vertical sweeps.
+    for x in range(
+        0,
+        world_size,
+        2
+    ):
+        for y in range(
+            half,
+            world_size
+        ):
+            direction = North
+
+            if y == world_size - 1:
+                direction = East
+
+            next_directions[
+                (
+                    x,
+                    y
+                )
+            ] = direction
+
+        for y in range(
+            world_size - 1,
+            half - 1,
+            -1
+        ):
+            direction = South
+
+            if (
+                y == half
+                and x != world_size - 2
+            ):
+                direction = East
+
+            next_directions[
+                (
+                    x + 1,
+                    y
+                )
+            ] = direction
+
+    # Lower half: right-to-left vertical sweeps.
+    for x in range(
+        world_size - 1,
+        0,
+        -2
+    ):
+        for y in range(
+            half - 1,
+            -1,
+            -1
+        ):
+            direction = South
+
+            if y == 0:
+                direction = West
+
+            next_directions[
+                (
+                    x,
+                    y
+                )
+            ] = direction
+
+        for y in range(
+            0,
+            half
+        ):
+            direction = North
+
+            if (
+                y == half - 1
+                and x != 1
+            ):
+                direction = West
+
+            next_directions[
+                (
+                    x - 1,
+                    y
+                )
+            ] = direction
+
+    # Normalize the upstream geometry to indices 0..N*N-1,
+    # starting from the benchmark origin.
+    PATH_IDS = {}
+
+    here = (
+        0,
+        0
+    )
+
+    for index in range(
+        FULL_CYCLE_LENGTH
+    ):
+        direction = next_directions[
+            here
+        ]
+
+        PATH_IDS[
+            here
+        ] = [
+            index,
+            direction
+        ]
+
+        here = neighbor(
+            here,
+            direction
+        )
+
+
+def build_path_for_mode():
+    heartbeat = (
+        BENCH_MODE == 6
+        or BENCH_MODE == 7
+        or BENCH_MODE == 8
+        or BENCH_MODE == 14
+        or BENCH_MODE == 16
+        or BENCH_MODE == 17
+        or BENCH_MODE == 19
+    )
+
+    if heartbeat:
+        build_heartbeat_path()
+    else:
+        build_path()
+
+
+def run_indexed_path():
+    global NEXT_APPLE
+
+    while (
+        CURRENT_TAIL_LENGTH
+        < target_tail_length()
+    ):
+        if (
+            get_entity_type()
+            == Entities.Apple
+        ):
+            NEXT_APPLE = measure()
+
+        if NEXT_APPLE == None:
+            return False
+
+        here = coord()
+
+        if not shortcut_move(
+            PATH_IDS[
+                here
+            ][1],
+            0
+        ):
+            return False
+
+    return True
+
+
+def run_hilbert_path_only():
+    while (
+        REF_ACTUAL_TAIL_LENGTH
+        < target_tail_length()
+    ):
+        here = coord()
+
+        result = ref_scoot(
+            REF_PATH_IDS[
+                here
+            ][1],
+            0
+        )
+
+        if result < 0:
+            return False
+
+        if REF_NEXT_APPLE == None:
+            return False
+
+    return True
+
+
+def move_to_origin_normal():
+    while get_pos_x() > 0:
+        move(
+            West
+        )
+
+    while get_pos_y() > 0:
+        move(
+            South
+        )
+
+
+def prep_tile(
+    make_soil
+):
+    if get_entity_type() != None:
+        harvest()
+
+    if (
+        make_soil
+        and get_ground_type()
+        != Grounds.Soil
+    ):
+        till()
+
+
+def prep_column(
+    column,
+    make_soil
+):
+    world_size = get_world_size()
+
+    # Spawned workers start at the controller position. The controller
+    # is at (0,0), so use normal wrap-around movement to reach the
+    # assigned column with the shorter direction.
+    if column <= world_size // 2:
+        for _ in range(
+            column
+        ):
+            move(
+                East
+            )
+    else:
+        for _ in range(
+            world_size - column
+        ):
+            move(
+                West
+            )
+
+    for y in range(
+        world_size
+    ):
+        prep_tile(
+            make_soil
+        )
+
+        if y < world_size - 1:
+            move(
+                North
+            )
+
+
+def prep_serial_soil():
+    world_size = get_world_size()
+
+    move_to_origin_normal()
+
+    for x in range(
+        world_size
+    ):
+        if x % 2 == 0:
+            direction = North
+        else:
+            direction = South
+
+        for y in range(
+            world_size
+        ):
+            prep_tile(
+                True
+            )
+
+            if y < world_size - 1:
+                move(
+                    direction
+                )
+
+        if x < world_size - 1:
+            move(
+                East
+            )
+
+
+def prep_parallel(
+    make_soil
+):
+    world_size = get_world_size()
+
+    move_to_origin_normal()
+
+    handles = []
+    column = 0
+    worker_limit = (
+        max_drones()
+        - 1
+    )
+
+    while (
+        column < world_size
+        and len(handles) < worker_limit
+    ):
+        handle = spawn_drone(
+            prep_column,
+            column,
+            make_soil
+        )
+
+        if handle == None:
+            break
+
+        handles.append(
+            handle
+        )
+
+        column += 1
+
+    # The controller is a worker as well.
+    while column < world_size:
+        prep_column(
+            column,
+            make_soil
+        )
+
+        column += 1
+
+    for handle in handles:
+        wait_for(
+            handle
+        )
+
+
+def prepare_field():
+    if BENCH_SETUP_MODE == 0:
+        return
+
+    if BENCH_SETUP_MODE == 1:
+        clear()
+        return
+
+    if BENCH_SETUP_MODE == 2:
+        prep_serial_soil()
+        return
+
+    if BENCH_SETUP_MODE == 3:
+        prep_parallel(
+            False
+        )
+        return
+
+    if BENCH_SETUP_MODE == 5:
+        # Match the skysdottir prep shape more closely, including
+        # the otherwise unnecessary hat switch.
+        change_hat(
+            Hats.Sunflower_Hat
+        )
+
+    prep_parallel(
+        True
+    )
+
+
+def coil_cutoff_percent():
+    if BENCH_MODE == 10:
+        return 33
+
+    if BENCH_MODE == 12:
+        return 66
+
+    return 50
+
+
+def coil_refresh_apple():
+    global NEXT_APPLE
+
+    if (
+        get_entity_type()
+        == Entities.Apple
+    ):
+        NEXT_APPLE = measure()
+
+
+def coil_move_to(
+    target_x,
+    target_y
+):
+    world_size = get_world_size()
+
+    # The published source sometimes targets world_size itself and
+    # relies on the blocked border move. Clamp to the actual edge so
+    # this benchmark measures the route instead of repeated failures.
+    if target_x < 0:
+        target_x = 0
+
+    if target_x >= world_size:
+        target_x = world_size - 1
+
+    if target_y < 0:
+        target_y = 0
+
+    if target_y >= world_size:
+        target_y = world_size - 1
+
+    while get_pos_x() < target_x:
+        if baseline_move(
+            East
+        ) < 0:
+            return False
+
+        if (
+            CURRENT_TAIL_LENGTH
+            >= target_tail_length()
+        ):
+            return True
+
+    while get_pos_x() > target_x:
+        if baseline_move(
+            West
+        ) < 0:
+            return False
+
+        if (
+            CURRENT_TAIL_LENGTH
+            >= target_tail_length()
+        ):
+            return True
+
+    while get_pos_y() < target_y:
+        if baseline_move(
+            North
+        ) < 0:
+            return False
+
+        if (
+            CURRENT_TAIL_LENGTH
+            >= target_tail_length()
+        ):
+            return True
+
+    while get_pos_y() > target_y:
+        if baseline_move(
+            South
+        ) < 0:
+            return False
+
+        if (
+            CURRENT_TAIL_LENGTH
+            >= target_tail_length()
+        ):
+            return True
+
+    return True
+
+
+def run_coil_safe_finish():
+    world_size = get_world_size()
+
+    while (
+        CURRENT_TAIL_LENGTH
+        < target_tail_length()
+    ):
+        for column in range(
+            world_size
+        ):
+            if column % 2 == 0:
+                target_y = (
+                    world_size - 1
+                )
+            else:
+                target_y = 1
+
+            if not coil_move_to(
+                get_pos_x(),
+                target_y
+            ):
+                return False
+
+            if (
+                CURRENT_TAIL_LENGTH
+                >= target_tail_length()
+            ):
+                return True
+
+            if column < world_size - 1:
+                if not coil_move_to(
+                    get_pos_x() + 1,
+                    target_y
+                ):
+                    return False
+
+                if (
+                    CURRENT_TAIL_LENGTH
+                    >= target_tail_length()
+                ):
+                    return True
+
+        if baseline_move(
+            South
+        ) < 0:
+            return False
+
+        if (
+            CURRENT_TAIL_LENGTH
+            >= target_tail_length()
+        ):
+            return True
+
+        if not coil_move_to(
+            0,
+            0
+        ):
+            return False
+
+        if not coil_move_to(
+            0,
+            1
+        ):
+            return False
+
+    return True
+
+
+def run_reddit_coil_strike():
+    global NEXT_APPLE
+
+    world_size = get_world_size()
+    board = (
+        world_size
+        * world_size
+    )
+
+    # 0=coil, 1=strike, 2=pre-return, 3=return.
+    phase = 0
+    path_progress = 1
+    loops = 0
+
+    # The source starts by leaving the initial Apple toward (0,1).
+    if not coil_move_to(
+        0,
+        1
+    ):
+        return False
+
+    coil_refresh_apple()
+
+    while (
+        CURRENT_TAIL_LENGTH
+        < target_tail_length()
+        and loops < BENCH_MAX_MOVES
+    ):
+        loops += 1
+
+        if NEXT_APPLE == None:
+            return False
+
+        # The source switches to its safe path only when a complete
+        # coil/strike/return cycle reaches the origin again.
+        if (
+            path_progress == 0
+            and (
+                CURRENT_TAIL_LENGTH
+                * 100
+                >= board
+                * coil_cutoff_percent()
+            )
+        ):
+            return run_coil_safe_finish()
+
+        if phase == 0:
+            # Coil: create a predictable vertical zig-zag body.
+            if NEXT_APPLE[0] == get_pos_x():
+                old_y = get_pos_y()
+
+                if not coil_move_to(
+                    NEXT_APPLE[0],
+                    NEXT_APPLE[1]
+                ):
+                    return False
+
+                coil_refresh_apple()
+
+                if NEXT_APPLE != None:
+                    path_progress += abs(
+                        old_y
+                        - NEXT_APPLE[1]
+                    )
+            else:
+                if get_pos_x() % 2 == 0:
+                    if not coil_move_to(
+                        get_pos_x(),
+                        world_size - 1
+                    ):
+                        return False
+
+                    if not coil_move_to(
+                        get_pos_x() + 1,
+                        world_size - 1
+                    ):
+                        return False
+                else:
+                    if not coil_move_to(
+                        get_pos_x(),
+                        1
+                    ):
+                        return False
+
+                    if not coil_move_to(
+                        get_pos_x() + 1,
+                        1
+                    ):
+                        return False
+
+                path_progress += (
+                    world_size
+                )
+
+            if path_progress > CURRENT_TAIL_LENGTH:
+                phase = 1
+
+                if (
+                    NEXT_APPLE != None
+                    and NEXT_APPLE[0]
+                    == get_pos_x()
+                ):
+                    if not coil_move_to(
+                        NEXT_APPLE[0],
+                        NEXT_APPLE[1]
+                    ):
+                        return False
+
+                    coil_refresh_apple()
+
+            if (
+                get_pos_x()
+                >= world_size - 1
+            ):
+                phase = 2
+
+        elif phase == 1:
+            # Strike: only chase Apples further east in the open area.
+            if (
+                NEXT_APPLE[0]
+                == world_size - 1
+                and NEXT_APPLE[1]
+                > get_pos_y()
+            ):
+                phase = 2
+
+            elif (
+                NEXT_APPLE[0]
+                > get_pos_x()
+                and NEXT_APPLE[1]
+                != 0
+            ):
+                if not coil_move_to(
+                    NEXT_APPLE[0],
+                    NEXT_APPLE[1]
+                ):
+                    return False
+
+                coil_refresh_apple()
+
+                if (
+                    get_pos_x()
+                    == world_size - 1
+                ):
+                    phase = 2
+            else:
+                phase = 2
+
+        elif phase == 2:
+            # Pre-return: consume a downward Apple on the east edge,
+            # otherwise descend to the south-east corner.
+            if (
+                NEXT_APPLE[0]
+                == world_size - 1
+                and NEXT_APPLE[1]
+                < get_pos_y()
+            ):
+                if not coil_move_to(
+                    NEXT_APPLE[0],
+                    NEXT_APPLE[1]
+                ):
+                    return False
+
+                coil_refresh_apple()
+            else:
+                if not coil_move_to(
+                    world_size - 1,
+                    get_pos_y()
+                ):
+                    return False
+
+                if not coil_move_to(
+                    world_size - 1,
+                    0
+                ):
+                    return False
+
+                phase = 3
+
+        else:
+            # Return: take a bottom-row Apple when available, then
+            # return to the origin and begin the next coil.
+            if NEXT_APPLE[1] == 0:
+                if not coil_move_to(
+                    NEXT_APPLE[0],
+                    NEXT_APPLE[1]
+                ):
+                    return False
+
+                coil_refresh_apple()
+            else:
+                if not coil_move_to(
+                    0,
+                    0
+                ):
+                    return False
+
+                path_progress = 0
+                phase = 0
+
+                if not coil_move_to(
+                    0,
+                    1
+                ):
+                    return False
+
+                coil_refresh_apple()
+
+    return (
+        CURRENT_TAIL_LENGTH
+        >= target_tail_length()
+    )
+
+
+# ==================================================
 # SETUP / ENTRYPOINT
 # ==================================================
 
@@ -1208,28 +2109,24 @@ def setup_cycle(
     global SHORTCUT_STEPS_SAVED
     global MOVES_MADE
 
-    if reset_world:
+    # Leaderboards.Dinosaur already starts at the maximum farm size.
+    # Only resize diagnostic simulations that explicitly request
+    # another world size. Avoid an unnecessary clear/reset on 32x32.
+    if (
+        reset_world
+        and get_world_size()
+        != BENCH_WORLD_SIZE
+    ):
         set_world_size(
             BENCH_WORLD_SIZE
         )
 
+    if reset_world:
+        prepare_field()
+
     # Between sustained cycles the harvested tail leaves the field
     # empty. Reposition without clearing/resetting the world again.
-    move_to_x = get_pos_x()
-
-    while move_to_x > 0:
-        move(
-            West
-        )
-        move_to_x -= 1
-
-    move_to_y = get_pos_y()
-
-    while move_to_y > 0:
-        move(
-            South
-        )
-        move_to_y -= 1
+    move_to_origin_normal()
 
     change_hat(
         Hats.Dinosaur_Hat
@@ -1249,11 +2146,19 @@ def setup_cycle(
     SHORTCUT_STEPS_SAVED = 0
     MOVES_MADE = 0
 
-    if BENCH_MODE == 4:
+    if (
+        BENCH_MODE == 4
+        or BENCH_MODE == 9
+    ):
         setup_skysdottir_reference()
 
-    elif BENCH_MODE != 0:
-        build_path()
+    elif (
+        BENCH_MODE != 0
+        and BENCH_MODE != 10
+        and BENCH_MODE != 11
+        and BENCH_MODE != 12
+    ):
+        build_path_for_mode()
         tail_reset()
 
         tail_push([
@@ -1283,6 +2188,27 @@ def run_one_cycle():
         )
 
         return success
+
+    if BENCH_MODE == 6:
+        return run_indexed_path()
+
+    if BENCH_MODE == 9:
+        success = (
+            run_hilbert_path_only()
+        )
+
+        CURRENT_TAIL_LENGTH = (
+            REF_ACTUAL_TAIL_LENGTH
+        )
+
+        return success
+
+    if (
+        BENCH_MODE == 10
+        or BENCH_MODE == 11
+        or BENCH_MODE == 12
+    ):
+        return run_reddit_coil_strike()
 
     return run_shortcuts()
 
@@ -1339,6 +2265,8 @@ def main():
         quick_print(
             "DINOSAUR BENCH",
             BENCH_MODE,
+            "setup",
+            BENCH_SETUP_MODE,
             BENCH_WORLD_SIZE,
             BENCH_TARGET_PERCENT,
             "cycles",
