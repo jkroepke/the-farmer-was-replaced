@@ -32,6 +32,7 @@ def reset_state():
     _pumpkin_active = False
 
     maze.reset()
+    farm.reset_state()
 
 
 
@@ -47,7 +48,9 @@ def restore_normal_farm():
 
     workers.set_main_hat()
 
-    farm.rebuild_sunflowers()
+    # The adaptive normal farm establishes its own Sunflower columns
+    # on the next farm.run() call.
+    farm.reset_state()
 
     _gold_active = False
     _pumpkin_active = False
