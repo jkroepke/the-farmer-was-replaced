@@ -1035,6 +1035,21 @@ def main():
         + BENCH_TARGET_GAIN
     )
 
+    if BENCH_MODE == 99:
+        probe_clean_layout()
+        return
+
+    quick_print(
+        "FARM MODE START",
+        MODE_NAMES[BENCH_MODE],
+        "focus",
+        BENCH_FOCUS,
+        "world",
+        BENCH_WORLD_SIZE,
+        "drones",
+        max_drones()
+    )
+
     start_time = get_time()
 
     run_mode(
