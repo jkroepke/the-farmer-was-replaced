@@ -98,6 +98,160 @@ def is_full_map_pumpkin():
 
 
 # ==================================================
+# MEGAFARM FAST PATH: EINE DROHNE PRO SPALTE
+# ==================================================
+#
+# Aktiv, wenn mindestens so viele Drohnen wie Spalten verfügbar sind.
+#
+# Jede Drohne:
+#
+# - gehört dauerhaft genau einer Spalte
+# - läuft ausschließlich North
+# - nutzt das Farm-Wrap statt am Spaltenende umzudrehen
+# - merkt sich bereits fertig gewachsene, lebende Pumpkins
+# - ersetzt tote/fehlende Pumpkins direkt
+# - beendet sich erst, wenn ihre komplette Spalte sicher fertig ist
+#
+# Warum North-only:
+#
+# move(North) wrappt am oberen Rand direkt nach y=0. Damit kostet ein
+# kompletter 32er-Spaltenumlauf genau 32 Bewegungen. Ein Hoch/Runter-Pass
+# würde fast doppelt so viele Bewegungen benötigen.
+#
+# Mechanik-/Strategie-Referenzen:
+#
+# - https://thefarmerwasreplaced.wiki.gg/wiki/Move
+# - https://thefarmerwasreplaced.wiki.gg/wiki/Pumpkins
+# - external/mateusmarochi-the-farmer-was-replaced-codes/source/pumpkin_farm.py
+# - https://www.reddit.com/r/TheFarmerWasReplaced/comments/1ohszgq/
+# - https://www.reddit.com/r/TheFarmerWasReplaced/comments/1pz3nlc/
+#
+# Der MateusMarochi-Ansatz verteilt ebenfalls Worker über Spalten.
+# Unsere Variante vermeidet dessen South-Rückweg und nutzt stattdessen
+# den dokumentierten Wrap von move(North).
+# ==================================================
+
+def can_use_column_workers():
+    return (
+        max_drones()
+        >= utils.size()
+    )
+
+
+def _service_column_pumpkin():
+    entity = get_entity_type()
+
+    # Ein lebender, ausgewachsener Pumpkin ist dauerhaft sicher:
+    # die Todesentscheidung passiert beim Auswachsen.
+    if entity == Entities.Pumpkin:
+        if can_harvest():
+            return 1
+
+        return 0
+
+    # Dead Pumpkin muss nicht geerntet werden. Ein neues plant()
+    # ersetzt ihn direkt.
+    if entity == Entities.Dead_Pumpkin:
+        if not utils.can_afford(
+            Entities.Pumpkin
+        ):
+            return -1
+
+        utils.water()
+
+        plant(
+            Entities.Pumpkin
+        )
+
+        return 0
+
+    # Nach clear() sollte dieser Fall praktisch nur None sein.
+    # Für Robustheit entfernen wir unerwartete erntereife Entitäten.
+    if entity != None:
+        if not can_harvest():
+            return 0
+
+        harvest()
+
+    if get_ground_type() != Grounds.Soil:
+        till()
+
+    if not utils.can_afford(
+        Entities.Pumpkin
+    ):
+        return -1
+
+    # Einmal beim Pflanzen wässern. Danach bewegt sich der Worker
+    # weiter, statt auf dem Tile zu warten.
+    utils.water()
+
+    plant(
+        Entities.Pumpkin
+    )
+
+    return 0
+
+
+def _make_column_worker(column):
+    def task():
+        world_size = utils.size()
+
+        utils.move_to(
+            column,
+            0
+        )
+
+        ready = []
+
+        for _ in range(world_size):
+            ready.append(False)
+
+        remaining = world_size
+
+        while remaining > 0:
+            for row in range(world_size):
+                if not ready[row]:
+                    state = (
+                        _service_column_pumpkin()
+                    )
+
+                    if state < 0:
+                        return False
+
+                    if state > 0:
+                        ready[row] = True
+                        remaining -= 1
+
+                # North-only is intentional: after world_size moves
+                # the worker wraps back to y=0 in the same column.
+                move(North)
+
+        return True
+
+    return task
+
+
+def run_column_workers():
+    world_size = utils.size()
+    tasks = []
+
+    for column in range(world_size):
+        tasks.append(
+            _make_column_worker(
+                column
+            )
+        )
+
+    results = workers.run(tasks)
+
+    for result in results:
+        if not result:
+            return False
+
+    return True
+
+
+# ==================================================
 # INITIAL: KOMPLETTE FARM PFLANZEN
 # ==================================================
 
@@ -392,17 +546,19 @@ def patch_problem_positions(problems):
 # KOMPLETTER PUMPKIN-JOB
 # ==================================================
 #
-# Strategie:
+# Zwei Strategien:
 #
-# 1. Full field einmal pflanzen.
-# 2. Kurz wachsen lassen.
-# 3. Einmal Problemkoordinaten sammeln.
-# 4. Danach NUR diese Koordinaten erneut prüfen/patchen.
-# 5. Zwischendurch billigen Corner-ID-Check verwenden.
-# 6. Wenn Problem-Liste leer ist, Corner-ID nochmals prüfen.
-# 7. Nur als Fallback noch einmal Full-Field-Problems sammeln.
+# 1. Megafarm Fast Path
+#    Wenn mindestens eine Drohne pro Spalte verfügbar ist:
+#    dauerhafte North-only-Spaltenworker bis alle Tiles fertig sind.
 #
-# Das vermeidet die bisher vielen 16x16 Full-Field-Scans.
+# 2. Patch & Wait Fallback
+#    Für weniger Drohnen:
+#    Full field pflanzen, Problemkoordinaten sammeln und danach nur
+#    bekannte Problempositionen erneut prüfen.
+#
+# Beide Pfade bestätigen den Full-Map-Merge abschließend über die
+# Pumpkin-ID an gegenüberliegenden Ecken.
 # ==================================================
 
 def run():
@@ -411,20 +567,41 @@ def run():
 
     clear()
 
-    if not plant_full_field():
-        return False
+    # 32x32 + 32 Drohnen landet hier:
+    # genau ein persistenter Worker pro Spalte.
+    if can_use_column_workers():
+        if not run_column_workers():
+            return False
 
-    wait_seconds(
-        config.PUMPKIN_INITIAL_WAIT
-    )
+        # Normalerweise ist der Full-Map-Pumpkin jetzt bereits gemerged.
+        if is_full_map_pumpkin():
+            harvest()
+            return True
 
-    # Sehr billiger Fast-Path:
-    # vielleicht ist bereits alles gemerged.
-    if is_full_map_pumpkin():
-        harvest()
-        return True
+        # Seltene Merge-Verzögerung / Robustheitsfallback:
+        # ab hier übernimmt derselbe Patch-&-Wait-Abschluss wie bei
+        # kleineren Worker-Pools.
+        problems = (
+            collect_problem_positions()
+        )
 
-    problems = collect_problem_positions()
+    else:
+        if not plant_full_field():
+            return False
+
+        wait_seconds(
+            config.PUMPKIN_INITIAL_WAIT
+        )
+
+        # Sehr billiger Fast-Path:
+        # vielleicht ist bereits alles gemerged.
+        if is_full_map_pumpkin():
+            harvest()
+            return True
+
+        problems = (
+            collect_problem_positions()
+        )
 
     while True:
         wait_seconds(
