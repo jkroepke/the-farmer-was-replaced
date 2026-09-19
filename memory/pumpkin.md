@@ -381,3 +381,58 @@ The high speedup is intentional so multi-seed and multi-cycle matrices finish mu
 Benchmark version:
 
 `pumpkin-v4-spawn-locality`
+
+
+## Spatial-tree deployment race found in pumpkin-v4
+
+The user-supplied `pumpkin-v4-spawn-locality` run exposed a second correctness race.
+
+Observed behavior:
+
+- every cold one-cycle mode completed with the exact valid 3,145,728 Pumpkin gain
+- `persistent-spatial-tree-ring` also completed the three-cycle test on seeds 1 and 2
+- on seed 3, the final `persistent-spatial-tree-ring` run stalled with one whole column visibly empty
+
+The interval decomposition itself is complete: column 0 is owned by the root and the two recursive ranges cover 1..16 and 17..31 exactly once.
+
+The failure is therefore deployment timing, not an arithmetic coverage gap.
+
+### Root cause
+
+The v4 spatial tree let each recursive node:
+
+1. move to its midpoint
+2. recursively spawn descendants
+3. immediately begin its persistent Pumpkin column work
+
+Shallow nodes could therefore start planting/growing while deep descendants were still being created and positioned.
+
+That creates large start-time skew. On an unlucky seed, early columns can mature and form partial Giant Pumpkins before the final column has even started. This is the same Pumpkin merge invariant exposed by the earlier sparse-region failure: once partial Giants form around an unstarted lane, the field may never become one full-map Giant Pumpkin.
+
+### v5 fix
+
+Benchmark version:
+
+`pumpkin-v5-spatial-barrier`
+
+The spatial tree now has two additional invariants.
+
+**Placed child spawn**
+
+Before each `spawn_drone()`, the parent moves to the midpoint of the child's interval. The child therefore starts directly on its owned column, using the documented same-position spawn semantics.
+
+All movement uses `utils.move_to()`, so wrap-around shortest paths remain active.
+
+**Full-worker deployment barrier**
+
+No spatial-tree worker starts Pumpkin production until:
+
+`num_drones() == max_drones()`
+
+For the 32x32 benchmark this means all 32 column owners exist before any one of them begins the Pumpkin growth/merge loop.
+
+The barrier has a 5-second safety timeout and a tiny 0.05-second settle period for the last spawned tasks.
+
+If deployment does not reach the expected worker count, the benchmark returns invalid instead of hanging.
+
+Production remains unchanged until v5 is measured.
