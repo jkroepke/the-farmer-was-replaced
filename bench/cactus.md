@@ -443,3 +443,68 @@ Added:
 
 The dedicated program terminates after the one Cactus run instead of entering
 the normal endless planner loop.
+
+-----
+
+## cactus-v3 measured result and production promotion 2026-09-19
+
+Benchmark commit: `05ee0dbd2ff6483dec93c1707a0e957b25185c5f`.
+
+The user ran the full `cactus-v3` suite in-game.
+
+### Exact cold leaderboard workload
+
+All candidates completed one 32x32 cycle with the exact expected gain of
+33,554,432 Cactus on all three seeds.
+
+Measured averages:
+
+- `current-production`: 42.04 s
+- `tstambaugh-reference-32`: 39.49 s
+- `tstambaugh-placed-generalized`: 40.70 s
+- `adaptive-placed-pool`: 40.64 s
+- `adaptive-binary-spawn`: 40.62 s
+- `adaptive-flekay-powers`: 38.93 s
+- `current-production-fresh`: 42.37 s
+
+Therefore `adaptive-flekay-powers` is the measured cold-target winner:
+
+- about 7.4% faster than current production
+- about 4.2% faster than `adaptive-placed-pool`
+- about 1.4% faster than the source-near Tstambaugh reference
+
+Skipping the extra `clear()` did not improve the measured result and is not
+promoted.
+
+### Three-cycle production workload
+
+All finalists completed all three cycles with the exact expected total gain of
+100,663,296 Cactus on every seed.
+
+Measured averages:
+
+- `adaptive-placed-pool`: 123.18 s
+- `adaptive-binary-spawn`: 118.91 s
+- `adaptive-flekay-powers`: 114.93 s
+
+The powers-of-two topology is about 6.7% faster than the previous production
+architecture on this measured workload.
+
+### Production decision
+
+Promote the powers-of-two distributed spawn topology only for the exact
+measured production case:
+
+- world size 32
+- at least 32 available drones
+
+Keep the existing placed/batched architecture for:
+
+- smaller worlds
+- 32x32 with fewer than 32 drones
+
+This preserves the already measured 6x6, 16x16, and 32x32/8-drone behavior
+instead of extrapolating the new spawn topology beyond its benchmark evidence.
+
+The dedicated `lb_cactus.py` automatically uses the new production path on
+the full 32x32 leaderboard setup because it calls `cactus.run()`.
