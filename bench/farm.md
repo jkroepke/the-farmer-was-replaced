@@ -610,3 +610,62 @@ Because max-Grass still has high seed variance at the 10M target, the next pure-
 | --- | --- | --- |
 | Historical | The old `FARMX unversioned benchmark results` section was not migrated as canonical data. | It had no exact source commit. |
 | Action | Rerun any still-useful FARMX comparison from a committed code state. | Repository provenance rule. |
+
+-----
+
+## FarmX v4 measured results
+
+Measured `farmx-v4` at benchmark source commit `b38fd2bd47c58a1211be8e59209c584f8cc96207`, requested simulation speedup 10000.
+
+Mixed sustained finals:
+
+```text
+partial Megafarm level 3:
+sync-selected           224.09 s
+current-two-sun-pairs    94.93 s
+poly-two-sun-pairs      155.71 s
+
+max Megafarm:
+sync-selected            46.98 s
+current-two-sun-stride   38.83 s
+poly-two-sun-chunks      53.70 s
+```
+
+Pure max-Megafarm focus finals:
+
+```text
+max-carrot:
+sync-selected             36.06 s
+current-two-sun-chunks     29.62 s
+poly-two-sun-stride        50.82 s
+
+max-grass:
+sync-selected             17.89 s
+current-one-max-pairs      23.26 s
+poly-two-sun-chunks        50.31 s
+
+max-wood:
+sync-selected             39.32 s
+current-two-sun-chunks     34.28 s
+poly-two-sun-chunks        49.50 s
+```
+
+Derived observations:
+
+- partial mixed: current persistent winner is about 57.6% faster than sync-selected; Poly is about 64.0% slower than the current winner
+- max mixed: current winner is about 17.3% faster than sync-selected
+- max Carrot: current-two-sun-chunks is about 17.9% faster than sync-selected
+- max Wood: current-two-sun-chunks is about 12.8% faster than sync-selected
+- max Grass is different: sync-selected wins the three-seed average, but has very high seed spread (14.77..23.85 s); current-one-max-pairs is much more stable (22.46..24.34 s)
+- pure-crop architecture is therefore crop-specific; do not choose one architecture from the mixed transition benchmark alone
+- the Flekay-inspired one-column seven-petal modes are not competitive at the measured horizons and should not remain in the default screen
+- Poly is not competitive in any of the three pure-focus scenarios and can be removed from future pure-crop screens while remaining in the mixed research suite
+
+Next missing persistent layouts:
+
+- one-row-dumb
+- one-col-dumb
+
+Both already exist in `bench_persist.py` and were strong in the older broad `bench_farm` baseline, but `bench_poly` did not expose them. They must be compared before finalizing per-crop production layouts.
+
+Because max-Grass still has high seed variance at the 10M target, the next pure-focus validation should use a longer sustained target rather than interpreting the v4 Grass average as final.
