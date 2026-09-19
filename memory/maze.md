@@ -28,9 +28,13 @@ The default target is 200000 Gold, seeds 1/2/3, speedup 64. Results are pending 
 - `simulate()` uses an isolated copy of the inventory. Gold earned by a benchmark does not change the real farm inventory, and `simulate()` returns only runtime.
 - Special Maze modes print `MAZE SPECIAL RESULT <mode> gold gained <value> target <target> PASS|FAIL` inside the simulation so target completion can be verified independently from runtime.
 
-Benchmark implementation commit: `600b4e061deaa6b2b64a7282289a07337330b5a3`.
+Benchmark implementation commit: `47bda0eb607f66c0c5e3959dd77eccd8855b4625`.
 
 ## Stationary coverage design
+
+- Never start stationary Treasure workers while the Maze topology is still being mapped. A worker can relocate Treasure immediately, opening walls and invalidating the DFS that is still discovering cells.
+- Coverage setup is therefore two-phase: map and harvest a temporary small Maze with one drone, place workers on the discovered cells while the field is open, then create the actual benchmark Maze at the same root.
+- `bench_maze_run.py` prints `RUN <mode>` before each simulation so a stalled mode is directly identifiable.
 
 For `cover-*`, do not assume which absolute cells a small Maze occupies. Create the Maze first, DFS through its actual reachable cells, and leave a worker on each visited cell. Workers use only shared game-world state; no Python memory is shared between drones.
 
