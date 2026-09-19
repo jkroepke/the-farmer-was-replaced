@@ -1,13 +1,16 @@
-# Extended Maze benchmark controller for a real 32x32 farm.
+# Finalist Maze benchmark controller for a real 32x32 farm.
 #
-# The world remains 32x32. Small Mazes are created only through the amount
+# The extended 22-mode screen is recorded in docs/MAZE.md and is no longer
+# rerun here.
+#
+# This runner answers the remaining production/leaderboard questions:
+#
+# 1. Which finalist wins at 1,000,000 Gold over three seeds?
+# 2. Which finalist wins the real Maze leaderboard workload:
+#    9,863,168 Gold, end-to-end including setup and termination?
+#
+# The world stays 32x32. Small Mazes are created only by changing the amount
 # passed to use_item(Items.Weird_Substance, amount).
-#
-# Benchmark structure:
-# - SCREEN: all current references and mutations, 200k Gold, seeds 1/2/3
-# - SUSTAINED: strongest/most informative families, 1M Gold, seeds 1/2
-#
-# Historical benchmark matrices remain in docs/MAZE.md and are not rerun.
 
 
 BENCH_SPEEDUP = 64
@@ -17,128 +20,60 @@ BENCH_REBALANCE_UNTIL = 140
 BENCH_SOLVES = 300
 BENCH_WORLD_SIZE = 32
 
-REBUILD_SMOKE_TARGET = 100000
-SCREEN_TARGET = 200000
-SUSTAINED_TARGET = 1000000
+FINALIST_TARGET = 1000000
+LEADERBOARD_TARGET = 9863168
 
-SCREEN_SEEDS = [
+FINALIST_SEEDS = [
     1,
     2,
     3
 ]
 
-SUSTAINED_SEEDS = [
+LEADERBOARD_SEEDS = [
     1,
     2
 ]
 
 
-REBUILD_SMOKE_MODE_IDS = [
-    18
-]
-
-REBUILD_SMOKE_MODE_NAMES = [
-    "mut-packed-zapakh-reuse1"
-]
-
-
-CORE_MODE_IDS = [
-    10,
-    12,
-    13,
-    16,
+# Includes the current production/reference path plus every family that was
+# still competitive after the extended screen.
+FINALIST_MODE_IDS = [
+    30,
+    15,
+    28,
     17,
-    18,
-    19,
-    20,
-    21,
-    22,
-    23,
-    24,
-    25,
+    10,
     26,
-    27,
     31
 ]
 
-CORE_MODE_NAMES = [
-    "ref-zapakh-4-reuse300",
-    "mut-packed-zapakh-fresh",
-    "mut-packed-zapakh-reuse300",
-    "desc-reddit-packed-fresh",
-    "mut-reddit-packed-visited-reuse300",
-    "mut-packed-zapakh-reuse1",
-    "mut-packed-zapakh-reuse2",
-    "mut-packed-zapakh-reuse4",
-    "mut-packed-zapakh-reuse8",
-    "mut-packed-zapakh-reuse16",
-    "mut-packed-unranked-fresh",
-    "mut-packed-unranked-reuse300",
-    "mut-uniform4-zapakh-fresh",
-    "mut-uniform5-zapakh-reuse300",
-    "mut-uniform5-zapakh-fresh",
-    "mut-uniform4-zapakh-reuse8"
+FINALIST_MODE_NAMES = [
+    "final-uniform4-map-bfs-reuse300",
+    "final-uniform5-map-bfs-reuse300",
+    "final-packed-map-bfs-reuse300",
+    "final-packed-reddit-visited-reuse300",
+    "control-uniform4-zapakh-reuse300",
+    "final-uniform5-zapakh-reuse300",
+    "control-uniform4-zapakh-reuse8"
 ]
 
 
-MAP_MODE_IDS = [
-    11,
+# The real leaderboard run is intentionally narrower. These are the strongest
+# distinct architectures after the short and sustained screens.
+LEADERBOARD_MODE_IDS = [
+    30,
     15,
     28,
-    29,
-    30
-]
-
-MAP_MODE_NAMES = [
-    "ref-steam-4-reuse300",
-    "ref-reddit5-map-bfs-reuse300",
-    "mut-packed-map-bfs-reuse300",
-    "mut-packed-map-bfs-fresh",
-    "mut-uniform4-map-bfs-reuse300"
-]
-
-
-# Keep the most synchronization-sensitive source-near port last so a problem
-# here cannot hide the results from all newer candidates.
-LEGACY_MODE_IDS = [
-    14
-]
-
-LEGACY_MODE_NAMES = [
-    "ref-msmith93-full32-fresh"
-]
-
-
-# Sustained set deliberately spans different hypotheses rather than only
-# variants expected to be fast:
-# - current measured winner
-# - full-field packing + ranked reuse
-# - Reddit fresh intersection solver
-# - Reddit solver with visited/reuse mutation
-# - source-described 5x5 map+BFS
-# - unranked packed reuse (ranking ablation)
-# - packed map+BFS
-# - short reuse cap
-SUSTAINED_MODE_IDS = [
-    10,
-    13,
-    16,
     17,
-    15,
-    24,
-    28,
-    21
+    10
 ]
 
-SUSTAINED_MODE_NAMES = [
-    "ref-zapakh-4-reuse300",
-    "mut-packed-zapakh-reuse300",
-    "desc-reddit-packed-fresh",
-    "mut-reddit-packed-visited-reuse300",
-    "ref-reddit5-map-bfs-reuse300",
-    "mut-packed-unranked-reuse300",
-    "mut-packed-map-bfs-reuse300",
-    "mut-packed-zapakh-reuse8"
+LEADERBOARD_MODE_NAMES = [
+    "lb-uniform4-map-bfs-reuse300",
+    "lb-uniform5-map-bfs-reuse300",
+    "lb-packed-map-bfs-reuse300",
+    "lb-packed-reddit-visited-reuse300",
+    "lb-uniform4-zapakh-reuse300"
 ]
 
 
@@ -256,8 +191,11 @@ def benchmark_group(
         gold_target
     )
 
+    seed_count = len(
+        seeds
+    )
+
     index = 0
-    seed_count = len(seeds)
 
     while index < len(mode_ids):
         quick_print(
@@ -294,53 +232,27 @@ def main():
         return
 
     quick_print(
-        "MAZE EXTENDED BENCH START"
+        "MAZE FINAL BENCH START"
     )
 
     benchmark_group(
-        "MAZE REBUILD SMOKE",
-        REBUILD_SMOKE_MODE_IDS,
-        REBUILD_SMOKE_MODE_NAMES,
-        [
-            1
-        ],
-        REBUILD_SMOKE_TARGET
+        "MAZE FINALIST",
+        FINALIST_MODE_IDS,
+        FINALIST_MODE_NAMES,
+        FINALIST_SEEDS,
+        FINALIST_TARGET
     )
 
     benchmark_group(
-        "MAZE CORE",
-        CORE_MODE_IDS,
-        CORE_MODE_NAMES,
-        SCREEN_SEEDS,
-        SCREEN_TARGET
-    )
-
-    benchmark_group(
-        "MAZE MAP",
-        MAP_MODE_IDS,
-        MAP_MODE_NAMES,
-        SCREEN_SEEDS,
-        SCREEN_TARGET
-    )
-
-    benchmark_group(
-        "MAZE SUSTAINED",
-        SUSTAINED_MODE_IDS,
-        SUSTAINED_MODE_NAMES,
-        SUSTAINED_SEEDS,
-        SUSTAINED_TARGET
-    )
-
-    benchmark_group(
-        "MAZE LEGACY REF",
-        LEGACY_MODE_IDS,
-        LEGACY_MODE_NAMES,
-        SCREEN_SEEDS,
-        SCREEN_TARGET
+        "MAZE LEADERBOARD",
+        LEADERBOARD_MODE_IDS,
+        LEADERBOARD_MODE_NAMES,
+        LEADERBOARD_SEEDS,
+        LEADERBOARD_TARGET
     )
 
     quick_print(
-        "MAZE EXTENDED BENCH DONE"
+        "MAZE FINAL BENCH DONE"
     )
 
 
