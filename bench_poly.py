@@ -17,7 +17,10 @@ MODE_NAMES = [
     "poly-one-max-pairs",
     "poly-two-sun-stride",
     "poly-two-sun-chunks",
-    "poly-two-sun-pairs"
+    "poly-two-sun-pairs",
+    "current-one-seven-stride",
+    "current-one-seven-chunks",
+    "current-one-seven-pairs"
 ]
 
 
@@ -484,6 +487,16 @@ def run_mode(
             carrot_final
         )
         return True
+
+    if mode >= 13:
+        return bench_persist.run_persistent(
+            5,
+            mode - 13,
+            carrot_mid,
+            hay_target,
+            wood_target,
+            carrot_final
+        )
 
     sun_layout = mode_sun_layout(mode)
     architecture = mode_arch(mode)
