@@ -174,3 +174,31 @@ Because max-Grass still has high seed variance at the 10M target, the next pure-
 ## Benchmark record
 
 Measured Farm and Sunflower results are maintained in `bench/farm.md`. Keep only durable strategy decisions and open research questions in this memory file.
+
+
+## FarmX v5 follow-up
+
+After the measured v4 run, the next FarmX suite is `farmx-v5`.
+
+Changes:
+
+- adds persistent `one-row-dumb` variants:
+  - `current-one-row-stride`
+  - `current-one-row-chunks`
+  - `current-one-row-pairs`
+- adds persistent `one-col-dumb` variants:
+  - `current-one-col-stride`
+  - `current-one-col-chunks`
+  - `current-one-col-pairs`
+- keeps the seven-petal implementations for reproducibility but removes them from default screening after their v4 losses
+- keeps Poly in the mixed FarmX research suite, but removes Poly from pure max-crop screening after losing max-Carrot, max-Grass, and max-Wood in v4
+- pure max-crop screening selects the three fastest current layouts on seed 1, then validates all three plus `sync-selected` across seeds 1/2/3
+- lengthens pure-focus targets to reduce setup domination and Grass seed variance:
+  - max-Carrot: 50M total Carrot
+  - max-Grass: 50M Hay
+  - max-Wood: 100M Wood
+
+Relevant commits:
+
+- `cf836e64e4c3cb6e0f241d11f8c67f9f021d817f` exposes persistent row/column dumb layouts in `bench_poly.py`
+- `25aacb7719da11c5f39c1f54cd3ecf695f8c7baa` creates the `farmx-v5` runner
