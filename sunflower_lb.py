@@ -28,7 +28,8 @@ MODE_NAMES = [
     "scan-tree-counted",
     "scan-linear-counted",
     "dumb-tree-no-care",
-    "equal7-tree-no-care"
+    "equal7-tree-no-care",
+    "tier-linear-no-care"
 ]
 
 MIN_PETALS = 7
@@ -1631,6 +1632,10 @@ def configure_mode(mode):
         return True
 
     if mode == 12:
+        return True
+
+    if mode == 13:
+        USE_TREE = False
         return True
 
     return False
