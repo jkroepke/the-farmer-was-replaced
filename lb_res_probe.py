@@ -1,22 +1,20 @@
-def print_cost(label, entity):
-    cost = get_cost(entity)
+PROBE_VERSION = "lbprobe-v2"
 
+
+def print_cost(label, entity):
     quick_print(
         "LB RESOURCE COST",
         label,
-        cost
-    )
-
-
-def print_unlock(label, unlock):
-    quick_print(
-        "LB RESOURCE UNLOCK",
-        label,
-        num_unlocked(unlock)
+        get_cost(entity)
     )
 
 
 def main():
+    quick_print(
+        "LB RESOURCE PROBE VERSION",
+        PROBE_VERSION
+    )
+
     quick_print(
         "LB RESOURCE PROBE START",
         "world",
@@ -38,58 +36,40 @@ def main():
             num_items(item)
         )
 
-    print_unlock(
-        "Speed",
-        Unlocks.Speed
-    )
-    print_unlock(
-        "Watering",
-        Unlocks.Watering
-    )
-    print_unlock(
-        "Fertilizer",
-        Unlocks.Fertilizer
-    )
-    print_unlock(
-        "Sunflowers",
-        Unlocks.Sunflowers
-    )
-    print_unlock(
-        "Trees",
-        Unlocks.Trees
-    )
-    print_unlock(
-        "Carrots",
-        Unlocks.Carrots
-    )
-    print_unlock(
-        "Grass",
-        Unlocks.Grass
-    )
-    print_unlock(
-        "Megafarm",
-        Unlocks.Megafarm
-    )
-    print_unlock(
-        "Polyculture",
-        Unlocks.Polyculture
-    )
+    for unlock in Unlocks:
+        quick_print(
+            "LB RESOURCE UNLOCK",
+            unlock,
+            num_unlocked(unlock)
+        )
 
     print_cost(
-        "Carrot",
-        Entities.Carrot
-    )
-    print_cost(
-        "Tree",
-        Entities.Tree
+        "Grass",
+        Entities.Grass
     )
     print_cost(
         "Bush",
         Entities.Bush
     )
     print_cost(
+        "Tree",
+        Entities.Tree
+    )
+    print_cost(
+        "Carrot",
+        Entities.Carrot
+    )
+    print_cost(
         "Sunflower",
         Entities.Sunflower
+    )
+    print_cost(
+        "Pumpkin",
+        Entities.Pumpkin
+    )
+    print_cost(
+        "Cactus",
+        Entities.Cactus
     )
 
     quick_print(
