@@ -18,6 +18,8 @@ The automation is split into modules:
 - `bench_maze_run.py` — Maze simulation matrix, seeds, `simulate()` calls, and result aggregation
 - `bench_dinosaur.py` — Dinosaur benchmark implementations/modes
 - `bench_dinosaur_run.py` — Dinosaur simulation matrix, seeds, `simulate()` calls, and aggregation
+- `bench_transition.py` — persistent normal-farm transition workload
+- `bench_transition_run.py` — transition matrix for partial/max Megafarm
 - `docs/NORMAL_FARM.md` — canonical normal-farm/Sunflower design, references, and benchmark notes
 - `docs/PUMPKIN.md` — canonical Pumpkin strategy, references, and multi-drone optimization notes
 - `docs/MAZE.md` — canonical Maze design, benchmark results, and optimization notes
@@ -45,14 +47,14 @@ Prefer **contiguous chunks** of the map rather than one tiny task per column/til
 
 Normal-farm code must remain dynamic, but current endgame benchmarking focuses on 32x32.
 
-Sunflowers are intended to be permanent and cheap to reach:
+Production no longer uses the permanent Sunflower/Carrot L.
 
-- left edge
-- top edge
+Measured normal-farm regimes:
 
-Because the map wraps, the top edge is one `South` move away from `(0,0)`.
+- `max_drones() < world_size`: one dedicated max-petal Sunflower column plus crop chunks
+- `max_drones() == world_size`: one worker per column with the final two columns reserved for simple Sunflower harvest/replant
 
-The current production code still has a carrot-support L inside the sunflower L, but this layout is explicitly under benchmark review. Do not treat it as a design invariant; see `docs/NORMAL_FARM.md`.
+The old L remains in `farm.run_legacy()` only for historical benchmark comparison. See `docs/NORMAL_FARM.md`.
 
 Water production is high (~3.2/s) and fertilizer production is high (~0.8/s), so both may be used aggressively.
 
@@ -129,9 +131,9 @@ Before expensive full-field crops, the dispatcher also checks the producer's own
 
 Gold/Maze has a persistent lifecycle and Weird Substance handling that differs from the other producers. See `docs/MAZE.md`.
 
-After Pumpkin, Cactus, or Dinosaur full-field jobs, rebuild the permanent sunflower edges immediately.
+After destructive full-field jobs, clear/reset normal-farm state only when normal farming is needed again. The adaptive layout rebuilds lazily on the next `farm.run()`.
 
-If `Unlocks.Expand` changes `get_world_size()`, clear/rebuild the layout and sunflower cache because the top-edge coordinates changed.
+If `Unlocks.Expand` changes `get_world_size()`, clear/reset the normal farm; do not rebuild the legacy L.
 
 ### Planner sources
 
