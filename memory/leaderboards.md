@@ -16,6 +16,13 @@ Leaderboard runs use:
 leaderboard_run(leaderboard, filename, speedup)
 ```
 
+Repository speed policy:
+
+- simulation-only benchmarks use `simulate(..., speedup=10000)`
+- actual leaderboard submissions use `leaderboard_run(..., speedup=256)`
+
+The higher benchmark speedup is only for reducing wall-clock benchmark time; real leaderboard launchers intentionally stay at 256.
+
 A run is not finished merely because the target inventory/unlock condition becomes true. The submitted program must terminate after reaching the target.
 
 This makes termination latency part of every leaderboard implementation. Production loops written for normal endless farming are not valid leaderboard submissions unless wrapped with an explicit target check and exit path.
