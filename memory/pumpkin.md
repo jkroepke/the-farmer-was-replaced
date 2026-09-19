@@ -283,3 +283,33 @@ The benchmark now requires every cycle to equal exactly:
 A merely positive Pumpkin gain is no longer sufficient for `valid True`.
 
 This prevents partial Giant harvests or other accidental positive-gain states from being selected as benchmark winners.
+
+
+## Spawn locality benchmark extension 2026-09-19
+
+The active Pumpkin benchmark now also isolates the documented same-position spawn behavior.
+
+New modes:
+
+- `persistent-placed-ring`
+  - direct version of the locality hypothesis
+  - launcher walks East one column at a time
+  - each child is spawned directly on its owned column
+  - measures whether eliminating child positioning outweighs the launcher's serialized movement
+
+- `persistent-spatial-tree-ring`
+  - worker 0 remains at column 0 as merge/harvest coordinator
+  - the remaining 31 columns are split into two arcs
+  - first-level workers move to the midpoint of their arc
+  - they spawn children only after reaching that local midpoint
+  - recursion continues until every column has one persistent worker
+
+For a 32-wide farm, the first spatial children target approximately columns 8 and 24, then 4/12 and 20/28, and so on.
+
+This differs from the prior `persistent-tree-ring`, which parallelizes spawn calls but spawns descendants before moving to their own column. The old tree tests spawn topology only; the spatial tree tests topology + locality.
+
+The one-cycle and three-cycle matrices now compare both variants against current production and the prior persistent ring controls.
+
+Benchmark version:
+
+`pumpkin-v3-spawn-locality`
