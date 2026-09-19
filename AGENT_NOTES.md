@@ -55,12 +55,14 @@ Prefer **contiguous chunks** of the map rather than one tiny task per column/til
 
 Normal-farm code must remain dynamic, but current endgame benchmarking focuses on 32x32.
 
-Production uses two measured normal-farm regimes:
+Production no longer uses the legacy L.
 
-- `max_drones() < world_size`: keep the legacy L for now; the persistent transition benchmark did not show an improvement from the production-shaped max-petal-column implementation
-- `max_drones() == world_size`: one worker per column with the final two columns reserved for simple Sunflower harvest/replant
+Current normal-farm regimes:
 
-The partial max-petal implementation remains available as a benchmark candidate. See `docs/NORMAL_FARM.md` for the result tables and benchmark commit SHAs.
+- `max_drones() < world_size`: one dedicated max-petal Sunflower column plus crop chunks; selected as the strongest previously measured non-L fallback
+- `max_drones() == world_size`: synchronous one-worker-per-column passes with the final two columns reserved for simple Sunflower harvest/replant
+
+Persistent-worker layouts are being re-benchmarked across the previous non-L Sunflower candidates. See `docs/NORMAL_FARM.md` for benchmark commit SHAs.
 
 Water production is high (~3.2/s) and fertilizer production is high (~0.8/s), so both may be used aggressively.
 
@@ -217,7 +219,7 @@ This is based on the observation that a live fully-grown pumpkin has already sur
 
 ## Pumpkin performance
 
-`get_time()`, `get_tick_count()`, and `quick_print()` are free.
+`get_tick_count()` and `quick_print()` cost 0 ticks. `get_time()` costs 1 tick in the current operation-cost documentation.
 
 Use `get_time()` for wait intervals instead of repeatedly moving over the whole field.
 
