@@ -206,6 +206,77 @@ Durable conclusion:
 - use hard-coded Flekay fan-out only if a domain benchmark shows a real
   end-to-end advantage, not from the 6-tick setup microbenchmark alone
 
+-----
+
+### Historical spawn locality: spawn-v1
+
+#### Provenance
+
+| Field | Value |
+| --- | --- |
+| Source commit | `c15c9f3ea47970cbbc6a4677bf5301a3a831b15e` |
+| Benchmark/version | `spawn-v1` |
+| World/profile | 32x32 / 32 drones / setup-only |
+| Seeds | 1, 2, 3 |
+| Validity | Deterministic setup comparison; all three seeds identical |
+
+#### Measurements and observations
+
+| Mode | Time (s) | Ticks |
+| --- | ---: | ---: |
+| `baseline-origin00-rowmajor` | 2.10 | 12,146 |
+| `center-anchor-rowmajor` | 2.85 | 16,613 |
+| `band-anchor-rowmajor` | 2.10 | 12,140 |
+| `band-anchor-farthest-parent-near` | 3.39 | 20,011 |
+| `nearest-slots-origin00` | 6.91 | 41,374 |
+| `nearest-slots-farthest-parent-near` | 8.24 | 49,419 |
+| `spawn-at-rowmajor-origins` | 5.98 | 35,671 |
+
+| Kind | Statement |
+| --- | --- |
+| Measured | Moving the parent to the visual center was slower than the origin baseline. |
+| Measured | Moving the parent to every child origin was decisively slower. |
+| Caveat | The v1 nearest/farthest modes included O(n²) runtime planning in the timed section, so they are not clean locality comparisons. |
+| Conclusion | Hierarchical spawning became the next hypothesis because child travel overlapped with the serial spawn chain. |
+
+-----
+
+### Historical spawn locality: spawn-v4
+
+#### Provenance
+
+| Field | Value |
+| --- | --- |
+| Source commit | `7c66b8422554d109e90220705e3841ea49081eca` |
+| Structural commit | `2a217d6b4a42ea403c292fbc2e19428fd561b25b` |
+| Benchmark/version | `spawn-v4` |
+| World/profile | 32x32 / 32 drones / setup-only |
+| Requested speedup | 10000 |
+| Seeds | 1, 2, 3 |
+| Validity | All three seeds identical |
+
+#### Measurements and observations
+
+| Mode | Time (s) | Ticks |
+| --- | ---: | ---: |
+| `baseline-origin00-rowmajor` | 2.10 | 11,832 |
+| `origin00-parent-near` | 2.07 | 11,662 |
+| `band-anchor-rowmajor` | 2.10 | 11,836 |
+| `band-precomputed-farthest-parent-near` | 1.68 | 9,201 |
+| `nearest-slots-precomputed-rowmajor` | 1.56 | 8,671 |
+| `nearest-slots-precomputed-farthest-parent-near` | 1.40 | 7,605 |
+| `binary-tree-rowmajor-origin00` | 1.29 | 6,892 |
+| `binary-tree-nearest-origin00` | **0.90** | **4,498** |
+
+| Kind | Statement | Evidence |
+| --- | --- | --- |
+| Measured | `binary-tree-nearest-origin00` reduced runtime by about 57.1%. | 2.10 s → 0.90 s |
+| Measured | Tick count fell by about 62.0%. | 11,832 → 4,498 ticks |
+| Conclusion | Binary spawning provides most of the gain; locality adds another measurable improvement. | 1.29 s binary-rowmajor vs 0.90 s binary-nearest |
+| Conclusion | Visual center placement remains disproven for this workload. | v1/v4 comparison |
+
+The exact Maze-target follow-up was tracked separately as `maze-v3`; setup-only spawn results must not be promoted directly into Maze production.
+
 ## Interpretation
 
 | Kind | Statement | Evidence |
