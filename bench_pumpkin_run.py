@@ -23,7 +23,12 @@ MODE_NAMES = [
     "sparse-8x4-tail",
     "tree-1x32-tail",
     "tree-4x8-tail",
-    "tree-8x4-tail"
+    "tree-8x4-tail",
+    "persistent-1x32-tail",
+    "persistent-4x8-tail",
+    "persistent-8x4-tail",
+    "persistent-tree-4x8-tail",
+    "persistent-tree-8x4-tail"
 ]
 
 PRIMARY_MODES = [
@@ -45,6 +50,20 @@ SHAPE_SMOKE_MODES = [
     6
 ]
 
+AMORTIZED_MODES = [
+    0,
+    7,
+    8,
+    9,
+    13,
+    14,
+    15,
+    16,
+    17
+]
+
+AMORTIZED_CYCLES = 3
+
 
 def simulation_items():
     return {
@@ -64,11 +83,13 @@ def simulation_items():
 
 def run_one(
     mode,
-    seed
+    seed,
+    cycles
 ):
     globals = {
         "BENCH_MODE": mode,
-        "BENCH_WORLD_SIZE": BENCH_WORLD_SIZE
+        "BENCH_WORLD_SIZE": BENCH_WORLD_SIZE,
+        "BENCH_CYCLES": cycles
     }
 
     return simulate(
@@ -84,7 +105,8 @@ def run_one(
 def benchmark_modes(
     label,
     modes,
-    seeds
+    seeds,
+    cycles
 ):
     totals = []
     minimums = []
@@ -100,7 +122,9 @@ def benchmark_modes(
         "world",
         BENCH_WORLD_SIZE,
         "drones",
-        max_drones()
+        max_drones(),
+        "cycles",
+        cycles
     )
 
     for seed in seeds:
@@ -121,7 +145,8 @@ def benchmark_modes(
 
             run_time = run_one(
                 mode,
-                seed
+                seed,
+                cycles
             )
 
             totals[
@@ -201,13 +226,22 @@ def run_benchmarks():
     benchmark_modes(
         "PUMPKIN PRIMARY",
         PRIMARY_MODES,
-        BENCH_SEEDS
+        BENCH_SEEDS,
+        1
     )
 
     benchmark_modes(
         "PUMPKIN SHAPE SMOKE",
         SHAPE_SMOKE_MODES,
-        [1]
+        [1],
+        1
+    )
+
+    benchmark_modes(
+        "PUMPKIN AMORTIZED",
+        AMORTIZED_MODES,
+        BENCH_SEEDS,
+        AMORTIZED_CYCLES
     )
 
     quick_print(
