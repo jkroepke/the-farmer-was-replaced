@@ -137,13 +137,14 @@ Files:
 - `lb_sunflower.py` - provisional finite leaderboard program
 - `lb_sunflower_run.py` - real leaderboard launcher at speedup 256
 
-The provisional leaderboard uses mode 9:
+The measured leaderboard implementation uses mode 9:
 
 ```text
 scan-tree-counted
 ```
 
-It is correctness-first, not a measured winner.
+It is the measured winner of `sunflower-v2-bounded7`: 371.54 s average across
+seeds 1, 2, and 3.
 
 Architecture:
 
@@ -215,40 +216,25 @@ items = {
 `sunflower-v2-bounded7` uses that as a benchmark proxy. Treat it as a community-derived
 proxy until the actual leaderboard start state is independently confirmed.
 
-## Next benchmark
+## Current benchmark result
 
-Run:
+The complete `sunflower-v2-bounded7` run used world 32x32, target 100000
+Power, seeds 1/2/3, speedup 10000, and the Carrot-only leaderboard simulation
+proxy.
 
-```text
-bench_sunflower_run.py
-```
+| Mode | Average |
+| --- | ---: |
+| `scan-tree-counted` | **371.54 s** |
+| `scan-tree-bounded7` | 377.12 s |
+| `scan-linear-counted` | 425.91 s |
+| `tier-tree-no-care` | 504.73 s |
+| `dumb-tree-no-care` | 506.54 s |
+| `tier-linear-no-care` | 561.35 s |
+| `equal7-tree-no-care` | 663.31 s |
 
-It uses:
+Decision: keep `lb_sunflower.py` on mode 9, `scan-tree-counted`.
 
-- world 32x32 from all unlocks
-- target 100000 Power
-- seeds 1, 2, 3
-- simulation speedup 10000
-- Carrot-only start proxy
-
-Each inner run prints:
-
-```text
-SUNFLOWER RESULT ... success ... valid ... power ... gain ... ticks ... elapsed ...
-```
-
-Only candidates with `valid True` are eligible.
-
-Selection criterion:
-
-1. must finish with `num_items(Items.Power) >= 100000`;
-2. compare end-to-end runtime, including initial field setup and termination;
-3. use the three-seed average as primary comparison;
-4. inspect min/max for random-seed sensitivity;
-5. do not promote a mode from one seed or a per-cycle microbenchmark.
-
-After results are supplied, update `lb_sunflower.py` to the measured winner and
-record the exact benchmark commit/results here.
+Full measurements and provenance live in `bench/sunflower.md`.
 
 ## Normal-farm separation
 
@@ -267,4 +253,5 @@ Measured Sunflower leaderboard results are maintained in `bench/sunflower.md`.
 | --- | --- | --- |
 | Conclusion | The old leave-all-seven scan can accumulate seven-petal flowers until productive higher tiers disappear. | `bench/sunflower.md`, interrupted `sunflower-v1` run |
 | Fix | Use the bounded-seven implementation and no-progress guard for the follow-up suite. | `f962b8615880d92b573beaa3c30389b817e32dc0` |
-| Next run | Re-run the full `sunflower-v2-bounded7` matrix before comparing it with the interrupted v1 numbers. | `bench/sunflower.md` |
+| Result | `scan-tree-counted` is the measured winner at 371.54 s average across seeds 1-3. | `bench/sunflower.md` |
+| Decision | Keep the real multi-drone Sunflower leaderboard on mode 9. | `lb_sunflower.py` |
