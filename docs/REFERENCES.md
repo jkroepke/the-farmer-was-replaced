@@ -200,3 +200,10 @@ When reviewing a community implementation, separate:
 5. actual measured throughput
 
 Prefer a complex algorithm when it measures faster, but never assume complexity or a performance-oriented filename implies better runtime.
+
+## Local external archive
+
+- `external/mateusmarochi-the-farmer-was-replaced-codes/` — complete MIT-licensed source snapshot at `d303d81d6a3eb59887eff75ed0454a6d8f4ff5ad`
+- `external/juritox-the-farmer-was-replaced/` — MIT-licensed source/text snapshot at `544bb832ffcec00aacf2c8dd5278bdb534ab674b`; large binary media is provenance-manifested
+- `external/skysdottir-tfwr/` — provenance and analysis at `e15968982e957045c5239e580e2d040a9ac73a52`; no redistribution license found
+- `external/ketrab2004-the-farmer-was-replaced/` — provenance and analysis at `cdbbcf32ca100237cdfc3b78783cee77722a96fd`; no redistribution license found

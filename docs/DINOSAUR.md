@@ -933,3 +933,12 @@ The first benchmark answers two questions:
 The source-like annealed mode is included because shortcut decision overhead itself may become significant as Dinosaur moves get cheaper after repeated Apples.
 
 Do not promote a shortcut strategy into production until it reaches all requested tail targets without `DINOSAUR BENCH INVALID` and wins deterministic simulation comparisons.
+
+
+## Local upstream archive
+
+The reviewed skysdottir reference is indexed locally at:
+
+`external/skysdottir-tfwr/`
+
+The source-near benchmark should remain tied to the upstream revision recorded there.
