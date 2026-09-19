@@ -20,7 +20,8 @@ MODE_NAMES = [
     "tstambaugh-reference-32",
     "nql1314-reference",
     "tstambaugh-placed-generalized",
-    "adaptive-placed-pool"
+    "adaptive-placed-pool",
+    "persistent-mateus"
 ]
 
 # Follow-up finalists. The source-near Tstambaugh mode proved competitive,
@@ -33,7 +34,8 @@ CANDIDATE_MODES = [
 ]
 
 REFERENCE_MODES = [
-    6
+    6,
+    9
 ]
 
 
