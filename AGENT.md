@@ -76,6 +76,8 @@ Keep the existing modular design.
 - `bench_farm_run.py`: normal-farm benchmark matrix, seeds, simulation profiles, and aggregation.
 - `bench_transition.py`: persistent Carrot -> Hay -> Wood -> Carrot transition implementations.
 - `bench_transition_run.py`: transition benchmark profiles, seeds, simulation calls, and aggregation.
+- `bench_persist.py`: full-Megafarm sync-respawn vs persistent-worker implementations.
+- `bench_persist_run.py`: persistent-worker benchmark seeds, simulation calls, and aggregation.
 - `bench_maze.py`: all Maze benchmark implementations/modes.
 - `bench_maze_run.py`: Maze simulation matrix and benchmark orchestration.
 - `bench_dinosaur.py`: Dinosaur benchmark implementations/modes.
