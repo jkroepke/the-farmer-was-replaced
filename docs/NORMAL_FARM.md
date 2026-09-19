@@ -652,26 +652,21 @@ These modes remain as historical/reference implementations but are no longer use
 
 Benchmark commit: `610e0e082d110c30a42d4ef900ef8a68efdb7405`
 
-The isolated cold-start benchmark selected these candidates for follow-up:
+The isolated cold-start benchmark selected these non-L candidates:
 
 ```text
 max_drones() < world_size
-    one dedicated max-petal Sunflower column candidate
+    one dedicated max-petal Sunflower column
 
 max_drones() == world_size
-    two simple Sunflower columns candidate
+    two simple Sunflower columns
 ```
 
-The later persistent transition benchmark changed the partial-Megafarm production decision. See the transition results below for the current production state.
+The legacy L remains available only as a historical benchmark implementation.
 
 ## Persistent transition benchmark
 
 Benchmark commit: `a359f8b3fbbad02a26ebe10a9450b7296405e8c3`
-
-Files:
-
-- `bench_transition.py`
-- `bench_transition_run.py`
 
 Workload:
 
@@ -679,45 +674,7 @@ Workload:
 Carrot -> Hay -> Wood -> Carrot
 ```
 
-The same simulated field and Power inventory persist across all four phases. There is no `clear()` and no Power reset between phases.
-
-The runner compares:
-
-```text
-legacy-l
-adaptive-production
-```
-
-for both the partial-Megafarm and maximum-Megafarm profiles across seeds 1, 2, and 3.
-
-Current per-phase gains:
-
-```text
-Carrot: +5,000,000
-Hay:    +5,000,000
-Wood:   +10,000,000
-Carrot: +5,000,000
-```
-
-Run:
-
-```text
-bench_transition_run.py
-```
-
-After the suite it automatically starts `main.main()`.
-
-### Completed transition results
-
-Benchmark commit: `a359f8b3fbbad02a26ebe10a9450b7296405e8c3`
-
-Persistent workload:
-
-```text
-Carrot -> Hay -> Wood -> Carrot
-```
-
-No `clear()` and no Power reset occur between phases.
+No `clear()` and no Power reset occurred between phases.
 
 Average total simulated runtime:
 
@@ -726,89 +683,150 @@ Average total simulated runtime:
 | partial Megafarm, 8 drones | 358.48 s | 361.39 s | adaptive ~0.8% slower |
 | max Megafarm, 32 drones | 128.63 s | 63.88 s | adaptive ~50.3% faster |
 
-Partial-Megafarm interpretation:
+Interpretation:
 
-- the production-shaped adaptive max-petal implementation did **not** reproduce the isolated cold-start win
-- adaptive production ended every completed 8-drone transition run at 0 Power
-- the legacy L remained effectively tied/slightly faster over the persistent workload and retained positive Power
-- therefore production below full Megafarm currently uses `run_legacy()`
-- the dedicated max-petal column remains a benchmark candidate, not the production default
+- at 8 drones, the production-shaped max-petal candidate was effectively tied with the legacy L in the persistent workload
+- at 32 drones, the adaptive two-Sunflower-column layout was decisively faster
+- the 8-drone difference was small enough that it does not justify preserving the legacy L as production architecture
 
-Maximum-Megafarm interpretation:
-
-- the adaptive two-Sunflower-column layout is decisively faster
-- average transition time drops from 128.63 s to 63.88 s
-- therefore the 32-drone production path keeps the adaptive one-worker-per-column layout with two simple Sunflower columns
-
-Current production decision after both benchmark stages:
+Current production therefore uses:
 
 ```text
 max_drones() < world_size
-    legacy L for now
+    one max-petal Sunflower column
+    synchronous crop chunks
 
 max_drones() == world_size
-    adaptive column ownership
-    final two columns = dumb Sunflowers
+    two dumb Sunflower columns
+    synchronous column passes
 ```
 
-The isolated cold-start benchmark remains useful for identifying candidate algorithms, but persistent transition behavior takes precedence for the production path.
+The legacy L is retained only for benchmark reproduction.
 
+## Persistent worker benchmark
 
-
-## Persistent full-Megafarm worker benchmark
-
-Benchmark commit: `39240a92d2659a9c342d5f770d79185efd3b78eb`
+Benchmark commit: `af03aa2f40a43d7efeb563a54e5b8660178b7da2`
 
 Files:
 
 - `bench_persist.py`
 - `bench_persist_run.py`
 
-Motivation:
+### Motivation
 
-The current full-Megafarm production path uses `workers.run(tasks)`. One pass creates the column workers, waits for every worker to finish its assigned column, destroys those drones, returns to the planner, and creates the workers again on the next normal-farm pass.
+The synchronous normal-farm routes still have two avoidable costs:
 
-This has two potential costs:
+1. every pass repeatedly pays successful `spawn_drone()` cost
+2. every pass has a barrier because the caller waits for every worker before the next pass starts
 
-1. repeated `spawn_drone()` overhead
-2. a round barrier: a worker that finishes its column early cannot immediately start its next column because the caller waits for the slowest worker before starting the next farm pass
+A worker that finishes early therefore becomes idle while slower workers finish, and all worker drones disappear before the next normal-farm pass.
 
-The persistent candidate removes both behaviors.
+### Persistent-worker reference research
 
-At 32x32 / 32 drones:
+#### MateusMarochi: persistent two-column workers
+
+Reference:
+
+- `external/mateusmarochi-the-farmer-was-replaced-codes/source/polyculture_farm_paralel.py`
+
+Its worker owns a fixed pair of columns and loops forever. The final two columns are Sunflowers. There is no per-round respawn and no global column barrier.
+
+This is directly relevant to the current normal-farm design.
+
+#### MateusMarochi: main drone also works
+
+Upstream references reviewed:
+
+- `pumpkin_farm.py`
+- `cactus_farm.py`
+
+These implementations spawn only the additional workers and let the caller execute worker 0 itself.
+
+That is important at `max_drones() == world_size`: reserving the caller as a pure scheduler wastes one useful worker slot.
+
+#### nql1314: persistent region pool
+
+Reference:
+
+- `external/nql1314-the-farmer-was-replaced-ai-code/`
+
+The repository correctly identifies repeated `spawn_drone()` plus barrier waiting as overhead and uses long-lived workers over stable regions.
+
+Its original dynamic priority/companion communication relied on the historical shared-`wait_for()` bug and is invalid in the current runtime.
+
+The valid reusable idea is therefore:
 
 ```text
-main drone:
-    scheduler only
-
-29 crop workers:
-    cover 30 crop columns
-    one worker owns two columns
-    no round barrier
-
-2 sunflower workers:
-    one worker per permanent Sunflower column
-
-total:
-    31 spawned workers + main = 32 drones
+spawn persistent worker once
+assign stable region/columns
+derive current focus from globally visible game state
+keep working without a round barrier
 ```
 
-Each worker loops continuously. After finishing one column it immediately starts its next owned column instead of waiting for other workers.
+### Layouts under test
 
-The benchmark compares:
+Persistent execution can change which Sunflower geometry wins, so all surviving non-L layout families are re-tested:
 
 ```text
-sync-respawn
-persistent-workers
+pure-crop
+one-row-dumb
+one-col-dumb
+two-col-dumb
+one-col-max
 ```
 
-with one continuous workload:
+The synchronous currently selected production route is retained as the baseline:
 
 ```text
-Carrot +5M -> Hay +5M -> Wood +10M
+sync-selected
 ```
 
-The persistent candidate switches focus from globally visible item counts and does not use shared Python memory.
+### Worker architectures under test
+
+Each layout independently screens:
+
+```text
+main-stride
+main-chunks
+main-pairs
+scheduler-chunks
+```
+
+Meanings:
+
+- `main-stride`: caller is worker 0; workers repeatedly service columns by stride
+- `main-chunks`: caller is worker 0; workers own contiguous chunks
+- `main-pairs`: persistent pair-of-columns pattern inspired by Mateus
+- `scheduler-chunks`: caller only schedules; all farm work is done by spawned drones
+
+The architecture screen is intentionally performed **per layout**. A worker geometry that wins for two Sunflower columns is not assumed to also win for one row or max-petal.
+
+### Benchmark stages
+
+For each profile:
+
+1. each layout × each worker architecture runs a short seed-1 screen
+2. the best architecture for that layout is retained
+3. every layout winner runs the full workload over seeds 1, 2, and 3
+4. `sync-selected` runs alongside them
+
+Profiles:
+
+```text
+partial-megafarm-level-3
+max-megafarm
+```
+
+Full persistent workload:
+
+```text
+Carrot +5M
+-> Hay +5M
+-> Wood +10M
+-> Carrot +5M
+```
+
+No shared Python memory is used. Focus changes are derived from globally visible item counts.
 
 Run:
 
@@ -816,4 +834,4 @@ Run:
 bench_persist_run.py
 ```
 
-Do not replace the production full-Megafarm route until this benchmark has completed and its results are documented against the benchmark commit above.
+Do not replace the synchronous full-Megafarm production route until this benchmark completes and the results are documented with the benchmark commit above.
