@@ -144,7 +144,9 @@ def simulation_items():
         Items.Cactus: 1000000000,
         Items.Bone: 1000000000,
         Items.Gold: 1000000000,
-        Items.Power: 1000,
+        # Start cold. Crop layouts must earn their own execution-speed
+        # advantage instead of consuming a preloaded Power buffer.
+        Items.Power: 0,
         Items.Water: 1000000000,
         Items.Fertilizer: 1000000000,
         Items.Weird_Substance: 1000000000
