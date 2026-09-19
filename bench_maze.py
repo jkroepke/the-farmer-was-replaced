@@ -2677,22 +2677,36 @@ def spec_steam_worker(
             continue
 
         if found >= 300:
+            # Depending on the exact recycle-limit boundary, the worker
+            # may already be standing on the final non-recyclable
+            # Treasure. Handle that before asking for another target.
+            if (
+                get_entity_type()
+                == Entities.Treasure
+                and measure() == None
+            ):
+                harvest()
+
+                spec_move_to(
+                    origin_x,
+                    origin_y
+                )
+
+                continue
+
             target = measure()
 
-            depth = spec_steam_distance(
-                target
-            )
+            if target != None:
+                # The source algorithm already owns the graph inside
+                # spec_steam_hunt(). Use the ranked DFS reference only
+                # to reach the final Treasure after the source's graph
+                # has gone out of scope.
+                goal_x, goal_y = target
 
-            # The source algorithm already owns the graph inside
-            # spec_steam_hunt(). Reaching 300 is rare in a target run;
-            # use ranked DFS for the final harvest rather than carrying
-            # the local graph across the function boundary.
-            goal_x, goal_y = target
-
-            spec_zapakh_find(
-                goal_x,
-                goal_y
-            )
+                spec_zapakh_find(
+                    goal_x,
+                    goal_y
+                )
 
         if (
             get_entity_type()
