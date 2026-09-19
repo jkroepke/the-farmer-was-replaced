@@ -146,6 +146,27 @@ def simulation_items():
     }
 
 
+def run_clean_probe():
+    globals = {
+        "BENCH_MODE": 99,
+        "BENCH_WORLD_SIZE": BENCH_WORLD_SIZE,
+        "BENCH_FOCUS": 0,
+        "BENCH_TARGET_GAIN": 1,
+        "BENCH_VERBOSE": False
+    }
+
+    simulate(
+        "bench_farm",
+        simulation_unlocks(
+            1
+        ),
+        simulation_items(),
+        globals,
+        1,
+        BENCH_SPEEDUP
+    )
+
+
 def run_one(
     mode,
     profile,
@@ -403,6 +424,8 @@ def run_benchmarks():
     quick_print(
         "FARM BENCH SUITE START"
     )
+
+    run_clean_probe()
 
     for profile in range(
         len(PROFILE_NAMES)
