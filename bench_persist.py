@@ -96,6 +96,9 @@ def layout_sun_columns(
     if layout == 4:
         return 1
 
+    if layout == 5:
+        return 1
+
     return 0
 
 
@@ -327,6 +330,86 @@ def sun_dumb_worker(
     return True
 
 
+def sun_seven_worker(
+    column,
+    carrot_mid,
+    hay_target,
+    wood_target,
+    carrot_final
+):
+    world_size = utils.size()
+
+    # Flekay-inspired equal-petal strategy:
+    # force the complete dedicated column to the same petal count so every
+    # mature Sunflower is globally maximal inside this layout. Seven is used
+    # because it is the cheapest target to recognize; reroll probability is
+    # symmetric across the documented 7..15 petal range.
+    utils.move_to(
+        column,
+        0
+    )
+
+    for _ in range(
+        world_size
+    ):
+        if not farm._ensure_sunflower_here():
+            return False
+
+        while measure() != 7:
+            # harvest() deliberately destroys an unripe plant too, which is
+            # exactly what the source-near reroll strategy relies on.
+            harvest()
+
+            if not farm._ensure_sunflower_here():
+                return False
+
+        move(
+            North
+        )
+
+    while current_focus(
+        carrot_mid,
+        hay_target,
+        wood_target,
+        carrot_final
+    ) != None:
+        utils.move_to(
+            column,
+            0
+        )
+
+        for _ in range(
+            world_size
+        ):
+            if get_entity_type() != Entities.Sunflower:
+                if not farm._ensure_sunflower_here():
+                    return False
+
+                while measure() != 7:
+                    harvest()
+
+                    if not farm._ensure_sunflower_here():
+                        return False
+
+            if can_harvest():
+                harvest()
+
+                if not farm._ensure_sunflower_here():
+                    return False
+
+                while measure() != 7:
+                    harvest()
+
+                    if not farm._ensure_sunflower_here():
+                        return False
+
+            move(
+                North
+            )
+
+    return True
+
+
 def sun_max_worker(
     column,
     carrot_mid,
@@ -487,6 +570,23 @@ def spawn_sun_workers(
     if layout == 4:
         drone = spawn_drone(
             sun_max_worker,
+            world_size - 1,
+            carrot_mid,
+            hay_target,
+            wood_target,
+            carrot_final
+        )
+
+        if drone != None:
+            handles.append(
+                drone
+            )
+
+        return drone != None
+
+    if layout == 5:
+        drone = spawn_drone(
+            sun_seven_worker,
             world_size - 1,
             carrot_mid,
             hay_target,
