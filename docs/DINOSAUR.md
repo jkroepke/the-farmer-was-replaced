@@ -327,6 +327,158 @@ The redundant `clear()` after `set_world_size()` has been removed.
 
 This is important when comparing 25% vs 95% targets because otherwise a fixed setup cost would distort short-run throughput more strongly.
 
+### 10. Repository comparison: MateusMarochi, juritox, ketrab2004
+
+Repositories reviewed:
+
+- https://github.com/MateusMarochi/the-farmer-was-replaced-codes
+- https://github.com/juritox/the-farmer-was-replaced
+- https://github.com/ketrab2004/the-farmer-was-replaced
+
+#### MateusMarochi
+
+Relevant file:
+
+- `bone_farm.py`
+
+This uses essentially the same skyscraper/Hamiltonian geometry already covered by our baseline:
+
+- alternating vertical columns
+- bottom row kept free
+- return West on the bottom row
+- repeat
+
+Its only distinctive production behavior is collision-triggered hat switching, which effectively harvests and restarts the Dinosaur. That insight is already represented by the sustained-throughput benchmark.
+
+No new pathfinding strategy needs to be added from this repository.
+
+The Dinosaur file has only one historical commit from October 2025, so treat it as a strategy example rather than a current optimized reference.
+
+#### juritox
+
+Relevant file:
+
+- `scripts/bone_harvest.py`
+
+This is an older 2025 implementation built around deterministic full-field sweeps. It does not use:
+
+- `measure()` to target the next Apple
+- explicit tail tracking
+- shortcut safety
+- a Hamiltonian index
+- throughput measurement
+
+It also contains movement patterns that rely on failed boundary moves as control flow.
+
+There is no new optimization worth porting into the current benchmark.
+
+Useful conceptual reminder only:
+
+> keep the movement pattern structurally simple when interpreter overhead dominates.
+
+But our existing plain Hamiltonian baseline already covers that tradeoff better.
+
+#### ketrab2004
+
+Relevant files:
+
+- `dinosaur.py`
+- `pathfind.py`
+- `queue.py`
+- `tail.py`
+
+This repository contains a genuinely different Dinosaur idea.
+
+The main loop:
+
+1. measures the Apple target
+2. builds an in-memory map of current tail positions
+3. tries a DFS route directly to the Apple
+4. if no path to the Apple exists, finds the tail end
+5. uses BFS to route toward the tail end
+6. if even that fails, takes any currently legal move
+
+The interesting fallback is:
+
+> **if the Apple is temporarily unreachable, chase the tail instead of immediately switching to a fixed Hamiltonian cycle.**
+
+Following the tail can create space because the tail moves away as the head advances.
+
+This is conceptually different from both:
+
+- fixed Hamiltonian fallback
+- cycle-index shortcutting
+
+However, the posted implementation is not safe enough to use directly.
+
+The code explicitly contains:
+
+```text
+TODO take into account tail moving
+```
+
+Its DFS/BFS treats the current tail map mostly as static while planning. That misses the most important Dinosaur pathfinding rule: cells occupied now may become free before the head reaches them.
+
+It also rebuilds the complete `tail_dict` from the queue on every outer iteration, making the implementation O(tail length) before pathfinding even starts.
+
+#### Useful data-structure idea from ketrab2004
+
+The repository also contains `tail.py`, which models the body with:
+
+- tail-end coordinate
+- head/front coordinate
+- length
+- monotonic sequence index
+- dictionary keyed by coordinate
+- previous/next links per occupied position
+
+That structure is more interesting than the actual `dinosaur.py` implementation.
+
+For a future dynamic solver, maintain both:
+
+```text
+queue/order of body positions
++
+dict/set coordinate -> tail age/order
+```
+
+This allows:
+
+- O(1) occupied-cell lookup
+- O(1) updates as the tail advances
+- knowing **when** an occupied tile will become free
+- tail-aware path validation without rescanning the full body every step
+
+This is a useful direction for improving on the generic DFS/A* ideas found in the Steam thread.
+
+### New future benchmark candidate: Apple path + tail chase
+
+A future experimental mode should test:
+
+```text
+tail-aware-apple-path-tail-chase
+```
+
+Policy:
+
+1. greedily/directly route toward the Apple while a safe path exists
+2. pathfinding state must include the time/step at which each tail tile becomes free
+3. if no Apple path is safe, route toward/follow the moving tail
+4. retry Apple routing as space opens
+5. use a Hamiltonian fallback only if neither strategy has a safe route
+
+Do **not** port ketrab2004's static-tail DFS directly.
+
+The benchmark is worthwhile only if the planner accounts for future tail release. Otherwise it repeats the known flaw of treating every currently occupied tile as permanently blocked.
+
+Because generic search can be expensive in the game interpreter, compare:
+
+- pathfinding ticks spent
+- physical moves saved
+- resulting Bones/s
+
+against the current reference before considering production use.
+
 ## Important research conclusion: our baseline is already skyscraper-like
 
 The current repository path and the external `skyscraper.py` share the same core geometry:
