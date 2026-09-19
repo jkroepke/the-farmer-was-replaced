@@ -650,6 +650,40 @@ target grows.
 
 It is both slower and much more seed-sensitive than the small-Maze strategies.
 
+#### Finalist follow-up runner
+
+After recording the extended matrix, `bench_maze_run.py` was narrowed to the
+remaining decision set.
+
+Current runner commit:
+`c685de023206a55784a8fdfd671abeb830b5f482`.
+
+It runs:
+
+1. `MAZE FINALIST`
+   - target: 1000000 Gold
+   - seeds: 1, 2, 3
+   - uniform4 map+BFS reuse300
+   - uniform5 map+BFS reuse300
+   - packed map+BFS reuse300
+   - packed Reddit visited reuse300
+   - uniform4 Zapakh reuse300 control
+   - uniform5 Zapakh reuse300
+   - uniform4 Zapakh reuse8 control
+
+2. `MAZE LEADERBOARD`
+   - exact target: 9863168 Gold
+   - seeds: 1, 2
+   - uniform4 map+BFS reuse300
+   - uniform5 map+BFS reuse300
+   - packed map+BFS reuse300
+   - packed Reddit visited reuse300
+   - uniform4 Zapakh reuse300 control
+
+The exact-target group is the decisive leaderboard comparison because it
+includes cold setup, repeated 300-reuse lifecycle rebuilds, and termination
+latency rather than extrapolating from a short Gold target.
+
 #### Durable conclusions from the extended matrix
 
 - Fresh-only strategies are consistently poor for sustained Gold.
