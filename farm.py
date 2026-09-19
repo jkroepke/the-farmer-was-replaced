@@ -27,6 +27,21 @@ def weird_substance_target():
     maze_level = num_unlocked(Unlocks.Mazes)
 
     if maze_level <= 0:
+        # Bootstrap the first Maze unlock. Before Mazes exists there is
+        # no reusable-maze stockpile yet, but the unlock itself costs
+        # Weird Substance and must be reachable by the automatic planner.
+        cost = get_cost(
+            Unlocks.Mazes
+        )
+
+        if (
+            cost != None
+            and Items.Weird_Substance in cost
+        ):
+            return cost[
+                Items.Weird_Substance
+            ]
+
         return 0
 
     one_maze = (
