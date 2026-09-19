@@ -100,24 +100,41 @@ Useful files include:
 
 #### Important validity warning: drone memory
 
-Do **not** copy the repository's "shared memory through `wait_for()`" architecture.
+Do **not** copy the repository's "shared memory through `wait_for()`" architecture into current production code.
 
-Some files/docs claim that a dictionary returned by one drone can be shared mutably by other drones. That conflicts with current game semantics:
+The upstream repository contains evidence that this technique **did work historically**:
 
-- arguments to `spawn_drone()` are copied
-- `wait_for()` returns the completed drone's return value
-- drones have independent variable memory
+- reviewed upstream revision: `688325db004607563e59535a15ce94fad092ff9f` from 2025-11-01
+- `docs/DRONE_SHARED_MEMORY_DISCOVERY.md` records a 2025-10-23 experiment where multiple drones call `wait_for()` on the same source drone and observe cumulative mutations of the returned list
+- `archived/ref_test.py` contains the minimal reproducer used for that claim
 
-The external repository is internally inconsistent here as well: its general Mega Farm documentation correctly states that drones do not share memory, while its persistent-pool documentation claims the opposite.
+However, current game semantics no longer support treating this as a valid mechanic:
 
-Therefore treat all synchronization based on patterns such as:
+- current Megafarm documentation says drones have separate memory
+- `spawn_drone(function, *args)` operates on copies of passed arguments
+- the 2025-12-04 game update explicitly says "Fixed shared memory bugs."
+- the 2026-02-17 update explicitly says "Fixed another bug that allowed you to get shared memory between multiple drones."
+
+Current references:
+
+- https://thefarmerwasreplaced.wiki.gg/wiki/Megafarm
+- https://steamcommunity.com/app/2060160/announcements/
+- https://steamdb.info/patchnotes/21969917/
+
+Therefore the nql1314 technique should be classified as a **historical engine exploit/bug**, not merely as an incorrect community assumption.
+
+This also resolves the apparent contradiction inside the upstream repository: its ordinary globals/closure tests correctly show isolated drone memory, while its later `wait_for(source)` trick exploited a separate return-value sharing bug that the game subsequently fixed.
+
+Treat synchronization such as:
 
 ```text
 shared = wait_for(shared_source)
 shared["priority"] = ...
 ```
 
-as invalid until proven otherwise in the current game.
+as invalid for current production code.
+
+Use `probe_drone_memory.py` / `probe_drone_memory_run.py` when re-validating the mechanic against a future game version.
 
 The **persistent-worker idea itself** is still worth benchmarking. A long-lived drone can avoid repeated `spawn_drone()` cost, but any dynamic coordination must be redesigned around actual shared game state, independent worker decisions, or explicit task lifetimes rather than shared Python objects.
 
