@@ -1,3 +1,6 @@
+import utils
+
+
 MODE_NAMES = [
     "checker-grass-lean",
     "checker-bush-lean",
@@ -132,18 +135,25 @@ def service_safe(
     if entity == wanted:
         if can_harvest():
             harvest()
-            plant(
+
+            if utils.can_afford(
                 wanted
-            )
+            ):
+                plant(
+                    wanted
+                )
 
         return
 
     if entity != None:
         harvest()
 
-    plant(
+    if utils.can_afford(
         wanted
-    )
+    ):
+        plant(
+            wanted
+        )
 
 
 def service_lean(
