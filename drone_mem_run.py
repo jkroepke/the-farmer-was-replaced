@@ -12,7 +12,7 @@ def run_probe():
         {},
         {},
         1,
-        64
+        10000
     )
 
     quick_print(
