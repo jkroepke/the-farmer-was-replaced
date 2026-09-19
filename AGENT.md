@@ -83,6 +83,7 @@ Keep the existing modular design.
 - `bench_dinosaur.py`: Dinosaur benchmark implementations/modes.
 - `bench_dinosaur_run.py`: Dinosaur simulation matrix and benchmark orchestration.
 - `docs/NORMAL_FARM.md`: canonical Hay/Wood/Carrot, Sunflower/Power, worker-layout, and benchmark notes.
+- `docs/UNLOCKS.md`: canonical automatic unlock frontier, priorities, endgame goals, and reset-strategy references.
 - `docs/PUMPKIN.md`: canonical Pumpkin mechanics, multi-drone strategy, references, and optimization notes.
 - `docs/MAZE.md`: canonical Maze mechanics, production design, benchmark data, and optimization notes.
 - `docs/DINOSAUR.md`: canonical Dinosaur mechanics, external strategy research, and optimization/benchmark plan.
@@ -223,9 +224,9 @@ The main loop must remain driven by the next upgrade's live `get_cost()` require
 
 ### Upgrade frontier
 
-`config.AUTO_UNLOCKS` defines progression order. `unlocks.next_target()` may consider all already-started upgrade lines plus the first never-unlocked entry, but must not jump beyond that frontier.
+`config.UNLOCK_PLANS` defines progression order. `unlocks.next_target()` may consider all already-started upgrade lines plus the first never-unlocked entry, but must not jump beyond that frontier.
 
-Within the candidate set, prefer the smallest remaining total resource cost. This lets cheap current levels compete without maxing one line before progressing to the next feature.
+Within the candidate set, compare priority-weighted remaining cost. Higher-priority core progression may beat a somewhat cheaper lower-priority target, while the frontier prevents jumping past the first never-unlocked goal. Endgame goals remain in the plan with lower priority instead of disappearing from automation.
 
 Treat `{}` from `get_cost(unlock)` as maxed. Keep compatibility with `None` where older game behavior may still surface it.
 
