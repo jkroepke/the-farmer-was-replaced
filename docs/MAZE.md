@@ -337,7 +337,7 @@ The benchmark keeps that architecture while adding the repository's fixed-Gold s
 
 Results are intentionally pending until this amount-based suite is run in-game. Do not infer a winner from the historical full-world benchmarks or community throughput claims.
 
-Benchmark implementation commit: `8fc91cd127cac271cd63e8a5fe1304c50c77d822`
+Benchmark implementation commit: `bb9a2749443bcd4e9dd0bfe0ecfc5f327b66bd62`
 
 ---
 

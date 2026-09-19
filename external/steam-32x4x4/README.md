@@ -32,3 +32,5 @@ The post reports more than 2M Gold/min for its environment. That number is commu
 - safe handling when the Maze reuse limit is reached
 
 These changes are benchmark harness adaptations; the core search architecture remains source-near.
+
+The launcher also preserves the correction posted later in the same thread: the parent moves to `(14, 30)`, attempts the original 8x8 grid of 4x4 origins, and then owns the 32nd Maze itself when further spawns fail at the 32-drone limit. Workers move to their assigned origins themselves, preserving parallel positioning, and keep the source's initial `do_a_flip()`.

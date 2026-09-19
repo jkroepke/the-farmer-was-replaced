@@ -25,6 +25,8 @@ The historical 8/16/32 benchmarks established `reference-tree-rebalancing` as th
 
 The default target is 200000 Gold, seeds 1/2/3, speedup 64. Results are pending an in-game run.
 
+Benchmark implementation commit: `bb9a2749443bcd4e9dd0bfe0ecfc5f327b66bd62`.
+
 ## Stationary coverage design
 
 For `cover-*`, do not assume which absolute cells a small Maze occupies. Create the Maze first, DFS through its actual reachable cells, and leave a worker on each visited cell. Workers use only shared game-world state; no Python memory is shared between drones.
