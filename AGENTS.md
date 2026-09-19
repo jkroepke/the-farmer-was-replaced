@@ -517,22 +517,31 @@ Rules:
 
 Measured benchmark results belong only in `bench/<item>.md`. Do not store numeric result tables in `AGENTS.md`, `memory/`, or mechanic documentation.
 
-Use `bench/example.md` as the required structure for new benchmark documents.
+`bench/example.md` is the mandatory documentation schema. Every benchmark document must use these top-level sections in this order:
+
+1. `Scope`
+2. `Benchmark index`
+3. `Results`
+4. `Interpretation`
+5. `Reproduction`
+6. `Notes`
 
 Rules:
 
-- Each canonical result block must reference the **full Git commit SHA** of the source state that produced the result.
-- The source SHA must pin both the runner and the implementation under test. Do not substitute a later docs-only commit.
-- Record the runner, benchmark/version label, world/profile, drone count where relevant, simulation speedup, seed(s), target/success condition, and validity status.
-- Do not publish a numeric result as canonical when its source commit is unknown. Rerun it from a committed state instead of guessing provenance.
-- Split runs from different source commits or materially different setups with a Markdown horizontal rule written as `-----`.
-- Prefer tables for setup, results, comparisons, and conclusions so another person or agent can scan the evidence quickly.
-- Separate observations from interpretation. Label conclusions and open hypotheses explicitly; do not present them as measured facts.
-- `memory/<topic>.md` may keep durable takeaways, rejected approaches, and open questions, but it must link to the relevant `bench/<item>.md` instead of duplicating result tables.
-- Mechanic docs may explain benchmark methodology, but measured numbers and run history stay in `bench/`.
-- Use a stable topic filename such as `bench/farm.md`, `bench/maze.md`, or `bench/runtime.md`; update an existing topic instead of creating one file per run.
-
-
+- Every benchmark runner must have a canonical home under `bench/`. Closely related runners may share one topic document, for example Farm/Persist/Polyculture in `bench/farm.md` or Spawn/Move/Ticks in `bench/runtime.md`.
+- Each measured result group under `Results` must contain a provenance table with the **full Git commit SHA** of the source state that produced it.
+- The source SHA must pin both runner and implementation under test. Do not substitute a later docs-only commit.
+- If historical output has no recorded source SHA, label it `Unknown / not recorded` and treat it as historical/non-canonical. Never infer or guess provenance.
+- Record benchmark/version, world/profile, drone count where relevant, requested simulation speedup, seeds, target/cycles, and validity condition.
+- Split result groups from different source commits or materially different setups with a Markdown horizontal rule written as `-----`.
+- All measured elapsed times, ticks, gains, throughput values, min/max values, and direct numeric comparisons must be presented in Markdown tables. Do not store benchmark timings in bullet lists or code blocks.
+- Tables must have a header row and separator row and must keep a consistent column count.
+- Keep measured facts in `Results` and derived decisions in `Interpretation`. Do not mix conclusions into raw measurement tables.
+- Prefer tables in `Interpretation` and `Notes` for conclusions, rejected approaches, caveats, and open questions.
+- `memory/<topic>.md` may keep durable takeaways, rejected approaches, and open questions, but it must link to the relevant `bench/<item>.md` instead of duplicating measurements.
+- Mechanic docs may explain benchmark methodology, but numeric run history stays in `bench/`.
+- Use stable topic filenames such as `bench/farm.md`, `bench/maze.md`, or `bench/runtime.md`; update an existing topic instead of creating one file per run.
+- Whenever a benchmark suite changes materially, update its `Benchmark index` even if no new measurement exists yet.
 
 ## Benchmark layout
 
