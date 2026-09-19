@@ -1,0 +1,66 @@
+Current #1 fastest reset unlock order:
+
+```py
+ 0:11.14  || Unlocks.Speed 1
+ 0:36.49  || Unlocks.Plant 1
+ 0:51.77  || Unlocks.Expand 1
+ 1:39.05  || Unlocks.Expand 2
+ 2:04.51  || Unlocks.Speed 2
+ 3:29.91  || Unlocks.Carrots 1
+ 3:35.74  || Unlocks.Grass 2
+ 4:54.22  || Unlocks.Trees 1
+ 4:54.45  || Unlocks.Trees 2
+ 5:13.85  || Unlocks.Expand 3
+ 5:44.98  || Unlocks.Carrots 2
+ 5:59.61  || Unlocks.Speed 3
+ 6:20.07  || Unlocks.Expand 4
+ 6:20.69  || Unlocks.Watering 1
+ 6:21.16  || Unlocks.Watering 2
+ 7:29.06  || Unlocks.Carrots 3
+ 8:02.91  || Unlocks.Grass 3
+ 8:32.56  || Unlocks.Sunflowers 1
+ 9:02.66  || Unlocks.Fertilizer 1
+ 9:30.30  || Unlocks.Watering 3
+ 9:34.47  || Unlocks.Speed 4
+11:15.57  || Unlocks.Pumpkins 1
+11:15.63  || Unlocks.Watering 4
+13:16.26  || Unlocks.Polyculture 1
+13:33.76  || Unlocks.Speed 5
+14:11.71  || Unlocks.Expand 5
+14:18.26  || Unlocks.Fertilizer 2
+14:18.30  || Unlocks.Mazes 1
+14:38.89  || Unlocks.Megafarm 1
+15:18.02  || Unlocks.Trees 3
+15:18.05  || Unlocks.Trees 4
+15:35.96  || Unlocks.Carrots 4
+15:51.38  || Unlocks.Watering 5
+16:13.86  || Unlocks.Pumpkins 2
+16:13.89  || Unlocks.Pumpkins 3
+17:28.09  || Unlocks.Expand 6
+18:08.50  || Unlocks.Cactus 1
+20:35.38  || Unlocks.Dinosaurs 1
+20:35.41  || Unlocks.Dinosaurs 2
+21:19.50  || Unlocks.Polyculture 2
+21:19.54  || Unlocks.Mazes 2
+21:19.57  || Unlocks.Mazes 3
+22:30.41  || Unlocks.Megafarm 2
+22:30.45  || Unlocks.Megafarm 3
+22:30.48  || Unlocks.Grass 4
+22:40.31  || Unlocks.Trees 5
+22:46.94  || Unlocks.Fertilizer 3
+22:46.98  || Unlocks.Fertilizer 4
+23:04.00  || Unlocks.Watering 6
+23:04.03  || Unlocks.Carrots 5
+23:15.26  || Unlocks.Carrots 6
+23:28.02  || Unlocks.Pumpkins 4
+23:39.01  || Unlocks.Pumpkins 5
+24:02.74  || Unlocks.Expand 7
+24:54.76  || Unlocks.Megafarm 4
+26:04.45  || Unlocks.Cactus 2
+26:04.49  || Unlocks.Cactus 3
+26:14.27  || Unlocks.Dinosaurs 3
+26:25.24  || Unlocks.Dinosaurs 4
+28:10.96  || Unlocks.Dinosaurs 5
+28:30.71  || Unlocks.Mazes 4
+33:17.56  || Unlocks.Leaderboard 1
+```
