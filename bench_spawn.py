@@ -120,10 +120,15 @@ def run_linear(
 
 
 def tree_worker(
-    origins,
+    layout,
     start,
     count
 ):
+    if layout == 0:
+        origins = CURRENT_ORIGINS
+    else:
+        origins = NEAREST_ORIGINS
+
     if count == 1:
         origin = origins[start]
 
@@ -137,7 +142,7 @@ def tree_worker(
 
     drone = spawn_drone(
         tree_worker,
-        origins,
+        layout,
         start + first_count,
         second_count
     )
@@ -146,7 +151,7 @@ def tree_worker(
         return False
 
     own_success = tree_worker(
-        origins,
+        layout,
         start,
         first_count
     )
@@ -229,13 +234,13 @@ def run_setup(mode):
 
     if mode == 6:
         return tree_worker(
-            CURRENT_ORIGINS,
+            0,
             0,
             len(CURRENT_ORIGINS)
         )
 
     return tree_worker(
-        NEAREST_ORIGINS,
+        1,
         0,
         len(NEAREST_ORIGINS)
     )
