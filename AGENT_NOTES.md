@@ -18,6 +18,7 @@ The automation is split into modules:
 - `bench_maze_run.py` — Maze simulation matrix, seeds, `simulate()` calls, and result aggregation
 - `bench_dinosaur.py` — Dinosaur benchmark implementations/modes
 - `bench_dinosaur_run.py` — Dinosaur simulation matrix, seeds, `simulate()` calls, and aggregation
+- `docs/NORMAL_FARM.md` — canonical normal-farm/Sunflower design, references, and benchmark notes
 - `docs/PUMPKIN.md` — canonical Pumpkin strategy, references, and multi-drone optimization notes
 - `docs/MAZE.md` — canonical Maze design, benchmark results, and optimization notes
 
@@ -42,7 +43,7 @@ Prefer **contiguous chunks** of the map rather than one tiny task per column/til
 
 ## Normal farm
 
-Current farm is 16x16.
+Normal-farm code must remain dynamic, but current endgame benchmarking focuses on 32x32.
 
 Sunflowers are intended to be permanent and cheap to reach:
 
@@ -51,7 +52,7 @@ Sunflowers are intended to be permanent and cheap to reach:
 
 Because the map wraps, the top edge is one `South` move away from `(0,0)`.
 
-A carrot support L sits directly inside the sunflower L.
+The current production code still has a carrot-support L inside the sunflower L, but this layout is explicitly under benchmark review. Do not treat it as a design invariant; see `docs/NORMAL_FARM.md`.
 
 Water production is high (~3.2/s) and fertilizer production is high (~0.8/s), so both may be used aggressively.
 
