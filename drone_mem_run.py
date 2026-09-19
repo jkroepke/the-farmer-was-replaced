@@ -1,12 +1,12 @@
-import main
+# Run the drone memory semantics probe in an isolated simulation.
 
 
 def run_probe():
     quick_print(
-        "DRONE MEMORY PROBE START"
+        "DRONE_MEMORY RUN START"
     )
 
-    simulate(
+    elapsed = simulate(
         "drone_mem_probe",
         Unlocks,
         {},
@@ -16,16 +16,10 @@ def run_probe():
     )
 
     quick_print(
-        "DRONE MEMORY PROBE DONE"
+        "DRONE_MEMORY RUN DONE",
+        elapsed
     )
 
 
 if __name__ == "__main__":
     run_probe()
-
-    quick_print(
-        "DRONE MEMORY PROBE COMPLETE",
-        "STARTING MAIN LOOP"
-    )
-
-    main.main()
