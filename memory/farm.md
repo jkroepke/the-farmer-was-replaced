@@ -246,3 +246,94 @@ Files:
 - current Carrot/Tree/Bush/Sunflower planting costs
 
 Use these measured values before creating a simulated Resource-LB benchmark. Do not invent undocumented Water/Fertilizer start quantities.
+
+
+## Measured Wood leaderboard start state
+
+Measured directly with `lb_res_probe.py` / `leaderboard_run(Leaderboards.Wood, ...)` on 2026-09-19.
+
+This section is measured game state, not an inferred simulation setup.
+
+### Farm/runtime
+
+```text
+world size: 32
+max drones: 32
+initial water level: 0
+initial entity: Entities.Grass
+initial ground: Grounds.Grassland
+```
+
+### Initial inventory
+
+```text
+Hay              0
+Wood             0
+Carrot           0
+Pumpkin          0
+Cactus           0
+Bone             0
+Weird_Substance  0
+Gold             0
+Water            0
+Fertilizer       0
+Power            1000000000
+Piggy            0
+```
+
+Critical implications:
+
+- Wood LB really does start with a huge Power reserve: `1_000_000_000`
+- it does **not** start with Water inventory
+- it does **not** start with Fertilizer inventory
+- dedicated Sunflower production is therefore unnecessary at startup for Wood LB
+- Water/Fertilizer strategies must account for passive replenishment during the run rather than assuming a starting stockpile
+
+Do not silently copy Main-Run `simulation_items()` values into Wood-LB benchmarks. The measured leaderboard state is materially different.
+
+### Measured unlock levels
+
+```text
+Speed        5
+Watering     9
+Fertilizer   4
+Sunflowers   1
+Trees       10
+Carrots     10
+Grass       10
+Megafarm     5
+Polyculture  5
+```
+
+This confirms a fully developed 32x32 / 32-drone resource-farming environment, but the exact upgrade levels should be preserved when reproducing the real Wood leaderboard.
+
+### Measured planting costs
+
+```text
+Carrot     {Items.Hay: 512, Items.Wood: 512}
+Tree       {}
+Bush       {}
+Sunflower  {Items.Carrot: 1}
+```
+
+Wood-specific implications:
+
+- `Entities.Tree` is free to plant at this leaderboard state
+- `Entities.Bush` is free to plant
+- repeated `utils.can_afford(Entities.Tree)` checks are pure defensive overhead in a dedicated Wood-LB implementation
+- the Wood-LB hot path can benchmark direct `plant(Entities.Tree)` after deterministic setup/recovery
+- Carrots are expensive enough that using Sunflowers would introduce an unnecessary dependency chain (Carrot -> Sunflower) despite the already huge Power reserve
+
+### Wood-LB optimization direction
+
+The primary Wood-LB benchmark family should be separate from Main Run and start from these measured assumptions:
+
+1. no Sunflower columns/workers
+2. all 32 drones available for Wood production
+3. full 32x32 farm available for Wood layout
+4. no Tree affordability checks in the steady-state hot path
+5. benchmark Water use despite starting at zero, because Watering level 9 may replenish Water during the run
+6. benchmark Fertilizer only as a measured passive-resource strategy; starting inventory is zero
+7. explicit finite termination at `num_items(Items.Wood) >= 10_000_000_000`
+
+Do not generalize the Wood initial inventory to Carrots or Hay until their leaderboard probes are measured separately.
