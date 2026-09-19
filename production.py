@@ -14,6 +14,11 @@ import utils
 # while still restoring it exactly once when production focus changes.
 _gold_active = False
 
+# True after a successful full-field Pumpkin run.
+# Consecutive Pumpkin-focused iterations must not rebuild the normal
+# sunflower farm only for pumpkin.run() to clear it again immediately.
+_pumpkin_active = False
+
 
 # ==================================================
 # RESTORE NORMAL FARM
@@ -21,8 +26,10 @@ _gold_active = False
 
 def reset_state():
     global _gold_active
+    global _pumpkin_active
 
     _gold_active = False
+    _pumpkin_active = False
 
     maze.reset()
 
@@ -30,6 +37,7 @@ def reset_state():
 
 def restore_normal_farm():
     global _gold_active
+    global _pumpkin_active
 
     # Any normal farm restore destroys a reusable Maze.
     # Reset the in-memory tree before clearing the field.
@@ -42,6 +50,7 @@ def restore_normal_farm():
     farm.rebuild_sunflowers()
 
     _gold_active = False
+    _pumpkin_active = False
 
 
 # ==================================================
@@ -106,10 +115,17 @@ def run_basic(item):
 # ==================================================
 
 def run_pumpkin():
+    global _pumpkin_active
+
     if pumpkin.can_start():
         success = pumpkin.run()
 
-        restore_normal_farm()
+        if success:
+            # Keep the field in its post-Pumpkin state while Pumpkin
+            # remains the planner focus. The next pumpkin.run() clears
+            # the whole field anyway, so rebuilding Sunflowers here
+            # would only plant them to destroy them immediately.
+            _pumpkin_active = True
 
         return success
 
@@ -214,8 +230,12 @@ def run_gold():
 
 def run(item):
     global _gold_active
+    global _pumpkin_active
 
     if item != Items.Gold and _gold_active:
+        restore_normal_farm()
+
+    if item != Items.Pumpkin and _pumpkin_active:
         restore_normal_farm()
 
     if item == None:
