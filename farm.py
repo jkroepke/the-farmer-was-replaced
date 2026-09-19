@@ -1091,3 +1091,45 @@ def _run_full_megafarm(
     )
 
     workers.run(tasks)
+
+
+
+# ==================================================
+# PRODUCTION ENTRY POINT
+# ==================================================
+
+def run(focus_item = None):
+    world_size = utils.size()
+    worker_count = min(
+        max_drones(),
+        world_size
+    )
+
+    if (
+        world_size < 10
+        or worker_count < 2
+        or not _sunflowers_available()
+    ):
+        _run_without_sunflowers(
+            focus_item,
+            world_size,
+            worker_count
+        )
+
+    elif worker_count >= world_size:
+        _run_full_megafarm(
+            focus_item,
+            world_size
+        )
+
+    else:
+        _run_partial_megafarm(
+            focus_item,
+            world_size,
+            worker_count
+        )
+
+    utils.move_to(
+        0,
+        0
+    )
