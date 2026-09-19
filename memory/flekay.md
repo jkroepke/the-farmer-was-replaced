@@ -290,3 +290,39 @@ Recommended next work after measuring the two ready suites:
 8. Pumpkin repair-list data-structure ablation
 
 Cactus and Dinosaur already have stronger local domain-specific benchmark suites; Flekay is more useful there as corroborating strategy evidence than as the next benchmark source.
+
+
+## Dinosaur history deep-dive (2026-09-19)
+
+The published Dinosaur README benchmark table must not be mapped directly onto the files currently present on Flekay `main`.
+
+The README predates the 2025-10-18 commit `d3a0fc555d5e78466fd1eb39e608b9ef0627b6b6`, which replaced the previously complete fast `drone.py` with an intentionally incomplete three-phase skeleton. The old complete implementation is recoverable at parent revision `fe4df71ae877a484b091c2fa276cae0a6f0e2039`.
+
+Durable ideas from the old source:
+
+- aggressive parity-based Apple routing during the short-tail phase
+- transition to a deterministic safe continuation
+- phase changes around the old 100-cell geometry rather than one universal percentage
+- cheap failed-`move()` fallback as control flow when both outcomes are safe
+
+Historical Dino files contain strong fixed-size assumptions:
+
+- `circle.py`: explicit 0..9 coordinate map, transition around 38
+- `timon.py`: coordinates through 9, transition around 34
+- `hybrid.py`: transitions around 18 and 34
+- old `drone.py`: early phase around 50 and route generation capped around 100 cells
+
+For current 32x32 work, use these only as phase-ratio hypotheses and re-measure them.
+
+The generic Flekay movement/pathfinding research also produced two Dinosaur-specific negative results:
+
+- all-pairs non-wrapping route precomputation has huge cold setup relative to its warm saving
+- README `divinepath` benchmark rows are stale/non-reproducible because no corresponding implementation exists in the pinned directory and the benchmark file does not import one
+
+Dinosaur v4 implements current-runtime tests for:
+
+- Flekay axis/parity early routing
+- Flekay line-spawn vs dual-spawner cleanup
+- repeated partial-tail harvesting to the exact 33,488,928-Bone leaderboard target
+
+See `memory/dinosaurs.md` and `docs/DINOSAUR.md` for the full matrix and commit provenance.
