@@ -261,6 +261,49 @@ Runner commit: `84456a348c51eaca597ae6400e8673bdd8865b7f`.
 Important: the exact 9863168-Gold cold-start finalist benchmark still decides whether
 this 5x5 map+BFS implementation remains the final leaderboard architecture.
 
+## Spawn-position optimization
+
+`spawn_drone(task, *args)` creates the child at the caller's current position.
+This creates a cold-start optimization opportunity.
+
+Important finding:
+
+- simply moving the parent from `(0,0)` to the geometric middle before spawning
+  is probably counterproductive
+- on the current uniform 5x5 layout, moving to about `(12,12)` costs ~24
+  serial parent moves before any child exists, while reducing the slowest
+  child's initial trip only from about 30 to about 25 moves
+- because children move concurrently, serial parent movement is much more
+  expensive than a few saved child moves
+
+Stronger mutation:
+
+- parent follows one snake route through all final Maze origins
+- at each child origin, spawn the child directly on its final tile
+- wait locally until that child has planted its ready Bush
+- continue to the next origin
+- the final route endpoint belongs to the parent, which creates the release Maze
+- child positioning cost becomes zero
+- the old second full parent readiness scan disappears
+
+Approximate serial parent movement:
+
+- current uniform5 launcher: ~194 moves
+- route-spawn uniform5 launcher: ~162 moves
+- current uniform4 launcher: ~140 moves
+- route-spawn uniform4 launcher: ~128 moves
+
+Benchmark modes:
+
+- mode 32: uniform5 map+BFS reuse300 + route spawn
+- mode 33: uniform4 map+BFS reuse300 + route spawn
+
+Exact-target cold-start runner commit:
+`c0ec1a179bae7d73372be428f20954682e8c0e21`.
+
+Do not update `lb_maze.py` to route spawning until the exact 9863168-Gold
+cold benchmark confirms the gain.
+
 ## Open questions
 
 - Run exact-target cold-start runner commit `15b81ee34fe9c8366cae17d70d3a27eac7d98053` and select by average time to 9863168 Gold.
