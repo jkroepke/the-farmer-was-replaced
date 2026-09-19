@@ -119,22 +119,100 @@ PUMPKIN_PATCH_INTERVAL = 0.25
 # AUTOMATISCHE UNLOCKS
 # ==================================================
 #
-# Mazes absichtlich nicht automatisch upgraden:
-# höhere Maze-Level erhöhen auch die benötigte
-# Weird_Substance-Menge.
+# Dependency-aware progression order + relative priority.
+#
+# The order is still a frontier: next_target() considers all already
+# reached entries plus the first never-unlocked entry, but never jumps
+# beyond it.
+#
+# Within that candidate set, priority weights the remaining resource
+# cost. A higher priority can therefore beat a somewhat cheaper lower
+# priority target without forcing one line to be maxed before progress.
+#
+# Endgame goals intentionally use lower priority, but remain mandatory:
+# Leaderboard -> Top_Hat -> The_Farmers_Remains.
+#
+# References:
+# - msmith93/thefarmerwasreplaced full_reset solution
+# - nql1314 staged unlock recommendations
+# - current wiki unlock/cost data
 # ==================================================
 
-AUTO_UNLOCKS = [
-    Unlocks.Speed,
-    Unlocks.Expand,
-    Unlocks.Watering,
-    Unlocks.Grass,
-    Unlocks.Cactus,
-    Unlocks.Plant,
-    Unlocks.Carrots,
-    Unlocks.Trees,
-    Unlocks.Pumpkins,
-    Unlocks.Polyculture,
-    Unlocks.Dinosaurs,
-    Unlocks.Megafarm
+UNLOCK_PLANS = [
+    {
+        "unlock": Unlocks.Speed,
+        "priority": 10
+    },
+    {
+        "unlock": Unlocks.Expand,
+        "priority": 10
+    },
+    {
+        "unlock": Unlocks.Plant,
+        "priority": 10
+    },
+    {
+        "unlock": Unlocks.Carrots,
+        "priority": 9
+    },
+    {
+        "unlock": Unlocks.Watering,
+        "priority": 8
+    },
+    {
+        "unlock": Unlocks.Trees,
+        "priority": 8
+    },
+    {
+        "unlock": Unlocks.Grass,
+        "priority": 8
+    },
+    {
+        "unlock": Unlocks.Sunflowers,
+        "priority": 9
+    },
+    {
+        "unlock": Unlocks.Fertilizer,
+        "priority": 8
+    },
+    {
+        "unlock": Unlocks.Pumpkins,
+        "priority": 8
+    },
+    {
+        "unlock": Unlocks.Polyculture,
+        "priority": 7
+    },
+    {
+        "unlock": Unlocks.Cactus,
+        "priority": 7
+    },
+    {
+        "unlock": Unlocks.Mazes,
+        "priority": 6
+    },
+    {
+        "unlock": Unlocks.Megafarm,
+        "priority": 9
+    },
+    {
+        "unlock": Unlocks.Dinosaurs,
+        "priority": 7
+    },
+    {
+        "unlock": Unlocks.Hats,
+        "priority": 3
+    },
+    {
+        "unlock": Unlocks.Leaderboard,
+        "priority": 3
+    },
+    {
+        "unlock": Unlocks.Top_Hat,
+        "priority": 1
+    },
+    {
+        "unlock": Unlocks.The_Farmers_Remains,
+        "priority": 1
+    }
 ]
