@@ -259,41 +259,12 @@ The normal farm already has its own Power/Sunflower placement research in
 Sunflowers and repeatedly synchronize 32 drones; that is acceptable for this
 finite leaderboard and may be bad for normal mixed-resource throughput.
 
+## Benchmark record
 
-## Interrupted sunflower-v1 result and root cause
+Measured Sunflower leaderboard results are maintained in `bench/sunflower.md`.
 
-The first supplied `sunflower-v1` run reached these seed-1 results before
-stalling in the old `scan-tree-leave7` mode:
-
-```text
-tier-tree-no-care    504.77
-equal7-tree-no-care  663.78
-dumb-tree-no-care    507.34
-tier-linear-no-care  561.17
-```
-
-The first three completed modes were valid at the 100000-Power target; the
-linear ordered control was also valid.
-
-The old scan mode had a deterministic algorithmic failure mode:
-
-1. it left every seven-petal Sunflower standing;
-2. every replant of harvested 8..15 tiles had another chance to roll seven;
-3. those new sevens were also retained forever;
-4. the permanent seven-petal population therefore grew monotonically;
-5. the harvestable 8..15 population shrank every cycle;
-6. the mode could converge toward a field with no productive higher tier and
-   loop below the Power target.
-
-This was not a drone-memory or binary-tree-spawn failure.
-
-Fix commit: `f962b8615880d92b573beaa3c30389b817e32dc0`.
-
-`scan-tree-bounded7` now keeps at most `WORLD_SIZE` seven-petal flowers
-(32 for the leaderboard). When more sevens exist, tier 7 is harvested down to
-that quota after higher tiers. A scan-cycle progress guard also aborts visibly
-with `SUNFLOWER SCAN NO PROGRESS` if a full harvest phase produces no Power.
-
-Because the candidate semantics changed, the runner version was bumped to
-`sunflower-v2-bounded7`. Do not merge the interrupted v1 timings into a v2
-summary without marking their provenance.
+| Kind | Statement | Evidence |
+| --- | --- | --- |
+| Conclusion | The old leave-all-seven scan can accumulate seven-petal flowers until productive higher tiers disappear. | `bench/sunflower.md`, interrupted `sunflower-v1` run |
+| Fix | Use the bounded-seven implementation and no-progress guard for the follow-up suite. | `f962b8615880d92b573beaa3c30389b817e32dc0` |
+| Next run | Re-run the full `sunflower-v2-bounded7` matrix before comparing it with the interrupted v1 numbers. | `bench/sunflower.md` |
