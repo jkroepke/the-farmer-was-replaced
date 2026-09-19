@@ -1,7 +1,7 @@
 import main
 
 
-BENCH_VERSION = "farm-v1"
+BENCH_VERSION = "farm-v2"
 
 # Normal-farm benchmark suite.
 #
@@ -51,7 +51,7 @@ BENCH_SEEDS = [
     3
 ]
 
-BENCH_SPEEDUP = 64
+BENCH_SPEEDUP = 10000
 
 PROFILE_NAMES = [
     "partial-megafarm-level-3",
