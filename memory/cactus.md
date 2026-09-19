@@ -124,4 +124,4 @@ Measured Cactus comparisons, worker experiments, and leaderboard benchmark histo
 | Kind | Statement | Evidence |
 | --- | --- | --- |
 | Conclusion | Use the powers-of-two distributed spawn topology only for the measured 32x32 case with at least 32 drones. Keep the placed/batched architecture for smaller worlds or fewer drones. | `bench/cactus.md`, `cactus-v3`. |
-| Open question | Test fertilizer as an explicit Cactus benchmark axis before changing production behavior. | Migrated durable note from the former `AGENT_NOTES.md`. |
+| Open question | Test fertilizer as an explicit Cactus benchmark axis before changing production behavior. | Durable research note retained during the 2026-09-19 documentation consolidation. |
