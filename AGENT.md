@@ -72,10 +72,10 @@ Rules:
 - `<topic>` must be a single word, for example `maze.md`, `carrots.md`, `drones.md`, or `pumpkins.md`.
 - Prefer updating an existing topic file instead of creating another file for closely related knowledge.
 - Keep the number of memory files small. Group related findings under the same stable topic.
-- Persist conclusions that are useful for future work: confirmed mechanics, design decisions, benchmark conclusions, rejected approaches and why they failed, important assumptions, and open research questions.
+- Persist conclusions that are useful for future work: confirmed mechanics, design decisions, rejected approaches and why they failed, important assumptions, and open research questions. Benchmark measurements themselves belong in `bench/<item>.md`.
 - Do not use memory files as raw chat transcripts. Summarize the durable knowledge needed to continue the work later.
 - Clearly distinguish verified facts, measured benchmark results, hypotheses, and unresolved questions.
-- When recording benchmark conclusions, include the benchmark commit SHA required by the benchmark provenance rules.
+- When a benchmark changes a durable decision, summarize the takeaway in memory and link to the canonical `bench/<item>.md`; do not copy the result table into memory.
 - When a conclusion belongs in a canonical mechanic document such as `docs/MAZE.md` or `docs/NORMAL_FARM.md`, update that document as well. Memory is a compact continuation aid, not a replacement for canonical documentation.
 - Update the relevant memory topic during substantial research/optimization work whenever new durable knowledge appears, especially before a long conversation is likely to lose context.
 - Do not store credentials, tokens, private data, or other secrets in `memory/`.
@@ -121,6 +121,13 @@ Keep the existing modular design.
 Prefer extending an existing module over adding logic to `main.py`.
 
 Do not duplicate movement, affordability, watering, or worker-pool logic when an existing helper already covers the same behavior.
+
+## Repository code conventions
+
+- Use `import module`, not `from module import ...`.
+- Code that should execute only when a file is run directly must be guarded by `if __name__ == "__main__":`.
+- Game-facing Python files must use names of at most 20 characters including `.py`.
+- Keep repository-wide rules here; mechanic-specific findings belong in `memory/` or the appropriate `docs/` file.
 
 ## The language is not CPython
 
@@ -292,7 +299,7 @@ After a full-field special job, restore the normal farm only when normal product
 
 If an `Unlocks.Expand` purchase changes `get_world_size()`, rebuild the entire normal layout and sunflower cache because edge coordinates changed.
 
-Detailed rationale and source references live in `AGENT_NOTES.md`.
+Detailed planner rationale lives in `docs/UNLOCKS.md` and durable continuation notes live in `memory/`.
 
 ## Sunflowers and power
 
@@ -320,7 +327,7 @@ The permanent left/top sunflower L uses a petal cache:
 
 If the cache no longer matches the farm, rebuild it through `rebuild_sunflowers()` rather than trying to synchronize globals across drones.
 
-Sunflower strategy references are documented in `AGENT_NOTES.md`.
+Sunflower strategy references and durable conclusions live in `docs/NORMAL_FARM.md` and `memory/farm.md`; measured results live in `bench/farm.md`.
 
 ## Pumpkins
 
@@ -425,28 +432,24 @@ The simulation engine may achieve less than the requested speedup, especially wi
 
 Changing benchmark speedup requires a `BENCH_VERSION` bump. Do not use the benchmark-only value 10000 for real leaderboard launchers unless a future explicit repository decision changes this rule.
 
-## Benchmark result provenance
+## Benchmark documentation
 
-Every documented benchmark result must include the full Git commit SHA of the benchmark state that produced it.
+Measured benchmark results belong only in `bench/<item>.md`. Do not store numeric result tables in `AGENT.md`, `memory/`, or mechanic documentation.
 
-The SHA must pin the complete code under test, not only a later documentation commit. Prefer the commit containing the runner plus all implementation changes used by that run.
-
-Required form:
-
-```text
-Benchmark commit: <40-character SHA>
-```
+Use `bench/example.md` as the required structure for new benchmark documents.
 
 Rules:
 
-- never add benchmark numbers to docs without a benchmark commit SHA
-- use the exact commit that contains the benchmark runner and tested implementation
-- if a later docs-only commit records older results, keep referencing the original benchmark commit
-- when comparing multiple runs produced from different code states, reference each result set separately
-- production decisions derived from benchmark data must cite the benchmark commit in the mechanic-specific documentation
-- code comments may also reference the benchmark SHA when a non-obvious production branch exists specifically because of that result
+- Each canonical result block must reference the **full Git commit SHA** of the source state that produced the result.
+- The source SHA must pin both the runner and the implementation under test. Do not substitute a later docs-only commit.
+- Record the runner, benchmark/version label, world/profile, drone count where relevant, simulation speedup, seed(s), target/success condition, and validity status.
+- Do not publish a numeric result as canonical when its source commit is unknown. Rerun it from a committed state instead of guessing provenance.
+- Split runs from different source commits or materially different setups with a Markdown horizontal rule written as `-----`.
+- Prefer tables for setup, results, comparisons, and conclusions so another person or agent can scan the evidence quickly.
+- Separate observations from interpretation. Label conclusions and open hypotheses explicitly; do not present them as measured facts.
+- `memory/<topic>.md` may keep durable takeaways, rejected approaches, and open questions, but it must link to the relevant `bench/<item>.md` instead of duplicating result tables.
+- Mechanic docs may explain benchmark methodology, but measured numbers and run history stay in `bench/`.
 
-This makes benchmark conclusions reproducible for future agents and prevents numbers from becoming detached from the code that produced them.
 
 ## Game file-name limit
 
