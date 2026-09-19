@@ -32,13 +32,10 @@ SUSTAINED_SEEDS = [
 ]
 
 
-SCREEN_MODE_IDS = [
+CORE_MODE_IDS = [
     10,
-    11,
     12,
     13,
-    14,
-    15,
     16,
     17,
     18,
@@ -51,19 +48,13 @@ SCREEN_MODE_IDS = [
     25,
     26,
     27,
-    28,
-    29,
-    30,
     31
 ]
 
-SCREEN_MODE_NAMES = [
+CORE_MODE_NAMES = [
     "ref-zapakh-4-reuse300",
-    "ref-steam-4-reuse300",
     "mut-packed-zapakh-fresh",
     "mut-packed-zapakh-reuse300",
-    "ref-msmith93-full32-fresh",
-    "ref-reddit5-map-bfs-reuse300",
     "desc-reddit-packed-fresh",
     "mut-reddit-packed-visited-reuse300",
     "mut-packed-zapakh-reuse1",
@@ -76,10 +67,35 @@ SCREEN_MODE_NAMES = [
     "mut-uniform4-zapakh-fresh",
     "mut-uniform5-zapakh-reuse300",
     "mut-uniform5-zapakh-fresh",
+    "mut-uniform4-zapakh-reuse8"
+]
+
+
+MAP_MODE_IDS = [
+    11,
+    15,
+    28,
+    29,
+    30
+]
+
+MAP_MODE_NAMES = [
+    "ref-steam-4-reuse300",
+    "ref-reddit5-map-bfs-reuse300",
     "mut-packed-map-bfs-reuse300",
     "mut-packed-map-bfs-fresh",
-    "mut-uniform4-map-bfs-reuse300",
-    "mut-uniform4-zapakh-reuse8"
+    "mut-uniform4-map-bfs-reuse300"
+]
+
+
+# Keep the most synchronization-sensitive source-near port last so a problem
+# here cannot hide the results from all newer candidates.
+LEGACY_MODE_IDS = [
+    14
+]
+
+LEGACY_MODE_NAMES = [
+    "ref-msmith93-full32-fresh"
 ]
 
 
@@ -272,9 +288,17 @@ def main():
     )
 
     benchmark_group(
-        "MAZE SCREEN",
-        SCREEN_MODE_IDS,
-        SCREEN_MODE_NAMES,
+        "MAZE CORE",
+        CORE_MODE_IDS,
+        CORE_MODE_NAMES,
+        SCREEN_SEEDS,
+        SCREEN_TARGET
+    )
+
+    benchmark_group(
+        "MAZE MAP",
+        MAP_MODE_IDS,
+        MAP_MODE_NAMES,
         SCREEN_SEEDS,
         SCREEN_TARGET
     )
@@ -285,6 +309,14 @@ def main():
         SUSTAINED_MODE_NAMES,
         SUSTAINED_SEEDS,
         SUSTAINED_TARGET
+    )
+
+    benchmark_group(
+        "MAZE LEGACY REF",
+        LEGACY_MODE_IDS,
+        LEGACY_MODE_NAMES,
+        SCREEN_SEEDS,
+        SCREEN_TARGET
     )
 
     quick_print(
