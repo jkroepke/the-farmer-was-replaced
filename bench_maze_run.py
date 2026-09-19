@@ -122,6 +122,11 @@ def main():
         mode_index = 0
 
         while mode_index < len(MODE_IDS):
+            quick_print(
+                "RUN",
+                MODE_NAMES[mode_index]
+            )
+
             run_time = run_one(
                 MODE_IDS[mode_index],
                 seed
