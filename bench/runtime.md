@@ -137,3 +137,94 @@ DRONE_MEMORY SUMMARY 12 12
 DRONE_MEMORY RESULT PASS
 DRONE_MEMORY RUN DONE 1.5
 ```
+
+-----
+
+## Run: move-v2 and spawn-v5 2026-09-19
+
+### Provenance
+
+| Suite | Source commit | Requested speedup |
+| --- | --- | ---: |
+| `spawn-v5` | `cba75a7c26fd11da30408c8706deb8d8bf09d66a` | 10000 |
+| `move-v2` | `f309a1a6ab4423d22f9be26e41539ee8eed3aa21` | 10000 |
+
+## Measured current-runtime results
+
+### move-v2 measured
+
+Measured on 32x32 with requested simulation speedup 10000.
+
+Key warm result at 1000 targets:
+
+| Mode | Run ticks | Outer sim time |
+| --- | ---: | ---: |
+| `utils-arithmetic` | 4,415,004 | 1453.75 |
+| `delta-static` | 4,416,320 | 1454.18 |
+| `direction-static` | 4,420,320 | 1455.50 |
+| `dict-runtime` | 4,422,320 | 1456.25 |
+| `list-runtime` | 4,422,320 | 1456.25 |
+| `delta-known-current` | **4,412,322** | **1452.89** |
+
+Cold behavior tells the same story:
+
+- current arithmetic helper and static delta are effectively tied at low counts
+- runtime-built dict/list lookup pays about 197-199 setup ticks and never
+  recovers that cost in this workload
+- direction/count lookup is slower than arithmetic
+- carrying known current coordinates is the only measured improvement
+
+At 1000 targets, `delta-known-current` saves only 2,682 ticks versus
+`utils-arithmetic`, about 0.061% of total run ticks.
+
+Durable conclusion:
+
+- keep `utils.move_to()` as the generic repository helper
+- do not replace it with precomputed delta/list/dict navigation
+- only use the known-current-coordinate specialization inside a hot algorithm
+  that already has authoritative current coordinates for other reasons
+- Flekay's historical 10x10 navigation ranking does not transfer materially to
+  the current 32x32 runtime
+
+### spawn-v5 measured
+
+Topology-only comparison on the same 32 row-major origins and the same parent
+target:
+
+| Topology | Outer runtime | Internal ticks |
+| --- | ---: | ---: |
+| serial parent | 2.07 | 11,662 |
+| dual spawner | 1.56 | 8,546 |
+| **Flekay powers-of-two** | **1.29** | **6,886** |
+| Jarvan powers-of-two | 1.30 | 6,977 |
+| balanced binary | **1.29** | 6,892 |
+
+All three seeds were identical.
+
+Interpretation:
+
+- serial -> dual gives a large improvement
+- deeper hierarchical fan-out gives another large improvement
+- Flekay powers-of-two and local balanced binary are effectively tied
+- Flekay is only 6 ticks cheaper than balanced binary (~0.087%)
+- Jarvan's dynamic power calculation costs 91 ticks versus Flekay and 85 ticks
+  versus balanced binary
+- the tiny Flekay edge does not justify replacing the generic balanced binary
+  helper with a hard-coded 32-worker dependency graph
+
+The previously measured `binary-tree-nearest-origin00` result remains the
+strongest complete spawn+locality setup:
+
+```text
+0.90 s / 4498 ticks
+```
+
+That improvement comes mainly from combining hierarchical spawning with better
+target locality, not from choosing a particular hierarchical dependency graph.
+
+Durable conclusion:
+
+- retain balanced binary as the generic spawn topology
+- optimize worker origin/locality before micro-optimizing binary vs powers-of-two
+- use hard-coded Flekay fan-out only if a domain benchmark shows a real
+  end-to-end advantage, not from the 6-tick setup microbenchmark alone
