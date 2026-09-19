@@ -543,6 +543,129 @@ Results for this extended matrix are intentionally pending an in-game run.
 The last measured winner remains `zapakh-32x4x4` from benchmark commit
 `55734c855dd464dd846deef280d8a65d9f2c3bf7`.
 
+### Extended 2026-09-19 benchmark results
+
+Measured against benchmark code commit
+`c045c3da2a015b77491532199fc3f0735cc2a640`.
+
+The rebuild smoke test passed:
+
+| Mode | Target | Runtime | Gold | Substance | Ticks |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| `mut-packed-zapakh-reuse1` | 100000 | 15.98 | 126368 | 27392 | 93546 |
+
+This confirms that the short-reuse lifecycle hang was fixed before the full
+matrix.
+
+#### 200000-Gold core screen
+
+| Mode | Avg | Min | Max |
+| --- | ---: | ---: | ---: |
+| `ref-zapakh-4-reuse300` | 13.92 | 13.70 | 14.06 |
+| `mut-packed-zapakh-fresh` | 21.97 | 21.60 | 22.60 |
+| `mut-packed-zapakh-reuse300` | 19.59 | 18.98 | 20.10 |
+| `desc-reddit-packed-fresh` | 19.91 | 19.10 | 20.54 |
+| `mut-reddit-packed-visited-reuse300` | 16.19 | 15.70 | 16.87 |
+| `mut-packed-zapakh-reuse1` | 19.78 | 18.67 | 20.51 |
+| `mut-packed-zapakh-reuse2` | 19.35 | 19.00 | 20.04 |
+| `mut-packed-zapakh-reuse4` | 19.09 | 18.20 | 20.39 |
+| `mut-packed-zapakh-reuse8` | 19.56 | 19.13 | 20.16 |
+| `mut-packed-zapakh-reuse16` | 19.84 | 18.98 | 20.39 |
+| `mut-packed-unranked-fresh` | 22.30 | 21.80 | 22.60 |
+| `mut-packed-unranked-reuse300` | 18.62 | 18.24 | 19.26 |
+| `mut-uniform4-zapakh-fresh` | 16.91 | 16.80 | 16.99 |
+| `mut-uniform5-zapakh-reuse300` | 15.92 | 15.27 | 16.50 |
+| `mut-uniform5-zapakh-fresh` | 19.09 | 18.94 | 19.22 |
+| `mut-uniform4-zapakh-reuse8` | 13.98 | 13.63 | 14.49 |
+
+The packed Zapakh reuse-cap sweep is comparatively flat. Reuse=4 is the best
+of those packed Zapakh caps at 19.09 average, but still much slower than the
+uniform 4x4 control.
+
+#### 200000-Gold map/BFS screen
+
+| Mode | Avg | Min | Max |
+| --- | ---: | ---: | ---: |
+| `ref-steam-4-reuse300` | 21.08 | 21.00 | 21.13 |
+| `ref-reddit5-map-bfs-reuse300` | 16.09 | 15.74 | 16.29 |
+| `mut-packed-map-bfs-reuse300` | 18.74 | 18.40 | 19.06 |
+| `mut-packed-map-bfs-fresh` | 41.29 | 40.43 | 41.80 |
+| **`mut-uniform4-map-bfs-reuse300`** | **13.29** | **13.24** | **13.32** |
+
+For the short 200000-Gold workload, uniform 4x4 map+BFS is the fastest raw
+simulation-time result in the full extended matrix.
+
+After normalizing each run for its discrete Gold overshoot, its advantage over
+`ref-zapakh-4-reuse300` is only about 2.6%, so these two short-workload
+strategies are effectively close. Their normalized tick counts are also almost
+identical; do not treat the short-screen result alone as sufficient evidence
+for a production change.
+
+#### 1000000-Gold sustained screen
+
+| Mode | Avg | Min | Max |
+| --- | ---: | ---: | ---: |
+| `ref-zapakh-4-reuse300` | 38.40 | 38.40 | 38.40 |
+| `mut-packed-zapakh-reuse300` | 43.20 | 42.30 | 44.10 |
+| `desc-reddit-packed-fresh` | 48.69 | 48.48 | 48.90 |
+| `mut-reddit-packed-visited-reuse300` | 34.20 | 33.80 | 34.60 |
+| **`ref-reddit5-map-bfs-reuse300`** | **31.72** | **31.64** | **31.80** |
+| `mut-packed-unranked-reuse300` | 43.12 | 43.00 | 43.24 |
+| `mut-packed-map-bfs-reuse300` | 33.65 | 33.63 | 33.67 |
+| `mut-packed-zapakh-reuse8` | 44.68 | 44.57 | 44.78 |
+
+The 5x5 map+BFS reference is the measured sustained winner in this set. After
+normalizing the small Gold overshoot, it is about 21% faster than the current
+4x4 Zapakh reference at 1M Gold.
+
+Resource efficiency also shifts strongly in favor of the larger/map-based
+layouts:
+
+- 4x4 Zapakh: about 0.254 Weird Substance / Gold
+- 5x5 map+BFS: about 0.205 Weird Substance / Gold
+- packed map+BFS: about 0.197 Weird Substance / Gold
+
+The packed map+BFS layout is slightly slower than 5x5 at 1M but consumes even
+less Weird Substance per Gold.
+
+A simple two-point cold-start/steady-state estimate using the 200k and 1M
+measurements suggests:
+
+- 4x4 Zapakh: low setup cost, roughly 30.8 seconds per additional 1M Gold
+- 5x5 map+BFS: higher setup cost, roughly 19.6 seconds per additional 1M Gold
+- packed map+BFS: highest setup cost of these three, roughly 18.8 seconds per
+  additional 1M Gold
+
+This is only an interpolation from two workloads, not a replacement for the
+real leaderboard benchmark, but it explains why the ranking changes as the
+target grows.
+
+#### Legacy full-Maze source reference
+
+`ref-msmith93-full32-fresh` completed all three seeds:
+
+| Avg | Min | Max |
+| ---: | ---: | ---: |
+| 40.26 | 32.77 | 51.33 |
+
+It is both slower and much more seed-sensitive than the small-Maze strategies.
+
+#### Durable conclusions from the extended matrix
+
+- Fresh-only strategies are consistently poor for sustained Gold.
+- Reuse is essential.
+- Full-field 4..7 packing is not automatically faster than uniform layouts.
+- Treasure-vector direction ranking is not universally beneficial; packed
+  unranked reuse300 beat packed ranked Zapakh reuse300.
+- map+BFS has substantial setup cost but much better sustained behavior.
+- uniform 5x5 is a strong sustained geometry.
+- uniform 4x4 map+BFS is the short-workload winner, but it was accidentally
+  omitted from the 1M sustained set and must be measured there before replacing
+  production.
+- the next decisive benchmark must use the real Maze leaderboard target,
+  9863168 Gold, because repository leaderboard rules require end-to-end runtime
+  including setup and termination.
+
 ### Results
 
 Final 200000-Gold special benchmark, tested against code commit `55734c855dd464dd846deef280d8a65d9f2c3bf7`.
