@@ -337,11 +337,23 @@ The benchmark keeps that architecture while adding the repository's fixed-Gold s
 
 ### Results
 
+Seed 1 produced the following valid partial results on benchmark commit `64c5f4bc4a8407303caac6a675d6f4709846bf2f`:
+
+| Mode | Runtime | Gold gained | Status |
+| --- | ---: | ---: | --- |
+| `current-reference-32` | 121.29 | 229376 | PASS |
+| `cover-3x3` | 35.27 | 200160 | PASS |
+| `cover-4x4` | 28.20 | 200192 | PASS |
+| `cover-2x4x4` | 22.54 | 200192 | PASS |
+| `zapakh-32x4x4` | — | — | HUNG / invalid |
+
+The zapakh hang was traced to non-wrapped DFS neighbor coordinates for small Mazes near the toroidal world edge, plus missing handling for a failed relocation at the Treasure reuse cap. Those issues are fixed in `c9403d86561fa80e28efce42cf97b2c9571d815d`; rerun mode 10 before drawing any conclusion about that strategy.
+
 Results are intentionally pending until this amount-based suite is run in-game. Do not infer a winner from the historical full-world benchmarks or community throughput claims.
 
 The suite runs through `simulate()`. Gold earned inside a simulation is isolated from the real farm inventory; only the runtime is returned to the caller. Every special mode therefore prints an internal `MAZE SPECIAL RESULT` line with Gold gained, target, and PASS/FAIL before the simulation exits.
 
-Benchmark implementation commit: `64c5f4bc4a8407303caac6a675d6f4709846bf2`
+Current benchmark implementation commit: `c9403d86561fa80e28efce42cf97b2c9571d815d`
 
 ---
 
