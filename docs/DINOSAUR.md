@@ -79,16 +79,29 @@ Why it is interesting:
 
 Community reaction suggests the approach improves significantly over naive full-cycle traversal, but its exact advantage must be measured locally.
 
-### 2. Pastebin strategy pair
+### 2. Reddit/Pastebin coil -> strike -> pre-return -> return
 
-Sources supplied for future comparison:
+Sources:
 
+- https://www.reddit.com/r/TheFarmerWasReplaced/comments/1p0ox9z/my_fastest_dinosaur_run/
 - https://pastebin.com/xsZL19rH
 - https://pastebin.com/z4Rxj5CE
+- local provenance: `external/reddit-dinosaur-coil/`
 
-The Pastebin contents could not be retrieved through the current research environment. Do not invent their behavior from the URLs alone.
+The Pastebins were successfully reviewed on 2026-09-19.
 
-Before implementing this benchmark mode, fetch/read the actual source and document its invariants here.
+The main source uses a four-phase state machine:
+
+1. **coil**: build a predictable vertical zig-zag tail
+2. **strike**: pursue Apples in the open eastern area while the next Apple remains usefully farther east
+3. **pre-return**: move toward the south-east corner when further strikes are no longer useful
+4. **return**: use the bottom row and return to `(0, 0)`, then start another coil
+
+The source eventually switches to a deterministic safe sweep when the tail is large.
+
+A later Reddit commenter reports a substantial middlegame improvement by tracking the real tail and allowing westward double-backs during the strike phase. Treat that as community evidence until reproduced locally.
+
+The local benchmark does **not** copy the unlicensed Pastebin source verbatim. Modes 10/11/12 are independent implementations of the published route policy and compare safe-route transition points around 33%, 50%, and 66% occupancy.
 
 ### 3. Hamiltonian path + safe shortcutting
 
@@ -961,24 +974,95 @@ For short 32x32 runs, the source-near reference is best, but the final near-full
 
 This makes target-aware Bone production more important: if the planner needs only a modest Bone amount, stopping around a short tail target can exploit the reference algorithm's strongest phase instead of paying for a long late-game traversal.
 
-## Current next step
+## Current benchmark v3
 
-Finish the current sustained 50%, 75%, and 95% runs.
+The old sustained-throughput results above remain useful historical evidence, but the next comparison is now explicitly leaderboard-shaped.
 
-After that, search for the actual peak Bone throughput near full occupancy on 32x32. Since throughput is still increasing sharply at 95%, benchmark 97%, 99%, and board-1/natural-end behavior using only the Hamiltonian baseline and skysdottir reference.
+Implementation commits:
 
-Do not spend more benchmark time on the current annealed/hard skyscraper shortcut variants unless their implementation changes substantially; they are dominated on the production-relevant long-tail cases.
+- `bench_dinosaur.py` strategy expansion: `624827d0520ca183353c0102562dfdc253d6fab1`
+- setup/accounting fix: `92e420f70a8c76c498caf0d5beb2e06425456300`
+- explicit valid-run marker: `1ecfb09d2cdfd8078c182f7b5e7f48d291316e55`
+- `bench_dinosaur_run.py` leaderboard matrix: `1f65a3663e6322d07b80496b71ea5bd84b4c2544`
+- raw-summary warning: `7e51103180c4484ef68e91c974fcca5b05f94af9`
 
-Run `bench_dinosaur_run.py` and record the results here before changing production `dinosaur.py`.
+The runner uses:
 
-The first benchmark answers two questions:
+```text
+world size: 32
+targets: 25%, 50%, 75%, 95%, board-1
+seeds: 1, 2, 3
+simulate speedup: 10000
+starting items: 1e9 Cactus + 1e9 Power
+unlocks: all
+leaderboard target: 33,488,928 Bone
+```
 
-1. How much does safe shortcutting improve the current skyscraper/Hamiltonian path?
-2. Is it better to stop evaluating shortcuts around 25% fill or around 50% fill?
+The board-1 case means tail length 1023. With the max Dinosaur yield multiplier this is exactly:
 
-The source-like annealed mode is included because shortcut decision overhead itself may become significant as Dinosaur moves get cheaper after repeated Apples.
+```text
+1023 * 1023 * 32 = 33,488,928 Bone
+```
 
-Do not promote a shortcut strategy into production until it reaches all requested tail targets without `DINOSAUR BENCH INVALID` and wins deterministic simulation comparisons.
+### Algorithm matrix
+
+The v3 matrix contains 20 modes:
+
+- plain skyscraper Hamiltonian
+- existing skyscraper shortcut variants
+- skysdottir Hilbert source-near reference
+- skyscraper fast-lane shortcut variants
+- heartbeat Hamiltonian
+- heartbeat shortcut / fast-lane variants
+- Hilbert without shortcuts
+- Reddit coil/strike with 33%, 50%, and 66% safe-transition points
+
+The fast-lane modes implement the useful dormant ideas visible in the skysdottir source: use a cheap path-specific lane toward the cycle's return corridor before normal greedy Apple-direction shortcuts.
+
+### Field preparation / cleanup benchmark
+
+The second Reddit/skysdottir reference performs preparation in parallel with multiple drones before starting the Dinosaur:
+
+- harvest tiles
+- convert them to Soil
+- wait for all preparation workers
+- return to the origin
+- equip the Dinosaur Hat
+
+The Reddit author explicitly says they had not checked whether removing Grass was necessary for Dinosaurs.
+
+Current game documentation makes this worth measuring: Apples cannot spawn on occupied tiles, and Grass can grow automatically on Grassland. Therefore preparation may prevent later Apple blockage, but its startup cost may also be wasted on a fresh leaderboard field.
+
+The v3 runner separately compares six preparation modes:
+
+1. no cleanup
+2. `clear()`
+3. serial harvest + Soil conversion
+4. parallel harvest only
+5. parallel harvest + Soil conversion
+6. source-style Sunflower-Hat + parallel harvest + Soil conversion
+
+The main algorithm matrix currently uses parallel harvest + Soil conversion so route comparisons share the same field condition.
+
+### Result validity
+
+`simulate()` returns elapsed time, not a child-script success flag. Every successful child run therefore emits:
+
+```text
+DINOSAUR BENCH VALID ...
+```
+
+Failures emit:
+
+```text
+DINOSAUR BENCH INVALID ...
+```
+
+At the 32x32 board-1 target, the child also checks the real leaderboard threshold `num_items(Items.Bone) >= 33488928`.
+
+Runner summaries are intentionally labeled `RAW`. Never treat a fast summary row as a winner when any corresponding seed emitted `INVALID`.
+
+No v3 performance result has been measured yet. Do not change production `dinosaur.py` until the v3 output has been collected and all candidate winners are valid across the compared seeds.
 
 
 ## Local upstream archive
