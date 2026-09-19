@@ -25,7 +25,10 @@ The historical 8/16/32 benchmarks established `reference-tree-rebalancing` as th
 
 The default target is 200000 Gold, seeds 1/2/3, speedup 64. Results are pending an in-game run.
 
-Benchmark implementation commit: `bb9a2749443bcd4e9dd0bfe0ecfc5f327b66bd62`.
+- `simulate()` uses an isolated copy of the inventory. Gold earned by a benchmark does not change the real farm inventory, and `simulate()` returns only runtime.
+- Special Maze modes print `MAZE SPECIAL RESULT <mode> gold gained <value> target <target> PASS|FAIL` inside the simulation so target completion can be verified independently from runtime.
+
+Benchmark implementation commit: `600b4e061deaa6b2b64a7282289a07337330b5a3`.
 
 ## Stationary coverage design
 
