@@ -146,49 +146,79 @@ Production integration commits begin at `b07d95a870252df2f093c250137b909557183f4
 
 ## Extended Maze benchmark
 
-Current unmeasured benchmark code state:
+Measured benchmark code state:
 `c045c3da2a015b77491532199fc3f0735cc2a640`.
 
-The extended matrix contains 22 modes:
+The rebuild smoke test for packed Zapakh reuse=1 passed after the local-return
+fix: 100000 Gold target, 126368 Gold gained, 27392 Weird Substance, 93546
+ticks, runtime 15.98.
 
-- code/source-near controls: zapakh, Steam, msmith93
-- source-described Reddit controls: September packed fresh intersection solver,
-  February 32x5x5 right-hand map+BFS reuse
-- exact-cover packed 4..7 geometry
-- reuse-cap sweep: 0/fresh, 1, 2, 4, 8, 16, 300
-- ranked vs unranked DFS
-- Reddit branch solver with visited-set reuse mutation
-- uniform 4x4 and 5x5 geometry controls
-- map+BFS on uniform4, uniform5, and packed geometry
+200000-Gold / 3-seed highlights:
 
-Benchmark groups:
+- uniform4 map+BFS reuse300: 13.29 avg (13.24..13.32) — fastest raw runtime
+- ref zapakh uniform4 reuse300: 13.92 avg
+- uniform4 zapakh reuse8: 13.98 avg
+- uniform5 zapakh reuse300: 15.92 avg
+- Reddit5 map+BFS reuse300: 16.09 avg
+- packed Reddit visited reuse300: 16.19 avg
+- packed unranked reuse300: 18.62 avg
+- packed Zapakh reuse-cap sweep:
+  - reuse1 19.78
+  - reuse2 19.35
+  - reuse4 19.09
+  - reuse8 19.56
+  - reuse16 19.84
+  - reuse300 19.59
+- fresh variants are materially slower.
 
-- MAZE CORE: 200k Gold, seeds 1/2/3
-- MAZE MAP: 200k Gold, seeds 1/2/3
-- MAZE SUSTAINED: 1M Gold, seeds 1/2
-- MAZE LEGACY REF: msmith93 last, 200k Gold, seeds 1/2/3
+1000000-Gold / 2-seed sustained highlights:
 
-Every result prints Gold gained, Weird Substance used, tick count, target, and
-PASS/FAIL.
+- Reddit5 map+BFS reuse300: 31.72 avg — fastest measured sustained mode
+- packed map+BFS reuse300: 33.65
+- packed Reddit visited reuse300: 34.20
+- ref zapakh uniform4 reuse300: 38.40
+- packed unranked reuse300: 43.12
+- packed Zapakh reuse300: 43.20
+- packed Zapakh reuse8: 44.68
+- described Reddit packed fresh: 48.69
 
+Sustained normalized throughput/resource findings:
 
-Short-reuse lifecycle finding:
+- Reddit5 map+BFS is about 21% faster than uniform4 Zapakh at 1M after
+  normalizing Gold overshoot.
+- approximate Weird Substance / Gold:
+  - uniform4 Zapakh reuse300: 0.254
+  - uniform5 map+BFS reuse300: 0.205
+  - packed map+BFS reuse300: 0.197
+- packed map+BFS is slightly slower than uniform5 map+BFS at 1M but more
+  substance-efficient.
+- ranking toward the Treasure is not universally helpful: packed unranked
+  reuse300 beat packed ranked Zapakh reuse300.
+- the full-field 4..7 packing is not automatically faster than uniform layouts.
 
-- the initial extended run stalled at packed zapakh reuse=1
-- screenshot showed some packed Maze slots already harvested/open while others remained active
-- root cause in the benchmark harness: `spec_move_to()` always moved East then North after harvest
-- if the local origin was West/South of the Treasure, the worker could wrap around the world and hit a neighboring active Maze boundary forever
-- `spec_move_to()` now chooses the shortest toroidal direction and returns `False` on a blocked move
-- lifecycle callers abort that worker path on failure instead of rebuilding at the wrong coordinate
-- runner now executes a 100k reuse1 rebuild smoke test before the full matrix
-- partial extended timings from the pre-fix run are diagnostic only
+Cold-start vs sustained behavior:
 
-Keep the old measured result separate: `zapakh-32x4x4` at 13.51 average
-belongs to benchmark commit `55734c855dd464dd846deef280d8a65d9f2c3bf7`.
+- short 200k strongly favors low setup cost
+- map+BFS amortizes its initial mapping cost and improves sharply at 1M
+- rough two-point estimate:
+  - uniform4 Zapakh ~30.8 s per additional 1M Gold after setup
+  - uniform5 map+BFS ~19.6 s per additional 1M
+  - packed map+BFS ~18.8 s per additional 1M
+- this is only an interpolation; the real leaderboard workload must decide.
+
+Legacy source-near msmith93 full32 fresh completed all three seeds:
+40.26 avg, 32.77 min, 51.33 max.
+
+Critical missing comparison:
+
+- uniform4 map+BFS reuse300 won the 200k screen but was omitted from the
+  original 1M sustained set.
+- do not replace production solely from the 200k result.
+- next benchmark must include uniform4 map+BFS at 1M and then use the exact Maze
+  leaderboard target 9863168 Gold, end-to-end including setup and termination.
 
 ## Open questions
 
-- Run the extended matrix and record only results from code state `c045c3da2a015b77491532199fc3f0735cc2a640`.
 - Promote a new production geometry/solver only after both 200k and sustained
   results are known.
 - Benchmark adaptive 3x3 zapakh production and reduced-drone layouts separately.
