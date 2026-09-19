@@ -436,3 +436,123 @@ The barrier has a 5-second safety timeout and a tiny 0.05-second settle period f
 If deployment does not reach the expected worker count, the benchmark returns invalid instead of hanging.
 
 Production remains unchanged until v5 is measured.
+
+
+## Flekay + spawn-v4 synthesis: throughput benchmark 2026-09-19
+
+Two independent research tracks changed the Pumpkin benchmark direction.
+
+### Spawn topology
+
+The measured `spawn-v4` setup benchmark established:
+
+- baseline origin00 linear spawn: 2.10 s / 11832 ticks
+- farthest-first linear ordering: 1.40-1.68 s depending on slot layout
+- binary tree row-major: 1.29 s / 6892 ticks
+- binary tree nearest layout: 0.90 s / 4498 ticks
+
+The strongest reusable lesson for Pumpkin is not to walk the parent to every child destination.
+
+Instead:
+
+1. distribute `spawn_drone()` through a tree/power-of-two fan-out
+2. create all workers quickly
+3. only then let workers position themselves in parallel
+4. use a global deployment barrier before Pumpkin growth begins
+
+This is also independently corroborated by Flekay's `for_all_sync_col.py` and `jarvan.py`, which use the power-of-two relation:
+
+`0 -> 1,2,4,8,16`
+
+with later workers recursively creating the remaining indices.
+
+New full-map benchmark modes:
+
+- `persistent-power-ring`
+- `persistent-power-ring-tail3`
+
+The power-ring worker reproduces the Flekay power-of-two fan-out generically for 32 workers, waits for all workers to exist, then uses the already-valid North-only column ring.
+
+### Flekay tail acceleration
+
+`mega_line.py` revisits only unresolved Pumpkins and, when three or fewer remain locally, spends extra Water/Fertilizer to finish the final stragglers.
+
+The prior sparse-coordinate design cannot be reused directly because it lost the full-map merge invariant.
+
+The safe transferable part is only the final-straggler acceleration.
+
+`persistent-power-ring-tail3` therefore keeps the full ring/ready-row correctness model and adds aggressive Water/Fertilizer only when a column has at most three unresolved rows.
+
+Resource usage remains part of the result and must be considered before production promotion.
+
+### Bigger finding: full-map Giant is not necessarily throughput-optimal
+
+Current Pumpkin mechanics cap the Giant-Pumpkin multiplier at size 6.
+
+For `n >= 6`, an `n x n` giant yields:
+
+`n * n * 6`
+
+before the normal Pumpkin upgrade multiplier.
+
+Therefore a 32x32 giant has the same per-tile Giant multiplier as an isolated 6x6 or 7x7 giant.
+
+The full-map architecture has a latency disadvantage: one late dead Pumpkin blocks the harvest value of all 1024 planted tiles.
+
+Independent patches can harvest as soon as their local stragglers are repaired.
+
+This reclassifies the earlier "partial giant" observation:
+
+- accidental partial giants are a correctness failure for a full-map benchmark
+- intentionally isolated >=6x6 giants are a valid and potentially superior throughput architecture
+
+Relevant external evidence:
+
+- Flekay contains multi-drone 6x6/chunk Pumpkin architectures
+- Flekay's README reports `mega_line.py` at 08:54.836 for the 200M leaderboard
+- a current external leaderboard reference reports 16 isolated 6x6 patches with two drones each
+
+### New patch throughput candidates
+
+The v6 benchmark adds:
+
+- `patch16-6x6-power`
+- `patch16-6x6-power-tail3`
+- `patch16-7x7-power-tail3`
+
+All use:
+
+- 4x4 patch layout
+- one Grassland separator row/column between patches
+- two workers per patch
+- 32 workers total
+- power-of-two spawn fan-out
+- full deployment barrier
+- persistent workers
+- local Giant-ID validation before harvest
+
+The 6x6 layout occupies 27x27 including separators.
+
+The 7x7 layout occupies 31x31 including separators, leaving the outer separator row/column intact and covering more productive tiles while retaining patch isolation.
+
+Patch leaders leave a 0.05-second empty-field signal after harvest so helpers cannot miss the cycle boundary.
+
+### Fair throughput comparison
+
+The new `PUMPKIN THROUGHPUT` matrix uses one common inventory target:
+
+`6 * 3_145_728 = 18_874_368 Pumpkin`
+
+Full-map candidates run six exact harvests.
+
+Patch candidates run until they reach or exceed the same target.
+
+Every result now reports `pumpkins/sec`.
+
+This is the appropriate decision metric for choosing between full-map and independent-patch production.
+
+Benchmark version:
+
+`pumpkin-v6-patch-throughput`
+
+Production remains unchanged until this matrix has measured results.
