@@ -213,3 +213,31 @@ The most useful idea from the table is the strategy family: direct/simple Apple 
 ## Benchmark record
 
 Measured Dinosaur results and benchmark-derived corrections are maintained in `bench/dinosaurs.md`.
+
+
+## 2026-09-19 Dinosaur v7 boolean move-result correction
+
+The v6 live run exposed a second mode-10 hang.
+
+Root cause:
+
+- `baseline_move()` returns bool
+- Reddit/Flekay translated helpers still had integer-style `< 0` / `>= 0` checks
+- a blocked move returning `False` was not rejected
+- `coil_move_to()` therefore repeated the same blocked move forever without changing position
+
+Affected:
+
+- Reddit coil movement / safe finish / transition helper
+- Flekay early diagnostic fallback helper
+
+Fixed in:
+
+- `fee2e8e0d586a8a4b2fb0b275d1cf9a3ffc1e707`
+- runner version bump `ed6bc455c7705cbd501798470fd3095f65b4f823`
+
+v7 uses boolean checks consistently and prints `DINOSAUR COIL BLOCKED ...` before invalidating a blocked Reddit route.
+
+Static verification found zero remaining `baseline_move() < 0` / `>= 0` comparisons.
+
+The already completed v6 modes 0-9 remain useful measurements; the v6 suite itself is incomplete because mode 10 could hang.
