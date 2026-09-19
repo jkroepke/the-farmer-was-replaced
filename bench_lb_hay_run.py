@@ -1,4 +1,4 @@
-BENCH_VERSION = "lbhay-v1"
+BENCH_VERSION = "lbhay-v2"
 BENCH_SPEEDUP = 10000
 
 SCREEN_GAIN = 50000000
@@ -22,8 +22,7 @@ MODE_NAMES = [
 
 
 def simulation_items():
-    # Power=1e9 is measured for Wood LB and is a provisional Hay-LB
-    # hypothesis until the dedicated Hay probe is measured.
+    # Measured real Hay leaderboard start inventory (lbprobe-v4).
     return {
         Items.Hay: 0,
         Items.Wood: 0,
@@ -94,7 +93,7 @@ def main():
     )
     quick_print(
         "LBHAY START PROFILE",
-        "wood-power-provisional"
+        "measured-hay-lb"
     )
 
     times = []
