@@ -414,13 +414,13 @@ Durable conclusions:
 
 The main architectural hypothesis after v1 is therefore hierarchical spawning: reduce the serial 31-spawn chain itself rather than merely shortening independently parallel child travel.
 
-### spawn-v3 follow-up
+### spawn-v4 follow-up
 
-Current benchmark version: `spawn-v3`
+Current benchmark version: `spawn-v4`
 
-Current benchmark commit: `2a217d6b4a42ea403c292fbc2e19428fd561b25b`
+Structural benchmark commit before the speedup-only bump: `2a217d6b4a42ea403c292fbc2e19428fd561b25b`.
 
-`spawn-v3` replaces runtime nearest/farthest planning with precomputed origin tables and adds binary-tree spawning.
+`spawn-v4` keeps the same precomputed locality/binary-tree topology as `spawn-v3` and changes the simulation request to `BENCH_SPEEDUP = 10000`. No `spawn-v4` result has been recorded yet.
 
 Modes:
 
@@ -440,7 +440,7 @@ The binary tree recursively splits a fixed worker range. Each branch spawns one 
 Run `bench_spawn_run.py` and require the first line to be:
 
 ```text
-BENCHMARK VERSION spawn-v3
+BENCHMARK VERSION spawn-v4
 ```
 
 Do not promote spawn topology to production from the setup microbenchmark alone. If a v3 mode materially beats the 2.10-second baseline, add that exact topology to the full cold Maze leaderboard benchmark at 9863168 Gold before changing production.
