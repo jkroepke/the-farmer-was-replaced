@@ -1,31 +1,44 @@
-# Farm benchmarks
+# Benchmark: Farm
 
-This file is the canonical home for measured benchmark results for this topic.
+## Scope
 
 | Field | Value |
 | --- | --- |
-| Migrated from | `docs/NORMAL_FARM.md`, `memory/farm.md` |
-| Result rule | Every canonical run must name the full Git source commit that pins runner and implementation. |
-| Separation | Use `-----` between runs produced from different code states or materially different setups. |
-| Interpretation | Keep measured facts separate from conclusions and open questions. |
+| Topic | Farm |
+| Purpose | Compare normal Hay/Wood/Carrot layouts, Sunflower/Power support, persistent worker lifecycles, Polyculture variants, and focus transitions. |
+| Implementation | `bench_farm.py`, `bench_transition.py`, `bench_persist.py`, `bench_poly.py` |
+| Runner | `bench_farm_run.py`, `bench_transition_run.py`, `bench_persist_run.py`, `bench_poly_run.py` |
+| Primary metric | Elapsed simulation time to target/return; throughput where explicitly recorded. |
+| Success condition | Requested resource target reached with valid crop/Power behavior. |
 
-## Referenced commits in migrated history
+## Benchmark index
 
-| Referenced commit | `610e0e082d110c30a42d4ef900ef8a68efdb7405` |
-| Referenced commit | `a359f8b3fbbad02a26ebe10a9450b7296405e8c3` |
-| Referenced commit | `af03aa2f40a43d7efeb563a54e5b8660178b7da2` |
-| Referenced commit | `d1956d30d2e1aa98da49bbccecf8c087b7b72828` |
-| Referenced commit | `1eadbaa5cf42db6dfdd6e34b0dfad7c8e3422f08` |
-| Referenced commit | `63638f712ba989786ee072b4e4b97edc225683cf` |
-| Referenced commit | `e4e838c1829afe241b2e9c602c7497c3df0d73fb` |
-| Referenced commit | `25ec285ed0736a17db73e7d94a10d265ec7a235f` |
-| Referenced commit | `ab4f1fb8e47edee8e567632bc7aacea7e0f8e887` |
-| Referenced commit | `b38fd2bd47c58a1211be8e59209c584f8cc96207` |
+| Run / version | Source commit | Profile | Status |
+| --- | --- | --- | --- |
+| Cold start | `610e0e082d110c30a42d4ef900ef8a68efdb7405` | 32x32; 8 and 32 drones | Measured |
+| Persistent transition | `a359f8b3fbbad02a26ebe10a9450b7296405e8c3` | Carrot → Hay → Wood → Carrot | Measured |
+| Persistent workers | `af03aa2f40a43d7efeb563a54e5b8660178b7da2` | Lifecycle comparison | Suite/design recorded |
+| Persistent Polyculture maximum | `d1956d30d2e1aa98da49bbccecf8c087b7b72828` | 32x32 maximum Megafarm | Suite/design recorded |
+| `persist-v2` | Unknown / not recorded | sciencejiho asynchronous lanes | Pending |
+| `farmx-v3` | Unknown / not recorded | Flekay seven-petal ablation | Pending/historical |
+| `farmx-v4` | `b38fd2bd47c58a1211be8e59209c584f8cc96207` | Mixed + max crop focus | Measured |
+| `farmx-v5` | `25aacb7719da11c5f39c1f54cd3ecf695f8c7baa` | Longer pure-crop focus + row/column modes | Pending |
 
-A referenced commit is not automatically a benchmark source commit. Each result block must explicitly identify which commit produced it. If an older block lacks that mapping, treat it as historical/non-canonical and rerun it before using it for a production decision.
+## Results
 
------
-## Cold-start benchmark results
+### Cold-start benchmark results
+
+#### Provenance
+
+| Field | Value |
+| --- | --- |
+| Source commit | `610e0e082d110c30a42d4ef900ef8a68efdb7405` |
+| Benchmark/version | Not versioned in this record |
+| Requested speedup | Not recorded |
+| Seeds | 1, 2, 3 |
+| Canonical status | Source state recorded |
+
+#### Measurements and observations
 
 Benchmark commit: `610e0e082d110c30a42d4ef900ef8a68efdb7405`
 
@@ -41,7 +54,7 @@ Carrot target gain: +10,000,000
 
 The earlier run with 1,000 starting Power is retained only as a warm-start observation. It is not used for the production-layout decision because short runs could consume the preloaded Power buffer without proving that their own Sunflower layout was sustainable.
 
-### Partial Megafarm: 8 drones
+#### Partial Megafarm: 8 drones
 
 Average time to return after reaching/overshooting the requested target:
 
@@ -61,7 +74,7 @@ Measured conclusion:
 - the legacy L can still show high raw crop/sec because one `farm.run_legacy()` call overshoots targets heavily; this is not the same metric as planner responsiveness
 - at this benchmark stage, one dedicated max-petal Sunflower column was the leading **candidate** for `max_drones() < world_size`; the later persistent transition benchmark superseded this as a production decision
 
-### Maximum Megafarm: 32 drones
+#### Maximum Megafarm: 32 drones
 
 Average time to return:
 
@@ -99,35 +112,34 @@ max_drones() == world_size:
 
 This was not the final production decision. The persistent transition benchmark below takes precedence for production behavior.
 
-### Reference smoke results
+#### Reference smoke results
 
 The source-near juritox single-drone crop reference was intentionally kept unchanged and only smoke-tested:
 
-```text
-Hay:    276.40 s for ~1M
-Wood:   494.26 s for the smoke target
-Carrot: 898.16 s for ~1M
-```
+| Scenario | Mode / metric | Time (s) | Ticks | Notes |
+| --- | --- | ---: | ---: | --- |
+| — | `Hay:` | 276.40 | — | for ~1M |
+| — | `Wood:` | 494.26 | — | for the smoke target |
+| — | `Carrot` | 898.16 | — | for ~1M |
 
 These modes remain as historical/reference implementations but are no longer useful as regular default-suite candidates.
 
-## Production selection after cold-start benchmark
 
-Benchmark commit: `610e0e082d110c30a42d4ef900ef8a68efdb7405`
+-----
 
-The isolated cold-start benchmark selected these non-L candidates:
+### Persistent transition benchmark
 
-```text
-max_drones() < world_size
-    one dedicated max-petal Sunflower column
+#### Provenance
 
-max_drones() == world_size
-    two simple Sunflower columns
-```
+| Field | Value |
+| --- | --- |
+| Source commit | `a359f8b3fbbad02a26ebe10a9450b7296405e8c3` |
+| Benchmark/version | Not versioned in this record |
+| Requested speedup | Not recorded |
+| Seeds | See recorded setup |
+| Canonical status | Source state recorded |
 
-The legacy L remains available only as a historical benchmark implementation.
-
-## Persistent transition benchmark
+#### Measurements and observations
 
 Benchmark commit: `a359f8b3fbbad02a26ebe10a9450b7296405e8c3`
 
@@ -166,7 +178,101 @@ max_drones() == world_size
 
 The legacy L is retained only for benchmark reproduction.
 
-## Persistent worker benchmark
+
+-----
+
+### FarmX v4 measured results
+
+#### Provenance
+
+| Field | Value |
+| --- | --- |
+| Source commit | `b38fd2bd47c58a1211be8e59209c584f8cc96207` |
+| Benchmark/version | `farmx-v4` |
+| Requested speedup | 10000 |
+| Seeds | See recorded setup |
+| Canonical status | Source state recorded |
+
+#### Measurements and observations
+
+Measured `farmx-v4` at benchmark source commit `b38fd2bd47c58a1211be8e59209c584f8cc96207`, requested simulation speedup 10000.
+
+Mixed sustained finals:
+
+| Scenario | Mode / metric | Time (s) | Ticks | Notes |
+| --- | --- | ---: | ---: | --- |
+| partial Megafarm level 3 | `sync-selected` | 224.09 | — | — |
+| partial Megafarm level 3 | `current-two-sun-pairs` | 94.93 | — | — |
+| partial Megafarm level 3 | `poly-two-sun-pairs` | 155.71 | — | — |
+| max Megafarm | `sync-selected` | 46.98 | — | — |
+| max Megafarm | `current-two-sun-stride` | 38.83 | — | — |
+| max Megafarm | `poly-two-sun-chunks` | 53.70 | — | — |
+
+Pure max-Megafarm focus finals:
+
+| Scenario | Mode / metric | Time (s) | Ticks | Notes |
+| --- | --- | ---: | ---: | --- |
+| max-carrot | `sync-selected` | 36.06 | — | — |
+| max-carrot | `current-two-sun-chunks` | 29.62 | — | — |
+| max-carrot | `poly-two-sun-stride` | 50.82 | — | — |
+| max-grass | `sync-selected` | 17.89 | — | — |
+| max-grass | `current-one-max-pairs` | 23.26 | — | — |
+| max-grass | `poly-two-sun-chunks` | 50.31 | — | — |
+| max-wood | `sync-selected` | 39.32 | — | — |
+| max-wood | `current-two-sun-chunks` | 34.28 | — | — |
+| max-wood | `poly-two-sun-chunks` | 49.50 | — | — |
+
+Derived observations:
+
+- partial mixed: current persistent winner is about 57.6% faster than sync-selected; Poly is about 64.0% slower than the current winner
+- max mixed: current winner is about 17.3% faster than sync-selected
+- max Carrot: current-two-sun-chunks is about 17.9% faster than sync-selected
+- max Wood: current-two-sun-chunks is about 12.8% faster than sync-selected
+- max Grass is different: sync-selected wins the three-seed average, but has very high seed spread (14.77..23.85 s); current-one-max-pairs is much more stable (22.46..24.34 s)
+- pure-crop architecture is therefore crop-specific; do not choose one architecture from the mixed transition benchmark alone
+- the Flekay-inspired one-column seven-petal modes are not competitive at the measured horizons and should not remain in the default screen
+- Poly is not competitive in any of the three pure-focus scenarios and can be removed from future pure-crop screens while remaining in the mixed research suite
+
+Next missing persistent layouts:
+
+- one-row-dumb
+- one-col-dumb
+
+Both already exist in `bench_persist.py` and were strong in the older broad `bench_farm` baseline, but `bench_poly` did not expose them. They must be compared before finalizing per-crop production layouts.
+
+Because max-Grass still has high seed variance at the 10M target, the next pure-focus validation should use a longer sustained target rather than interpreting the v4 Grass average as final.
+
+-----
+
+## Interpretation
+
+### Production selection after cold-start benchmark
+
+Benchmark commit: `610e0e082d110c30a42d4ef900ef8a68efdb7405`
+
+The isolated cold-start benchmark selected these non-L candidates:
+
+```text
+max_drones() < world_size
+    one dedicated max-petal Sunflower column
+
+max_drones() == world_size
+    two simple Sunflower columns
+```
+
+The legacy L remains available only as a historical benchmark implementation.
+
+## Reproduction
+
+| Step | Action |
+| ---: | --- |
+| 1 | Check out the source commit listed for the result group. |
+| 2 | Run the matching Farm benchmark runner. |
+| 3 | Preserve complete output and update this file without changing historical values. |
+
+## Notes
+
+### Persistent worker benchmark
 
 Benchmark commit: `af03aa2f40a43d7efeb563a54e5b8660178b7da2`
 
@@ -175,7 +281,7 @@ Files:
 - `bench_persist.py`
 - `bench_persist_run.py`
 
-### Motivation
+#### Motivation
 
 The synchronous normal-farm routes still have two avoidable costs:
 
@@ -184,9 +290,9 @@ The synchronous normal-farm routes still have two avoidable costs:
 
 A worker that finishes early therefore becomes idle while slower workers finish, and all worker drones disappear before the next normal-farm pass.
 
-### Persistent-worker reference research
+#### Persistent-worker reference research
 
-#### MateusMarochi: persistent two-column workers
+##### MateusMarochi: persistent two-column workers
 
 Reference:
 
@@ -196,7 +302,7 @@ Its worker owns a fixed pair of columns and loops forever. The final two columns
 
 This is directly relevant to the current normal-farm design.
 
-#### MateusMarochi: main drone also works
+##### MateusMarochi: main drone also works
 
 Upstream references reviewed:
 
@@ -207,7 +313,7 @@ These implementations spawn only the additional workers and let the caller execu
 
 That is important at `max_drones() == world_size`: reserving the caller as a pure scheduler wastes one useful worker slot.
 
-#### nql1314: persistent region pool
+##### nql1314: persistent region pool
 
 Reference:
 
@@ -226,7 +332,7 @@ derive current focus from globally visible game state
 keep working without a round barrier
 ```
 
-### Layouts under test
+#### Layouts under test
 
 Persistent execution can change which Sunflower geometry wins, so all surviving non-L layout families are re-tested:
 
@@ -244,7 +350,7 @@ The synchronous currently selected production route is retained as the baseline:
 sync-selected
 ```
 
-### Worker architectures under test
+#### Worker architectures under test
 
 Each layout independently screens:
 
@@ -264,7 +370,7 @@ Meanings:
 
 The architecture screen is intentionally performed **per layout**. A worker geometry that wins for two Sunflower columns is not assumed to also win for one row or max-petal.
 
-### Benchmark stages
+#### Benchmark stages
 
 For each profile:
 
@@ -299,7 +405,7 @@ bench_persist_run.py
 
 Do not replace the synchronous full-Megafarm production route until this benchmark completes and the results are documented with the benchmark commit above.
 
-## Persistent Polyculture maximum benchmark
+### Persistent Polyculture maximum benchmark
 
 Benchmark code state: `d1956d30d2e1aa98da49bbccecf8c087b7b72828`.
 
@@ -310,7 +416,7 @@ Files:
 
 This benchmark extends the earlier persistent-worker work instead of replacing its historical results.
 
-### Why this benchmark exists
+#### Why this benchmark exists
 
 The current production farm still pays repeated spawn/barrier costs because `farm.run()` creates a new worker set for each planner pass. Successful `spawn_drone()` is a physical action, so the cost is especially relevant for short planner windows.
 
@@ -329,7 +435,7 @@ The checkerboard has two useful properties:
 
 No Python memory is shared between drones. Workers coordinate only through global item counts and the shared farm state.
 
-### Candidate matrix
+#### Candidate matrix
 
 The benchmark screens:
 
@@ -359,7 +465,7 @@ polyculture checkerboard + two dumb sunflower columns:
 
 The "current" persistent candidates reuse the existing crop logic from `bench_persist.py`. The "poly" candidates use a static Bush checkerboard plus rerolling and keep the companion field across Carrot -> Hay -> Wood -> Carrot transitions.
 
-### Setup cost is part of the result
+#### Setup cost is part of the result
 
 Every simulation starts from a cold normal-farm state with zero Power. Timing starts before `clear()`, so field reset, layout construction, temporary setup workers, persistent worker creation, Sunflower construction, and production all count.
 
@@ -372,7 +478,7 @@ FARMX POLY LAUNCH
 
 These expose the explicit all-Soil/Bush preparation and persistent-worker launch portions, but total `simulate()` runtime remains the primary comparison because worker startup and useful production can overlap.
 
-### Workload horizons
+#### Workload horizons
 
 The runner deliberately uses multiple horizons so setup-heavy designs are not selected only from a long steady-state benchmark.
 
@@ -405,7 +511,7 @@ For each partial/max Megafarm profile:
 
 This keeps the suite broad enough to find setup break-even behavior without running every losing architecture through the expensive three-seed sustained matrix.
 
-### References carried into the benchmark
+#### References carried into the benchmark
 
 - `external/msmith93-thefarmerwasreplaced/source/multidrone.py`: static persistent worker lifetime
 - `external/msmith93-thefarmerwasreplaced/source/multidrone/carrot.py`: persistent Carrot workers with companion rerolling
@@ -416,7 +522,7 @@ This keeps the suite broad enough to find setup break-even behavior without runn
 
 Community rerolling references remain supporting hypotheses rather than benchmark proof. Production must not switch to the new layout until the benchmark completes.
 
-### Run
+#### Run
 
 ```text
 bench_poly_run.py
@@ -424,7 +530,7 @@ bench_poly_run.py
 
 Paste the complete `FARMX ...` output back into the research session. Record measured conclusions only against benchmark commit `d1956d30d2e1aa98da49bbccecf8c087b7b72828`.
 
-## sciencejiho asynchronous-lane benchmark
+### sciencejiho asynchronous-lane benchmark
 
 The persistent-worker suite now includes an architecture-only port of:
 
@@ -471,7 +577,7 @@ persist-v2
 
 No performance conclusion is recorded until an in-game/simulation run is supplied.
 
-## Flekay seven-petal Sunflower ablation
+### Flekay seven-petal Sunflower ablation
 
 Farm-only follow-up after reviewing `Flekay/The-Farmer-Was-Replaced`.
 
@@ -511,7 +617,7 @@ Relevant commits:
 
 Do not change production `farm.py` from this benchmark alone. First compare the seven-petal modes against the existing one-max and two-dumb Sunflower layouts in both partial and max Megafarm profiles.
 
-## FarmX max-crop focus modes
+### FarmX max-crop focus modes
 
 `farmx-v4` adds three pure max-Megafarm throughput scenarios in addition to the mixed Carrot -> Hay -> Wood -> Carrot sequence:
 
@@ -545,66 +651,7 @@ Relevant commits:
 - `ab4f1fb8e47edee8e567632bc7aacea7e0f8e887` scenario labels in `bench_poly.py`
 - `b38fd2bd47c58a1211be8e59209c584f8cc96207` `farmx-v4` max-crop focus runner
 
-## FarmX v4 measured results
-
-Measured `farmx-v4` at benchmark source commit `b38fd2bd47c58a1211be8e59209c584f8cc96207`, requested simulation speedup 10000.
-
-Mixed sustained finals:
-
-```text
-partial Megafarm level 3:
-sync-selected           224.09 s
-current-two-sun-pairs    94.93 s
-poly-two-sun-pairs      155.71 s
-
-max Megafarm:
-sync-selected            46.98 s
-current-two-sun-stride   38.83 s
-poly-two-sun-chunks      53.70 s
-```
-
-Pure max-Megafarm focus finals:
-
-```text
-max-carrot:
-sync-selected             36.06 s
-current-two-sun-chunks     29.62 s
-poly-two-sun-stride        50.82 s
-
-max-grass:
-sync-selected             17.89 s
-current-one-max-pairs      23.26 s
-poly-two-sun-chunks        50.31 s
-
-max-wood:
-sync-selected             39.32 s
-current-two-sun-chunks     34.28 s
-poly-two-sun-chunks        49.50 s
-```
-
-Derived observations:
-
-- partial mixed: current persistent winner is about 57.6% faster than sync-selected; Poly is about 64.0% slower than the current winner
-- max mixed: current winner is about 17.3% faster than sync-selected
-- max Carrot: current-two-sun-chunks is about 17.9% faster than sync-selected
-- max Wood: current-two-sun-chunks is about 12.8% faster than sync-selected
-- max Grass is different: sync-selected wins the three-seed average, but has very high seed spread (14.77..23.85 s); current-one-max-pairs is much more stable (22.46..24.34 s)
-- pure-crop architecture is therefore crop-specific; do not choose one architecture from the mixed transition benchmark alone
-- the Flekay-inspired one-column seven-petal modes are not competitive at the measured horizons and should not remain in the default screen
-- Poly is not competitive in any of the three pure-focus scenarios and can be removed from future pure-crop screens while remaining in the mixed research suite
-
-Next missing persistent layouts:
-
-- one-row-dumb
-- one-col-dumb
-
-Both already exist in `bench_persist.py` and were strong in the older broad `bench_farm` baseline, but `bench_poly` did not expose them. They must be compared before finalizing per-crop production layouts.
-
-Because max-Grass still has high seed variance at the 10M target, the next pure-focus validation should use a longer sustained target rather than interpreting the v4 Grass average as final.
-
------
-
-## Migration note
+### Migration note
 
 | Kind | Statement | Evidence |
 | --- | --- | --- |
