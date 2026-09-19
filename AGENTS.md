@@ -112,13 +112,24 @@ Keep the existing modular design.
 - `bench_move_run.py`: cold/warm 32x32 movement benchmark orchestration.
 - `bench_dinosaur.py`: Dinosaur benchmark implementations/modes.
 - `bench_dinosaur_run.py`: Dinosaur simulation matrix and benchmark orchestration.
+- `bench_pumpkin.py` / `bench_pumpkin_run.py`: Pumpkin benchmark modes and orchestration.
+- `bench_cactus.py` / `bench_cactus_run.py`: Cactus benchmark modes and orchestration.
+- `bench_sunflower.py` / `bench_sunflower_run.py`: Sunflower leaderboard benchmark modes and orchestration.
+- `bench_lb_wood.py` / `bench_lb_wood_run.py`: dedicated Wood leaderboard benchmark.
+- `bench_lb_carrot.py` / `bench_lb_car_run.py`: dedicated Carrot leaderboard benchmark.
+- `bench_lb_hay.py` / `bench_lb_hay_run.py`: dedicated Hay leaderboard benchmark.
 - `bench/example.md`: required benchmark documentation template.
-- `bench/farm.md`: canonical Farm/Sunflower measured results.
-- `bench/pumpkin.md`: canonical Pumpkin measured results.
-- `bench/cactus.md`: canonical Cactus measured results.
-- `bench/maze.md`: canonical Maze measured results.
-- `bench/dinosaurs.md`: canonical Dinosaur measured results.
-- `bench/runtime.md`: canonical runtime, drone-memory, spawn, and movement probe results.
+- `bench/farm.md`: canonical Farm, transition, persistent-worker, and Polyculture benchmark record.
+- `bench/pumpkin.md`: canonical Pumpkin benchmark record.
+- `bench/cactus.md`: canonical Cactus benchmark record.
+- `bench/maze.md`: canonical Maze benchmark record.
+- `bench/dinosaurs.md`: canonical Dinosaur benchmark record.
+- `bench/runtime.md`: canonical runtime, drone-memory, spawn, movement, and tick benchmark record.
+- `bench/sunflower.md`: canonical Sunflower leaderboard benchmark record.
+- `bench/wood.md`: canonical Wood leaderboard benchmark record.
+- `bench/carrot.md`: canonical Carrot leaderboard benchmark record.
+- `bench/hay.md`: canonical Hay leaderboard benchmark record.
+- `bench/reset.md`: canonical Fastest Reset benchmark record.
 - `docs/NORMAL_FARM.md`: canonical Hay/Wood/Carrot, Sunflower/Power, worker-layout, references, and benchmark methodology.
 - `docs/UNLOCKS.md`: canonical automatic unlock frontier, priorities, endgame goals, and reset-strategy references.
 - `docs/PUMPKIN.md`: canonical Pumpkin mechanics, multi-drone strategy, references, and optimization notes.
