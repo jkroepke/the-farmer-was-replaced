@@ -19,6 +19,12 @@ Use these sources when changing game logic:
 
 If sources disagree, prefer the current in-game behavior and current Tooltips Code documentation. Do not copy a community optimization into production logic without checking whether the assumption is safe.
 
+For generic community implementation lookups across all mechanics, also consult:
+
+`docs/REFERENCES.md`
+
+That file contains reusable external codebases that may provide alternative algorithms, data structures, and benchmark candidates. Treat them as idea/reference sources, not as authoritative game documentation.
+
 ## Repository architecture
 
 Keep the existing modular design.
