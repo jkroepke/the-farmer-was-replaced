@@ -234,7 +234,9 @@ reuse, rebuilds, and termination in the measured runtime.
 200k and 1M results are diagnostic/ablation evidence only.
 
 Current exact-target cold-start runner commit:
-`15b81ee34fe9c8366cae17d70d3a27eac7d98053`.
+`a9f4a009b9b47e77316c9860605088f0e9bd2142`.
+
+Current exact-target cold-start runner uses `BENCH_VERSION = "maze-v2"` and `BENCH_SPEEDUP = 10000`.
 
 It tests 5 finalist architectures over seeds 1/2/3.
 
@@ -253,10 +255,10 @@ Dedicated leaderboard files now exist:
   - one Maze per drone
   - explicit termination after target
 - `lb_maze_run.py`
-  - calls `leaderboard_run(Leaderboards.Maze, "lb_maze", 64)`
+  - calls `leaderboard_run(Leaderboards.Maze, "lb_maze", 256)`
 
 Implementation commit: `916b8e7e62131ac25747fbb0f9855311f3434fe3`.
-Runner commit: `84456a348c51eaca597ae6400e8673bdd8865b7f`.
+Runner commit: `4919805bd31673122a842c09561e71ccdfc911d7`.
 
 Important: the exact 9863168-Gold cold-start finalist benchmark still decides whether
 this 5x5 map+BFS implementation remains the final leaderboard architecture.
@@ -299,14 +301,14 @@ Benchmark modes:
 - mode 33: uniform4 map+BFS reuse300 + route spawn
 
 Exact-target cold-start runner commit:
-`c0ec1a179bae7d73372be428f20954682e8c0e21`.
+`a9f4a009b9b47e77316c9860605088f0e9bd2142`.
 
 Do not update `lb_maze.py` to route spawning until the exact 9863168-Gold
 cold benchmark confirms the gain.
 
 ## Open questions
 
-- Run exact-target cold-start runner commit `15b81ee34fe9c8366cae17d70d3a27eac7d98053` and select by average time to 9863168 Gold.
+- Run exact-target cold-start runner commit `a9f4a009b9b47e77316c9860605088f0e9bd2142` and select by average time to 9863168 Gold.
 - Promote a new production geometry/solver only after both 200k and sustained
   results are known.
 - Benchmark adaptive 3x3 zapakh production and reduced-drone layouts separately.
