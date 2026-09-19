@@ -792,3 +792,302 @@ def run_legacy(focus_item = None):
     )
 
     refresh_energy()
+
+
+
+# ==================================================
+# ADAPTIVE COLUMN FARM
+# ==================================================
+#
+# Benchmarked production layout:
+#
+# max_drones() < world_size
+#   one dedicated sunflower column + max-petal worker
+#
+# max_drones() == world_size
+#   one worker per column + two dumb sunflower columns
+#
+# No clear() happens here. Field and Power persist across planner cycles.
+# ==================================================
+
+def _sunflowers_available():
+    return (
+        num_unlocked(
+            Unlocks.Sunflowers
+        ) > 0
+    )
+
+
+def _ensure_sunflower_here():
+    entity = get_entity_type()
+
+    if entity == Entities.Sunflower:
+        return True
+
+    if entity != None:
+        if not can_harvest():
+            return False
+
+        harvest()
+
+    if get_ground_type() != Grounds.Soil:
+        till()
+
+    if not utils.can_afford(
+        Entities.Sunflower
+    ):
+        return False
+
+    if not plant(
+        Entities.Sunflower
+    ):
+        return False
+
+    utils.water()
+
+    return True
+
+
+def _service_sunflower_dumb():
+    if get_entity_type() == Entities.Sunflower:
+        if can_harvest():
+            harvest()
+
+    _ensure_sunflower_here()
+
+
+def _make_adaptive_crop_task(
+    start_x,
+    end_x,
+    focus_item
+):
+    def task():
+        world_size = utils.size()
+
+        for x in range(start_x, end_x):
+            utils.move_to(
+                x,
+                0
+            )
+
+            for _ in range(world_size):
+                # Companion writes stay inside the worker-owned column.
+                farm_resource(
+                    x,
+                    x + 1,
+                    focus_item
+                )
+
+                # Exactly world_size North moves wrap back to y=0.
+                move(North)
+
+        return True
+
+    return task
+
+
+def _make_dumb_sunflower_task(
+    start_x,
+    end_x
+):
+    def task():
+        world_size = utils.size()
+
+        for x in range(start_x, end_x):
+            utils.move_to(
+                x,
+                0
+            )
+
+            for _ in range(world_size):
+                _service_sunflower_dumb()
+                move(North)
+
+        return True
+
+    return task
+
+
+def _make_max_petal_column_task(column):
+    def task():
+        world_size = utils.size()
+        petals = []
+
+        utils.move_to(
+            column,
+            0
+        )
+
+        # Drone globals are private. Rebuild this worker-local petal view
+        # on every planner cycle instead of sharing cache state.
+        for _ in range(world_size):
+            if _ensure_sunflower_here():
+                petals.append(
+                    measure()
+                )
+            else:
+                petals.append(
+                    -1
+                )
+
+            move(North)
+
+        while True:
+            max_petals = max(
+                petals
+            )
+
+            if max_petals <= 0:
+                break
+
+            harvested = False
+            repaired = False
+
+            for row in range(world_size):
+                if petals[row] != max_petals:
+                    continue
+
+                utils.move_to(
+                    column,
+                    row
+                )
+
+                if get_entity_type() != Entities.Sunflower:
+                    if _ensure_sunflower_here():
+                        petals[row] = measure()
+                    else:
+                        petals[row] = -1
+
+                    repaired = True
+                    break
+
+                actual_petals = measure()
+
+                if actual_petals != petals[row]:
+                    petals[row] = actual_petals
+                    repaired = True
+                    break
+
+                if can_harvest():
+                    harvest()
+
+                    if _ensure_sunflower_here():
+                        petals[row] = measure()
+                    else:
+                        petals[row] = -1
+
+                    harvested = True
+                    break
+
+            if repaired:
+                continue
+
+            if not harvested:
+                break
+
+        return True
+
+    return task
+
+
+def _run_without_sunflowers(
+    focus_item,
+    world_size,
+    worker_count
+):
+    chunks = workers.make_chunks(
+        world_size,
+        worker_count
+    )
+
+    tasks = []
+
+    for start_x, end_x in chunks:
+        tasks.append(
+            _make_adaptive_crop_task(
+                start_x,
+                end_x,
+                focus_item
+            )
+        )
+
+    workers.run(tasks)
+
+
+def _run_partial_megafarm(
+    focus_item,
+    world_size,
+    worker_count
+):
+    crop_columns = world_size - 1
+    crop_workers = min(
+        worker_count - 1,
+        crop_columns
+    )
+
+    if crop_workers < 1:
+        _run_without_sunflowers(
+            focus_item,
+            world_size,
+            worker_count
+        )
+        return
+
+    chunks = workers.make_chunks(
+        crop_columns,
+        crop_workers
+    )
+
+    tasks = []
+
+    for start_x, end_x in chunks:
+        tasks.append(
+            _make_adaptive_crop_task(
+                start_x,
+                end_x,
+                focus_item
+            )
+        )
+
+    # Keep this last. workers.run() spawns crop workers first and leaves
+    # the dedicated Sunflower column to the caller/main drone.
+    tasks.append(
+        _make_max_petal_column_task(
+            world_size - 1
+        )
+    )
+
+    workers.run(tasks)
+
+
+def _run_full_megafarm(
+    focus_item,
+    world_size
+):
+    crop_columns = world_size - 2
+    tasks = []
+
+    for x in range(crop_columns):
+        tasks.append(
+            _make_adaptive_crop_task(
+                x,
+                x + 1,
+                focus_item
+            )
+        )
+
+    tasks.append(
+        _make_dumb_sunflower_task(
+            world_size - 2,
+            world_size - 1
+        )
+    )
+
+    tasks.append(
+        _make_dumb_sunflower_task(
+            world_size - 1,
+            world_size
+        )
+    )
+
+    workers.run(tasks)
