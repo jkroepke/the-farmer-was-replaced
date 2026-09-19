@@ -700,6 +700,66 @@ It now runs only the decisive `MAZE LEADERBOARD COLD BENCH`:
 Each candidate starts from a fresh simulation. No warm-up result is reused
 between candidates or seeds.
 
+### Flekay stationary full-coverage follow-up
+
+Pinned source:
+`external/flekay-the-farmer-was-replaced/source/Maze/Multi Drone/substance_spam.py`.
+
+The upstream January 2026 snapshot contains a materially different Maze
+architecture from the local independent-small-Maze solver family:
+
+- shrink the farm to 5x5
+- place a drone on every cell
+- create one Maze covering the complete 5x5 world
+- do not navigate to the Treasure
+- repeatedly use Weird Substance from the stationary drones
+- whichever cell currently contains the Treasure already has a drone on it
+- when the 300-reuse lifecycle ends, the Treasure cell harvests/rebuilds
+
+The upstream Multi Drone README reports `01:07.107` leaderboard time for
+`substance_spam.py`. This is historical upstream evidence only. It was
+measured on the pinned 2026-01-28 revision and must not be compared directly
+with current local timings.
+
+Why 5x5 is structurally interesting:
+
+- 5x5 = 25 cells, so complete stationary coverage fits within 32 drones
+- 6x6 = 36 cells, so complete stationary coverage is impossible with 32 drones
+- therefore 5x5 is the largest square world that can implement the
+  "Treasure comes to a drone" architecture with full coverage
+
+Current exact-target benchmark additions:
+
+| Mode | Name | Description |
+| ---: | --- | --- |
+| 36 | `ref-flekay-5x5-substance-spam` | source-near 5x5 / 25-child substance spam |
+| 37 | `lb-stationary5-spam` | 24 children + parent, one drone per cell, release barrier |
+| 38 | `lb-stationary5-event` | one drone per cell, call `use_item` only on Treasure |
+| 39 | `lb-stationary4-event` | 4x4 geometry control |
+| 40 | `lb-stationary5-event-32drones` | 5x5 full coverage plus seven duplicate pollers |
+
+The event-gated mutation deliberately removes almost all navigation and path
+computation from steady state:
+
+- no `move()`
+- no `measure()`
+- no BFS/DFS
+- non-Treasure drones only poll `get_entity_type()`
+- the Treasure cell performs the relocation/rebuild action
+
+Current runner version after these additions:
+`maze-v5`, requested simulation speedup `10000`.
+
+Benchmark runner commit:
+`7e6721a2ea93306fc5c4f5fce12d8402677bc621`.
+
+Additional Flekay-derived solver ideas remain worth testing if stationary
+coverage does not dominate:
+
+- shared vector flow field / intersection stitching
+- incremental flow-field repair when reuse opens walls
+- integer tile IDs instead of tuple coordinate dictionary keys
+
 #### Durable conclusions from the extended matrix
 
 - Fresh-only strategies are consistently poor for sustained Gold.
