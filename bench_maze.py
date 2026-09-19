@@ -1983,13 +1983,13 @@ def spec_cover_worker(
         entity = get_entity_type()
 
         if entity == Entities.Treasure:
-            if measure() == None:
+            # measure() keeps returning the Treasure position after the
+            # 300-reuse limit. use_item() is the reliable cap signal:
+            # it fails once the Treasure can no longer be relocated.
+            if not spec_relocate(
+                maze_size
+            ):
                 harvest()
-
-            else:
-                spec_relocate(
-                    maze_size
-                )
 
         elif (
             creator
