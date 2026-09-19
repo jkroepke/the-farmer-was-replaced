@@ -294,7 +294,7 @@ It runs:
 ```text
 world size: 32
 cycles per simulation: 3
-target tail occupancy: 25%, 50%, 75%, 95%
+target tail occupancy: 95%, 97%, 99%, 100% (clamped to board - 1)
 seeds: 1, 2, 3
 strategies:
 - hamiltonian-skyscraper
@@ -598,9 +598,12 @@ For production selection, the runner now focuses on:
 
 ```text
 world size: 32
-target tail occupancy: 25%, 50%, 75%, 95%
+target tail occupancy: 95%, 97%, 99%, 100% (clamped to board - 1)
 seeds: 1, 2, 3
 speedup: 64
+strategies:
+- hamiltonian-skyscraper
+- skysdottir-tfwr-reference
 ```
 
 8x8 and 16x16 remain useful as historical/debugging data, but they should not decide the production algorithm when the real production farm is 32x32.
