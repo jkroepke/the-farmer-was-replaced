@@ -468,6 +468,133 @@ def _run_placed(size):
     return harvest()
 
 
+
+# ==================================================
+# 32x32 DISTRIBUTED POWERS-OF-TWO SPAWN
+# ==================================================
+def _power_wave_worker(
+    phase,
+    index,
+    worker_count,
+    size,
+    arg1,
+    arg2
+):
+    handles = []
+    power = 1
+
+    while (
+        index + power
+        < worker_count
+    ):
+        if power > index:
+            drone = spawn_drone(
+                _power_wave_worker,
+                phase,
+                index + power,
+                worker_count,
+                size,
+                arg1,
+                arg2
+            )
+
+            if drone == None:
+                for active in handles:
+                    wait_for(
+                        active
+                    )
+
+                return False
+
+            handles.append(
+                drone
+            )
+
+        power = power * 2
+
+    if phase == 0:
+        success = _batched_row_worker(
+            index,
+            worker_count,
+            size,
+            arg1,
+            arg2
+        )
+    else:
+        success = _column_worker(
+            index,
+            worker_count,
+            size,
+            arg1,
+            arg2
+        )
+
+    for drone in handles:
+        if not wait_for(
+            drone
+        ):
+            success = False
+
+    return success
+
+
+def _power_wave(
+    phase,
+    size,
+    arg1,
+    arg2
+):
+    worker_count = min(
+        size,
+        max_drones()
+    )
+
+    utils.move_to(
+        0,
+        0
+    )
+
+    return _power_wave_worker(
+        phase,
+        0,
+        worker_count,
+        size,
+        arg1,
+        arg2
+    )
+
+
+def _run_power(size):
+    reroll = size == 32
+    wait_ready = not reroll
+
+    if not _power_wave(
+        0,
+        size,
+        reroll,
+        wait_ready
+    ):
+        return False
+
+    if not _power_wave(
+        1,
+        size,
+        False,
+        False
+    ):
+        return False
+
+    utils.move_to(
+        size - 1,
+        size - 1
+    )
+
+    if not can_harvest():
+        return False
+
+    return harvest()
+
+
 # ==================================================
 # FEWER-DRONE FALLBACK
 # ==================================================
@@ -641,13 +768,24 @@ def run(reuse_field = False):
 
     size = utils.size()
 
-    # The placed/batched architecture is benchmark-proven with:
-    # - 6x6 and 16x16 worlds
-    # - 32x32 with 32 drones
-    # - 32x32 with only 8 drones
+    # cactus-v3 benchmark commit:
+    # 05ee0dbd2ff6483dec93c1707a0e957b25185c5f
     #
-    # With fewer drones each worker simply owns additional lines through
-    # index += worker_count, so the same architecture remains valid.
+    # On 32x32 with the full 32-drone pool, Flekay/Jarvan-style
+    # powers-of-two distributed spawning is the measured winner for both
+    # one cold leaderboard cycle and three-cycle production throughput.
+    #
+    # Smaller worlds and lower drone counts keep the previously validated
+    # placed/batched worker architecture until the distributed topology is
+    # measured there as well.
+    if (
+        size == 32
+        and max_drones() >= 32
+    ):
+        return _run_power(
+            size
+        )
+
     return _run_placed(
         size
     )
