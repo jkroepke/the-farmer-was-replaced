@@ -467,7 +467,7 @@ def run_current(
     farm.rebuild_sunflowers()
 
     while num_items(item) < target:
-        farm.run(item)
+        farm.run_legacy(item)
 
 
 # ==================================================
