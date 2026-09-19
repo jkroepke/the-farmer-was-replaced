@@ -534,6 +534,17 @@ def run():
     planned_workers = current[1]
     blocks_per_row = current[2]
 
+    quick_print(
+        "MAZE PARALLEL",
+        maze_size,
+        "workers",
+        planned_workers,
+        "relocations",
+        config.MAZE_PARALLEL_RELOCATIONS,
+        "substance",
+        stockpile_required()
+    )
+
     clear()
 
     start_substance = num_items(
