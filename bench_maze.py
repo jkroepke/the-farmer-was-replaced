@@ -4675,11 +4675,20 @@ def spec_run_steam_32x4():
 
 
 def spec_report_result(
-    start_gold
+    start_gold,
+    start_substance,
+    start_ticks
 ):
     gained = (
         num_items(Items.Gold)
         - start_gold
+    )
+
+    substance_used = (
+        start_substance
+        - num_items(
+            Items.Weird_Substance
+        )
     )
 
     status = "FAIL"
@@ -4694,6 +4703,10 @@ def spec_report_result(
         gained,
         "target",
         BENCH_GOLD_TARGET,
+        "substance used",
+        substance_used,
+        "ticks",
+        get_tick_count() - start_ticks,
         status
     )
 
@@ -4702,6 +4715,12 @@ def run_special():
     start_gold = num_items(
         Items.Gold
     )
+
+    start_substance = num_items(
+        Items.Weird_Substance
+    )
+
+    start_ticks = get_tick_count()
 
     if BENCH_MODE == 6:
         spec_run_reference_target()
@@ -4856,7 +4875,9 @@ def run_special():
         )
 
     spec_report_result(
-        start_gold
+        start_gold,
+        start_substance,
+        start_ticks
     )
 
 
