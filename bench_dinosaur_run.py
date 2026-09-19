@@ -38,6 +38,7 @@ BENCH_CYCLES = 1
 # harvest/restart cycles in one simulation.
 SUSTAINED_CYCLES = 3
 SUSTAINED_TARGET_PERCENTS = [
+    25,
     50,
     75,
     95
@@ -279,6 +280,11 @@ def benchmark_sustained():
     )
 
     for target_percent in SUSTAINED_TARGET_PERCENTS:
+        totals = []
+
+        for _ in SUSTAINED_MODES:
+            totals.append(0)
+
         quick_print(
             "SUSTAINED CASE",
             world_size,
@@ -291,6 +297,8 @@ def benchmark_sustained():
                 seed
             )
 
+            mode_index = 0
+
             for mode in SUSTAINED_MODES:
                 run_time = run_one(
                     mode,
@@ -299,6 +307,10 @@ def benchmark_sustained():
                     seed,
                     SUSTAINED_CYCLES
                 )
+
+                totals[
+                    mode_index
+                ] += run_time
 
                 bones = (
                     expected_bones(
@@ -325,6 +337,53 @@ def benchmark_sustained():
                     "bones/min",
                     bones_per_second * 60
                 )
+
+                mode_index += 1
+
+        quick_print(
+            "SUSTAINED SUMMARY",
+            world_size,
+            target_percent
+        )
+
+        mode_index = 0
+
+        for mode in SUSTAINED_MODES:
+            average = (
+                totals[
+                    mode_index
+                ]
+                / len(BENCH_SEEDS)
+            )
+
+            bones = (
+                expected_bones(
+                    world_size,
+                    target_percent
+                )
+                * SUSTAINED_CYCLES
+            )
+
+            bones_per_second = (
+                bones
+                / average
+            )
+
+            quick_print(
+                MODE_NAMES[mode],
+                "avg",
+                average,
+                "cycles",
+                SUSTAINED_CYCLES,
+                "bones",
+                bones,
+                "bones/s",
+                bones_per_second,
+                "bones/min",
+                bones_per_second * 60
+            )
+
+            mode_index += 1
 
     quick_print(
         "DINOSAUR SUSTAINED DONE"
