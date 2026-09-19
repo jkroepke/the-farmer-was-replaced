@@ -348,20 +348,20 @@ Do not replace production `dinosaur.py` until a candidate wins deterministic sim
 
 ## Benchmark dimensions
 
-The current runner uses:
+For production selection, the runner now focuses on:
 
 ```text
-world sizes: 8, 16, 32
+world size: 32
 target tail occupancy: 25%, 50%, 75%, 95%
 seeds: 1, 2, 3
 speedup: 64
 ```
 
-The benchmark stops at fixed tail occupancy rather than only filling the board. This is important because shortcut value is expected to be concentrated in the early/middle run and because the optimal cutoff may be 25% rather than 50%.
+8x8 and 16x16 remain useful as historical/debugging data, but they should not decide the production algorithm when the real production farm is 32x32.
+
+The benchmark stops at fixed tail occupancy rather than only filling the board. This remains useful because shortcut value is concentrated in the early/middle run and because the optimal cutoff may be 25% rather than 50%.
 
 The benchmark prints `DINOSAUR BENCH INVALID` if a strategy encounters a failed `move()` before reaching its requested tail target. Treat such a result as invalid even if the returned runtime looks fast.
-
-This also lets us test the claim that shortcut logic should be disabled around 25-50% occupancy.
 
 For each run, start from:
 
@@ -371,9 +371,26 @@ For each run, start from:
 - oversized Cactus inventory
 - same unlock state
 
-Primary metric:
+### Primary production metric: Bone throughput
 
-- runtime returned by `simulate()`
+Runtime is only directly comparable **between strategies at the same tail target**, because those runs produce the same Bone amount.
+
+Across different target tail lengths, the primary metric is:
+
+```text
+Bones per second = tail_length ** 2 / runtime
+Bones per minute = Bones per second * 60
+```
+
+The runner now prints:
+
+- runtime
+- target tail length
+- expected Bones
+- Bones/second
+- Bones/minute
+
+This distinction is critical because Bone yield grows quadratically with tail length. A 95% run can be much slower in absolute time and still produce far more Bones per unit time than a 25% run.
 
 Useful verbose diagnostics:
 
@@ -398,6 +415,48 @@ Use staged benchmarking:
 5. three seeds for final comparisons
 
 When tuning shortcut cutoff, compare only the current best path and candidate cutoff values rather than rerunning every historical mode.
+
+# Throughput reinterpretation
+
+The initial benchmark discussion focused too much on raw runtime. For production, Bone throughput is the more important metric.
+
+Because:
+
+```text
+Bones = tail_length ** 2
+```
+
+larger tail targets can dominate throughput even when they take longer.
+
+Example from the completed 16x16 data:
+
+| Target | Tail | Bones | Reference runtime | Reference Bones/s | Hamiltonian Bones/s |
+| ---: | ---: | ---: | ---: | ---: | ---: |
+| 25% | 64 | 4096 | 93.11 | 43.99 | 23.56 |
+| 50% | 128 | 16384 | 187.03 | 87.60 | 75.89 |
+| 75% | 192 | 36864 | 220.16 | 167.44 | 157.03 |
+| 95% | 243 | 59049 | 230.92 | **255.71** | 244.58 |
+
+So the 95% reference run has almost 6x the Bone throughput of the 25% reference run, despite taking much longer.
+
+The same effect already appears in partial 32x32 data:
+
+- 25% reference average:
+  - tail 256
+  - 65,536 Bones
+  - 684.99 s
+  - about **95.67 Bones/s**
+- 50% seed 1:
+  - tail 512
+  - 262,144 Bones
+  - Hamiltonian: about **152.67 Bones/s**
+  - reference: about **139.33 Bones/s**
+
+Therefore:
+
+> The fastest algorithm to a short tail is not automatically the best Bone producer.
+
+For production, the likely optimum may be a long 75-95% run even if its wall-clock duration is higher.
 
 # Preliminary benchmark results
 
