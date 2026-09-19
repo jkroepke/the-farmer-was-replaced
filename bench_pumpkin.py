@@ -39,6 +39,7 @@ FALLBACK_ROUNDS = 200
 PERSISTENT_MERGE_TIMEOUT = 30
 SPATIAL_DEPLOY_TIMEOUT = 5
 SPATIAL_DEPLOY_SETTLE = 0.05
+PATCH_HARVEST_SETTLE = 0.05
 
 
 def _repair_current():
@@ -1858,6 +1859,19 @@ def _patch_worker(
                     patch_size
                 ):
                     harvest()
+
+                    # Give the helper a deterministic farm-state edge.
+                    # Without this, the leader can replant the origin so
+                    # quickly that the helper misses the empty-patch signal
+                    # and waits until the following harvest.
+                    settle_end = (
+                        get_time()
+                        + PATCH_HARVEST_SETTLE
+                    )
+
+                    while get_time() < settle_end:
+                        pass
+
                     break
         else:
             utils.move_to(
