@@ -17,6 +17,7 @@ BENCH_REBALANCE_UNTIL = 140
 BENCH_SOLVES = 300
 BENCH_WORLD_SIZE = 32
 
+REBUILD_SMOKE_TARGET = 100000
 SCREEN_TARGET = 200000
 SUSTAINED_TARGET = 1000000
 
@@ -29,6 +30,15 @@ SCREEN_SEEDS = [
 SUSTAINED_SEEDS = [
     1,
     2
+]
+
+
+REBUILD_SMOKE_MODE_IDS = [
+    18
+]
+
+REBUILD_SMOKE_MODE_NAMES = [
+    "mut-packed-zapakh-reuse1"
 ]
 
 
@@ -285,6 +295,16 @@ def main():
 
     quick_print(
         "MAZE EXTENDED BENCH START"
+    )
+
+    benchmark_group(
+        "MAZE REBUILD SMOKE",
+        REBUILD_SMOKE_MODE_IDS,
+        REBUILD_SMOKE_MODE_NAMES,
+        [
+            1
+        ],
+        REBUILD_SMOKE_TARGET
     )
 
     benchmark_group(
