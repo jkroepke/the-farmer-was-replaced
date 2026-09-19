@@ -818,6 +818,69 @@ Safer optimization directions are:
 3. benchmark full-run throughput at 75% and 95%
 4. select the whole-run strategy based on requested Bone target if the later throughput diverges
 
+## 32x32, 75% tail target
+
+| Strategy | Average runtime | Bones/s | Bones/min |
+| --- | ---: | ---: | ---: |
+| **Hamiltonian skyscraper** | **2110.43** | **279.48** | **16,768.86** |
+| Annealed 50 | 3598.76 | 163.90 | 9,833.78 |
+| Hard 25 | 2915.91 | 202.28 | 12,136.65 |
+| Hard 50 | 3892.07 | 151.55 | 9,092.70 |
+| skysdottir reference | 2314.80 | 254.81 | 15,288.32 |
+
+At 75%, plain Hamiltonian is about **9.7% higher throughput** than the reference.
+
+## 32x32, 95% tail target
+
+| Strategy | Average runtime | Bones/s | Bones/min |
+| --- | ---: | ---: | ---: |
+| **Hamiltonian skyscraper** | **2214.39** | **426.66** | **25,599.42** |
+| Annealed 50 | 3759.81 | 251.29 | 15,077.10 |
+| Hard 25 | 3079.88 | 306.76 | 18,405.58 |
+| Hard 50 | 4055.29 | 232.98 | 13,978.54 |
+| skysdottir reference | 2475.46 | 381.66 | 22,899.64 |
+
+At 95%, plain Hamiltonian is about **11.8% higher throughput** than the reference.
+
+More importantly, Hamiltonian throughput still rises sharply with target tail size:
+
+| Target | Hamiltonian Bones/s | Reference Bones/s |
+| ---: | ---: | ---: |
+| 25% | 51.57 | **95.68** |
+| 50% | **145.70** | 143.61 |
+| 75% | **279.48** | 254.81 |
+| 95% | **426.66** | 381.66 |
+
+From 75% to 95%, Hamiltonian throughput increases by about **52.7%**. Therefore 95% cannot yet be treated as the throughput optimum; it is simply the highest tested target.
+
+The next throughput search should concentrate near full occupancy rather than re-running dominated shortcut modes. Candidate targets:
+
+```text
+95%, 97%, 99%, 100%/board-1
+```
+
+For this sweep, compare only:
+
+- `hamiltonian-skyscraper`
+- `skysdottir-tfwr-reference`
+
+A natural collision/end-of-run harvest is also worth measuring because production currently behaves closer to that than to an arbitrary 95% cutoff.
+
+## Sustained-throughput preview
+
+The three-cycle benchmark confirms that repeated setup/restart does not change the broad early-run picture.
+
+Completed sustained 25% result:
+
+| Strategy | Bones/s | Bones/min |
+| --- | ---: | ---: |
+| Hamiltonian skyscraper | 48.79 | 2,927.11 |
+| **skysdottir reference** | **93.25** | **5,594.72** |
+
+At 25%, the reference remains roughly twice as productive.
+
+The 50% sustained case is still incomplete in the supplied output, but the shown seeds are again close between Hamiltonian and reference. Finish the sustained 50/75/95 cases before using sustained results for production.
+
 ## Current benchmark conclusion
 
 Do not promote the current skyscraper shortcut variants.
@@ -828,7 +891,11 @@ This makes target-aware Bone production more important: if the planner needs onl
 
 ## Current next step
 
-Continue the 32x32 / 25% case far enough to obtain the skysdottir reference result. If it remains faster than the baseline, prioritize a source-faithful production adaptation over further tuning of the current skyscraper shortcut variants.
+Finish the current sustained 50%, 75%, and 95% runs.
+
+After that, search for the actual peak Bone throughput near full occupancy on 32x32. Since throughput is still increasing sharply at 95%, benchmark 97%, 99%, and board-1/natural-end behavior using only the Hamiltonian baseline and skysdottir reference.
+
+Do not spend more benchmark time on the current annealed/hard skyscraper shortcut variants unless their implementation changes substantially; they are dominated on the production-relevant long-tail cases.
 
 Run `bench_dinosaur_run.py` and record the results here before changing production `dinosaur.py`.
 
