@@ -302,31 +302,31 @@ speedup: 64
 
 ## Power starting condition
 
-Crop simulations deliberately start with only:
+Crop simulations now deliberately start with:
 
 ```text
-1,000 Power
+0 Power
 ```
 
-rather than an effectively infinite pool.
+The original screening started with 1,000 Power. The first Hay results showed that this biased short runs: even the no-Sunflower control finished before exhausting the preloaded buffer, so it effectively received the execution-speed benefit without having to produce Power itself.
 
-Reason:
+Cold start makes the layout responsible for its own acceleration:
 
-- a layout that consumes Power faster than it creates it is not a sustainable production layout
-- a no-Sunflower control should eventually lose the speed boost
-- integrated Sunflower layouts should demonstrate whether they can carry their own Power cost
+- no-Sunflower is a true unpowered control
+- integrated Sunflower layouts must earn any speed advantage
+- a layout that can sustain Power will show that benefit in total crop runtime
 
 The benchmark output includes:
 
 ```text
+start-power
+end-power
 power-delta
 ```
 
 for every simulation.
 
-Interpret this together with runtime.
-
-A crop mode that is slightly faster but has a strongly negative Power delta may be unsuitable for indefinite production.
+With the current cold-start profile, `start-power` should be 0. `end-power` alone is not a complete Power-production metric because generated Power may be consumed immediately while accelerating the run; crop throughput remains the primary metric.
 
 ## Partial vs maximum Megafarm profile
 
