@@ -72,10 +72,13 @@ Keep the existing modular design.
 - `utils.py`: shared movement, affordability, watering, and world-size helpers.
 - `unlocks.py`: upgrade target selection, cost analysis, resource focus, and unlock actions.
 - `production.py`: maps required resources to normal/special production jobs and resolves producer prerequisites.
+- `bench_farm.py`: normal-farm, Sunflower, and external-reference benchmark implementations/modes.
+- `bench_farm_run.py`: normal-farm benchmark matrix, seeds, simulation profiles, and aggregation.
 - `bench_maze.py`: all Maze benchmark implementations/modes.
 - `bench_maze_run.py`: Maze simulation matrix and benchmark orchestration.
 - `bench_dinosaur.py`: Dinosaur benchmark implementations/modes.
 - `bench_dinosaur_run.py`: Dinosaur simulation matrix and benchmark orchestration.
+- `docs/NORMAL_FARM.md`: canonical Hay/Wood/Carrot, Sunflower/Power, worker-layout, and benchmark notes.
 - `docs/PUMPKIN.md`: canonical Pumpkin mechanics, multi-drone strategy, references, and optimization notes.
 - `docs/MAZE.md`: canonical Maze mechanics, production design, benchmark data, and optimization notes.
 - `docs/DINOSAUR.md`: canonical Dinosaur mechanics, external strategy research, and optimization/benchmark plan.
@@ -250,7 +253,7 @@ Before starting a producer, inspect `get_cost(producer)` and farm missing produc
 
 Gold/Maze has a persistent production lifecycle that differs from the other full-field jobs. Read `docs/MAZE.md` before changing it.
 
-After Pumpkin, Cactus, or Dinosaur full-field jobs, restore the permanent sunflower edges immediately.
+After a full-field special job, restore the normal farm only when normal production is actually needed. Consecutive special-focus runs must not rebuild normal crops merely to clear them again.
 
 If an `Unlocks.Expand` purchase changes `get_world_size()`, rebuild the entire normal layout and sunflower cache because edge coordinates changed.
 
@@ -266,9 +269,9 @@ Sunflower harvesting has special rules.
 - After every harvest, recompute the current maximum before harvesting another sunflower.
 - Power speeds drone execution.
 
-The current design keeps sunflower harvesting centralized in `farm.refresh_energy()`.
+The current production design keeps sunflower harvesting centralized in `farm.refresh_energy()`, but that permanent-L architecture is under benchmark review. Read `docs/NORMAL_FARM.md` before changing normal farming or Sunflower placement.
 
-Do not make normal tile farming harvest or replant sunflowers independently. Worker drones do not share globals, so they cannot safely maintain the caller's petal cache.
+Do not assume the current global petal-cache/L design is optimal. Benchmark modes intentionally test integrated Sunflower rows/columns and dedicated workers without shared memory. Production changes must follow measured results from `bench_farm_run.py`.
 
 The permanent left/top sunflower L uses a petal cache:
 
