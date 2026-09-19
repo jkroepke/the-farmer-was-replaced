@@ -883,6 +883,29 @@ def run_juritox_power_reference(
                 move(East)
 
 
+def probe_clean_layout():
+    # Diagnostic only. set_world_size() and clear() are both documented
+    # to clear the farm. Probe two coordinates that are occupied by the
+    # production L so we can distinguish simulated state from UI state.
+    clear()
+
+    first = get_entity_type()
+
+    move(East)
+    second = get_entity_type()
+
+    quick_print(
+        "FARM CLEAN PROBE",
+        "x0y0",
+        first,
+        "x1y0",
+        second
+    )
+
+    # Leave the simulation in the same neutral state after probing.
+    clear()
+
+
 def run_mode(
     mode,
     item,
@@ -987,6 +1010,10 @@ def run_mode(
         run_juritox_power_reference(
             target
         )
+        return
+
+    if mode == 99:
+        probe_clean_layout()
 
 
 def main():
