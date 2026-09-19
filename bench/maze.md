@@ -1,87 +1,40 @@
-# Maze benchmarks
+# Benchmark: Maze
 
-This file is the canonical home for measured benchmark results for this topic.
+## Scope
 
 | Field | Value |
 | --- | --- |
-| Migrated from | `docs/MAZE.md`, `memory/maze.md` |
-| Result rule | Every canonical run must name the full Git source commit that pins runner and implementation. |
-| Separation | Use `-----` between runs produced from different code states or materially different setups. |
-| Interpretation | Keep measured facts separate from conclusions and open questions. |
+| Topic | Maze |
+| Purpose | Compare reusable Maze solvers, small-Maze multi-drone coverage, exact Gold-target strategies, and mutation/reindex approaches. |
+| Implementation | `bench_maze.py` |
+| Runner | `bench_maze_run.py` |
+| Primary metric | Elapsed time and Gold throughput for equivalent solve/target workloads. |
+| Success condition | Reach the requested Treasure relocation count or Gold target with valid Maze lifecycle behavior. |
 
-## Referenced commits in migrated history
+## Benchmark index
 
-| Referenced commit | `c045c3da2a015b77491532199fc3f0735cc2a640` |
-| Referenced commit | `55734c855dd464dd846deef280d8a65d9f2c3bf7` |
-| Referenced commit | `c685de023206a55784a8fdfd671abeb830b5f482` |
-| Referenced commit | `7e6721a2ea93306fc5c4f5fce12d8402677bc621` |
-| Referenced commit | `c15c9f3ea47970cbbc6a4677bf5301a3a831b15e` |
-| Referenced commit | `2a217d6b4a42ea403c292fbc2e19428fd561b25b` |
-| Referenced commit | `7c66b8422554d109e90220705e3841ea49081eca` |
-| Referenced commit | `7faabfb9bf3593837ac191a7b198c1ba30f41e68` |
-| Referenced commit | `b07d95a870252df2f093c250137b909557183f4c` |
-| Referenced commit | `a9f4a009b9b47e77316c9860605088f0e9bd2142` |
-| Referenced commit | `916b8e7e62131ac25747fbb0f9855311f3434fe3` |
-| Referenced commit | `4919805bd31673122a842c09561e71ccdfc911d7` |
+| Run / version | Source commit | Profile | Status |
+| --- | --- | --- | --- |
+| Historical 8/16/32 matrix | Unknown / not recorded | 25 / 100 / 300 relocations | Measured historical |
+| Amount-based 32x32 special | `c045c3da2a015b77491532199fc3f0735cc2a640` | 32x32 farm; small Mazes by Weird Substance amount | Measured |
+| `maze-v5` | `7e6721a2ea93306fc5c4f5fce12d8402677bc621` | Exact 9,863,168 Gold leaderboard target | Current/pending follow-up |
+| Spawn locality | See `bench/runtime.md` | 32-worker setup microbenchmarks | Canonical results moved to Runtime |
 
-A referenced commit is not automatically a benchmark source commit. Each result block must explicitly identify which commit produced it. If an older block lacks that mapping, treat it as historical/non-canonical and rerun it before using it for a production decision.
+## Results
 
------
-## Benchmark file convention
+### Amount-based 32x32 special benchmark
 
-All benchmark topics use:
+#### Provenance
 
-```text
-bench_<name>.py
-bench_<name>_run.py
-```
+| Field | Value |
+| --- | --- |
+| Source commit | `c045c3da2a015b77491532199fc3f0735cc2a640` |
+| Benchmark/version | `maze-v5` |
+| Requested speedup | 64 |
+| Seeds | 1, 2, |
+| Canonical status | Source state recorded |
 
-For Mazes:
-
-- `bench_maze.py`
-  - contains all implementations/modes
-- `bench_maze_run.py`
-  - owns world sizes
-  - solve counts
-  - seeds
-  - simulation inventory
-  - simulation globals
-  - `simulate()` calls
-  - result aggregation
-
-Do not create separate files for individual Maze strategies.
-
-Add new strategies as additional modes in `bench_maze.py`.
-
----
-
-## Historical benchmark modes (preserved results)
-
-| Mode | Name | Description |
-| ---: | --- | --- |
-| 0 | `fresh-right-hand` | Create a new Maze every time and solve with right-hand wall following |
-| 1 | `reuse-bfs` | Reuse one Maze and repeatedly BFS over the updated graph |
-| 2 | `reuse-tree-greedy` | Reuse initial generic tree plus Greedy shortcuts |
-| 3 | `reuse-tree-greedy-lazy-rebalance` | Generic tree plus Greedy plus lightweight reparenting |
-| 4 | `reuse-tree-greedy-full-reindex` | Generic tree plus Greedy/reparenting and approximate full reindex |
-| 5 | `reference-tree-rebalancing` | Behavioral port of the Pastebin reference implementation |
-
-Historical benchmark matrix:
-
-```text
-world sizes: 8, 16, 32
-relocations: 25, 100, 300
-seeds: 1, 2, 3
-speedup: 64
-```
-
-Each reuse workload performs the requested number of Treasure relocations and then the final Treasure harvest.
-
-The benchmark intentionally starts with oversized resources so pathing/algorithm cost is measured rather than resource acquisition.
-
----
-
-## Amount-based 32x32 special benchmark
+#### Measurements and observations
 
 The active Maze benchmark runner now focuses only on the small-Maze / multi-drone question. The historical 8x8, 16x16, and 32x32 matrix above remains preserved as prior evidence, but `bench_maze_run.py` no longer reruns it by default.
 
@@ -110,7 +63,7 @@ The coverage modes deliberately distribute drones by traversing the actual fresh
 
 Coverage workers detect the 300-relocation limit from a failed Weird-Substance `use_item()` call. `measure()` continues to return the Treasure position at the cap, so it must not be used as the cap signal. The Treasure is then harvested and the fixed-root creator recreates the small Maze.
 
-### zapakh Gist reference
+#### zapakh Gist reference
 
 Source:
 
@@ -122,7 +75,7 @@ The Gist uses an iterative in-situ DFS. Each stack entry stores remaining direct
 
 The source predates the current Weird-Substance Maze API and uses Fertilizer to create/recycle Mazes. The benchmark preserves the DFS/search behavior but adapts Maze creation and Treasure relocation to the current `Items.Weird_Substance` API. It is therefore a source-near algorithm benchmark, not a byte-for-byte execution of the 2024 script.
 
-### January 2026 32x4x4 Steam reference
+#### January 2026 32x4x4 Steam reference
 
 Source:
 
@@ -134,7 +87,7 @@ The posted implementation runs one independent 4x4 Maze per drone. It first reco
 
 The benchmark keeps that architecture while adding the repository's fixed-Gold stopping condition and safe current-API handling.
 
-### Reddit 32-square full-field packing follow-up
+#### Reddit 32-square full-field packing follow-up
 
 A September 2026 Reddit thread adds a new geometry optimization:
 
@@ -168,7 +121,7 @@ zapakh DFS already does this through its per-solve `visited` set, so reuse is
 a meaningful extension even though the Reddit author describes a fresh-only
 solver.
 
-### Extended reference + mutation matrix
+#### Extended reference + mutation matrix
 
 The Packed follow-up has been expanded into a deliberate ablation matrix.
 
@@ -288,7 +241,7 @@ Results for this extended matrix are intentionally pending an in-game run.
 The last measured winner remains `zapakh-32x4x4` from benchmark commit
 `55734c855dd464dd846deef280d8a65d9f2c3bf7`.
 
-### Extended 2026-09-19 benchmark results
+#### Extended 2026-09-19 benchmark results
 
 Measured against benchmark code commit
 `c045c3da2a015b77491532199fc3f0735cc2a640`.
@@ -302,7 +255,7 @@ The rebuild smoke test passed:
 This confirms that the short-reuse lifecycle hang was fixed before the full
 matrix.
 
-#### 200000-Gold core screen
+##### 200000-Gold core screen
 
 | Mode | Avg | Min | Max |
 | --- | ---: | ---: | ---: |
@@ -327,7 +280,7 @@ The packed Zapakh reuse-cap sweep is comparatively flat. Reuse=4 is the best
 of those packed Zapakh caps at 19.09 average, but still much slower than the
 uniform 4x4 control.
 
-#### 200000-Gold map/BFS screen
+##### 200000-Gold map/BFS screen
 
 | Mode | Avg | Min | Max |
 | --- | ---: | ---: | ---: |
@@ -346,7 +299,7 @@ strategies are effectively close. Their normalized tick counts are also almost
 identical; do not treat the short-screen result alone as sufficient evidence
 for a production change.
 
-#### 1000000-Gold sustained screen
+##### 1000000-Gold sustained screen
 
 | Mode | Avg | Min | Max |
 | --- | ---: | ---: | ---: |
@@ -385,7 +338,7 @@ This is only an interpolation from two workloads, not a replacement for the
 real leaderboard benchmark, but it explains why the ranking changes as the
 target grows.
 
-#### Legacy full-Maze source reference
+##### Legacy full-Maze source reference
 
 `ref-msmith93-full32-fresh` completed all three seeds:
 
@@ -395,7 +348,7 @@ target grows.
 
 It is both slower and much more seed-sensitive than the small-Maze strategies.
 
-#### Leaderboard decision rule
+##### Leaderboard decision rule
 
 For `Leaderboards.Maze`, the production/leaderboard algorithm is selected only
 by end-to-end cold-start time until:
@@ -424,7 +377,7 @@ winner.
 The decisive comparison uses the exact 9863168-Gold target from a fresh
 simulation for every candidate and seed.
 
-#### Finalist follow-up runner
+##### Finalist follow-up runner
 
 After recording the extended matrix, `bench_maze_run.py` was narrowed to the
 remaining decision set.
@@ -445,7 +398,7 @@ It now runs only the decisive `MAZE LEADERBOARD COLD BENCH`:
 Each candidate starts from a fresh simulation. No warm-up result is reused
 between candidates or seeds.
 
-### Flekay stationary full-coverage follow-up
+#### Flekay stationary full-coverage follow-up
 
 Pinned source:
 `external/flekay-the-farmer-was-replaced/source/Maze/Multi Drone/substance_spam.py`.
@@ -505,7 +458,7 @@ coverage does not dominate:
 - incremental flow-field repair when reuse opens walls
 - integer tile IDs instead of tuple coordinate dictionary keys
 
-#### Durable conclusions from the extended matrix
+##### Durable conclusions from the extended matrix
 
 - Fresh-only strategies are consistently poor for sustained Gold.
 - Reuse is essential.
@@ -521,7 +474,7 @@ coverage does not dominate:
   9863168 Gold, because repository leaderboard rules require end-to-end runtime
   including setup and termination.
 
-### Results
+#### Results
 
 Final 200000-Gold special benchmark, tested against code commit `55734c855dd464dd846deef280d8a65d9f2c3bf7`.
 
@@ -566,13 +519,24 @@ The suite runs through `simulate()`. Gold earned inside a simulation is isolated
 
 Current benchmark implementation commit: `55734c855dd464dd846deef280d8a65d9f2c3bf7`
 
----
+-----
 
-# Benchmark results
 
-Lower is better. Values are simulation runtime returned by `simulate()`.
+-----
 
-## 8x8, 25 relocations
+### 8x8, 25 relocations
+
+#### Provenance
+
+| Field | Value |
+| --- | --- |
+| Source commit | **Unknown / not recorded** |
+| Benchmark/version | Not versioned in this record |
+| Requested speedup | Not recorded |
+| Seeds | 1 |
+| Canonical status | Historical/non-canonical until rerun from a committed state |
+
+#### Measurements and observations
 
 | Strategy | Seed 1 | Seed 2 | Seed 3 | Average | Min | Max |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
@@ -583,7 +547,22 @@ Lower is better. Values are simulation runtime returned by `simulate()`.
 | reuse-tree-greedy-full-reindex | 26.95 | 24.22 | 26.99 | 26.05 | 24.22 | 26.99 |
 | **reference-tree-rebalancing** | **22.03** | **20.43** | **23.28** | **21.91** | **20.43** | **23.28** |
 
-## 8x8, 100 relocations
+
+-----
+
+### 8x8, 100 relocations
+
+#### Provenance
+
+| Field | Value |
+| --- | --- |
+| Source commit | **Unknown / not recorded** |
+| Benchmark/version | Not versioned in this record |
+| Requested speedup | Not recorded |
+| Seeds | 1 |
+| Canonical status | Historical/non-canonical until rerun from a committed state |
+
+#### Measurements and observations
 
 | Strategy | Seed 1 | Seed 2 | Seed 3 | Average | Min | Max |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
@@ -594,7 +573,22 @@ Lower is better. Values are simulation runtime returned by `simulate()`.
 | reuse-tree-greedy-full-reindex | 107.77 | 92.07 | 103.44 | 101.09 | 92.07 | 107.77 |
 | **reference-tree-rebalancing** | **73.50** | **73.70** | **77.10** | **74.77** | **73.50** | **77.10** |
 
-## 8x8, 300 relocations
+
+-----
+
+### 8x8, 300 relocations
+
+#### Provenance
+
+| Field | Value |
+| --- | --- |
+| Source commit | **Unknown / not recorded** |
+| Benchmark/version | Not versioned in this record |
+| Requested speedup | Not recorded |
+| Seeds | 1 |
+| Canonical status | Historical/non-canonical until rerun from a committed state |
+
+#### Measurements and observations
 
 | Strategy | Seed 1 | Seed 2 | Seed 3 | Average | Min | Max |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
@@ -605,7 +599,22 @@ Lower is better. Values are simulation runtime returned by `simulate()`.
 | reuse-tree-greedy-full-reindex | 242.58 | 256.84 | 254.92 | 251.45 | 242.58 | 256.84 |
 | **reference-tree-rebalancing** | **170.50** | **177.73** | **175.59** | **174.61** | **170.50** | **177.73** |
 
-## 16x16, 25 relocations
+
+-----
+
+### 16x16, 25 relocations
+
+#### Provenance
+
+| Field | Value |
+| --- | --- |
+| Source commit | **Unknown / not recorded** |
+| Benchmark/version | Not versioned in this record |
+| Requested speedup | Not recorded |
+| Seeds | 1 |
+| Canonical status | Historical/non-canonical until rerun from a committed state |
+
+#### Measurements and observations
 
 | Strategy | Seed 1 | Seed 2 | Seed 3 | Average | Min | Max |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
@@ -616,7 +625,22 @@ Lower is better. Values are simulation runtime returned by `simulate()`.
 | reuse-tree-greedy-full-reindex | 80.82 | 82.73 | 93.16 | 85.57 | 80.82 | 93.16 |
 | **reference-tree-rebalancing** | **70.39** | **72.30** | **84.30** | **75.66** | **70.39** | **84.30** |
 
-## 16x16, 100 relocations
+
+-----
+
+### 16x16, 100 relocations
+
+#### Provenance
+
+| Field | Value |
+| --- | --- |
+| Source commit | **Unknown / not recorded** |
+| Benchmark/version | Not versioned in this record |
+| Requested speedup | Not recorded |
+| Seeds | 1 |
+| Canonical status | Historical/non-canonical until rerun from a committed state |
+
+#### Measurements and observations
 
 | Strategy | Seed 1 | Seed 2 | Seed 3 | Average | Min | Max |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
@@ -627,7 +651,22 @@ Lower is better. Values are simulation runtime returned by `simulate()`.
 | reuse-tree-greedy-full-reindex | 424.37 | 631.48 | 615.90 | 557.25 | 424.37 | 631.48 |
 | **reference-tree-rebalancing** | **269.60** | **258.00** | **279.92** | **269.17** | **258.00** | **279.92** |
 
-## 16x16, 300 relocations
+
+-----
+
+### 16x16, 300 relocations
+
+#### Provenance
+
+| Field | Value |
+| --- | --- |
+| Source commit | **Unknown / not recorded** |
+| Benchmark/version | Not versioned in this record |
+| Requested speedup | Not recorded |
+| Seeds | 1 |
+| Canonical status | Historical/non-canonical until rerun from a committed state |
+
+#### Measurements and observations
 
 | Strategy | Seed 1 | Seed 2 | Seed 3 | Average | Min | Max |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
@@ -638,7 +677,22 @@ Lower is better. Values are simulation runtime returned by `simulate()`.
 | reuse-tree-greedy-full-reindex | 1016.56 | 1391.60 | 1310.80 | 1239.65 | 1016.56 | 1391.60 |
 | **reference-tree-rebalancing** | **604.06** | **564.65** | **577.93** | **582.21** | **564.65** | **604.06** |
 
-## 32x32, 25 relocations
+
+-----
+
+### 32x32, 25 relocations
+
+#### Provenance
+
+| Field | Value |
+| --- | --- |
+| Source commit | **Unknown / not recorded** |
+| Benchmark/version | Not versioned in this record |
+| Requested speedup | Not recorded |
+| Seeds | 1 |
+| Canonical status | Historical/non-canonical until rerun from a committed state |
+
+#### Measurements and observations
 
 | Strategy | Seed 1 | Seed 2 | Seed 3 | Average | Min | Max |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
@@ -649,7 +703,22 @@ Lower is better. Values are simulation runtime returned by `simulate()`.
 | reuse-tree-greedy-full-reindex | 257.85 | 313.90 | 311.95 | 294.57 | 257.85 | 313.90 |
 | **reference-tree-rebalancing** | **221.29** | **270.30** | **273.24** | **254.94** | **221.29** | **273.24** |
 
-## 32x32, 100 relocations
+
+-----
+
+### 32x32, 100 relocations
+
+#### Provenance
+
+| Field | Value |
+| --- | --- |
+| Source commit | **Unknown / not recorded** |
+| Benchmark/version | Not versioned in this record |
+| Requested speedup | Not recorded |
+| Seeds | 1 |
+| Canonical status | Historical/non-canonical until rerun from a committed state |
+
+#### Measurements and observations
 
 | Strategy | Seed 1 | Seed 2 | Seed 3 | Average | Min | Max |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
@@ -668,7 +737,22 @@ This completed case is particularly informative:
 - lazy rebalancing helps substantially but remains slower than BFS/reference
 - the generic full-reindex strategy becomes catastrophically expensive
 
-## 32x32, 300 relocations — partial run
+
+-----
+
+### 32x32, 300 relocations — partial run
+
+#### Provenance
+
+| Field | Value |
+| --- | --- |
+| Source commit | **Unknown / not recorded** |
+| Benchmark/version | Not versioned in this record |
+| Requested speedup | Not recorded |
+| Seeds | 1 |
+| Canonical status | Historical/non-canonical until rerun from a committed state |
+
+#### Measurements and observations
 
 The benchmark was intentionally stopped because the runtime cost was no longer justified after the trend was already clear.
 
@@ -685,11 +769,11 @@ Available values:
 
 Do not infer missing values from smaller cases. This is intentionally partial benchmark data.
 
----
+-----
 
-# Interpretation and conclusions
+## Interpretation
 
-## 1. Fresh Maze recreation is decisively inefficient
+### 1. Fresh Maze recreation is decisively inefficient
 
 Repeatedly creating a fresh Maze is the worst tested strategy at every completed size/horizon.
 
@@ -709,7 +793,7 @@ Examples:
 
 Therefore production should continue to reuse Mazes.
 
-## 2. The reference strategy wins before rebalancing matters
+### 2. The reference strategy wins before rebalancing matters
 
 At 25 relocations, the generic tree variants are effectively identical because later Greedy/rebalancing phases have barely or not yet activated.
 
@@ -736,7 +820,7 @@ Likely contributors:
 
 Future optimization should use the reference implementation as the baseline rather than the older generic tree modes.
 
-## 3. A static historical tree gets worse as the Maze opens
+### 3. A static historical tree gets worse as the Maze opens
 
 The reused Maze becomes increasingly unlike the initial tree because walls disappear.
 
@@ -756,7 +840,7 @@ At long horizons it can even lose to BFS.
 
 This effect becomes much worse as world size grows.
 
-## 4. Rebalancing matters more with longer runs and larger Mazes
+### 4. Rebalancing matters more with longer runs and larger Mazes
 
 At 25 relocations, the generic tree variants are almost identical.
 
@@ -771,7 +855,7 @@ That is a meaningful improvement, but still much slower than the reference at 58
 
 Conclusion: adapting the tree to newly opened Maze edges is important, but our old generic rebalancing design is not sufficient.
 
-## 5. Naive full reindexing becomes catastrophically expensive on large Mazes
+### 5. Naive full reindexing becomes catastrophically expensive on large Mazes
 
 The generic `reuse-tree-greedy-full-reindex` mode scales extremely poorly.
 
@@ -797,7 +881,7 @@ The lesson is narrower:
 
 Do not transplant the old generic full-reindex design into production.
 
-## 6. BFS is a surprisingly strong fallback at larger sizes
+### 6. BFS is a surprisingly strong fallback at larger sizes
 
 BFS is not competitive with the reference in completed tests, but it scales much more predictably than the old generic tree.
 
@@ -815,7 +899,7 @@ BFS is not competitive with the reference in completed tests, but it scales much
 
 For future experiments, BFS remains a useful correctness/performance baseline.
 
-## 7. The reference strategy is currently the production baseline
+### 7. The reference strategy is currently the production baseline
 
 The reference implementation is the fastest tested strategy in every completed benchmark case:
 
@@ -830,15 +914,73 @@ The reference implementation is the fastest tested strategy in every completed b
 
 This is strong evidence to keep the reference architecture in production. The 32x32 / 300 case was stopped early only because the runtime cost of the remaining historical baselines was no longer worth it.
 
----
+-----
 
-# Recommended next optimization work
+## Reproduction
+
+### Benchmark file convention
+
+All benchmark topics use:
+
+```text
+bench_<name>.py
+bench_<name>_run.py
+```
+
+For Mazes:
+
+- `bench_maze.py`
+  - contains all implementations/modes
+- `bench_maze_run.py`
+  - owns world sizes
+  - solve counts
+  - seeds
+  - simulation inventory
+  - simulation globals
+  - `simulate()` calls
+  - result aggregation
+
+Do not create separate files for individual Maze strategies.
+
+Add new strategies as additional modes in `bench_maze.py`.
+
+-----
+
+## Notes
+
+### Historical benchmark modes (preserved results)
+
+| Mode | Name | Description |
+| ---: | --- | --- |
+| 0 | `fresh-right-hand` | Create a new Maze every time and solve with right-hand wall following |
+| 1 | `reuse-bfs` | Reuse one Maze and repeatedly BFS over the updated graph |
+| 2 | `reuse-tree-greedy` | Reuse initial generic tree plus Greedy shortcuts |
+| 3 | `reuse-tree-greedy-lazy-rebalance` | Generic tree plus Greedy plus lightweight reparenting |
+| 4 | `reuse-tree-greedy-full-reindex` | Generic tree plus Greedy/reparenting and approximate full reindex |
+| 5 | `reference-tree-rebalancing` | Behavioral port of the Pastebin reference implementation |
+
+Historical benchmark matrix:
+
+```text
+world sizes: 8, 16, 32
+relocations: 25, 100, 300
+seeds: 1, 2, 3
+speedup: 64
+```
+
+Each reuse workload performs the requested number of Treasure relocations and then the final Treasure harvest.
+
+The benchmark intentionally starts with oversized resources so pathing/algorithm cost is measured rather than resource acquisition.
+
+-----
+
+### Recommended next optimization work
 
 Do not restart from BFS or the old generic tree.
 
 Use `reference-tree-rebalancing` as the baseline and perform ablation tests.
 
-## High-value ablation modes
+### High-value ablation modes
 
 Add reference-derived modes to `bench_maze.py` such as:
 
@@ -854,7 +996,7 @@ Add reference-derived modes to `bench_maze.py` such as:
 
 These experiments will tell us which parts of the reference actually create its advantage.
 
-## Especially important question: why is the reference faster at 25?
+### Especially important question: why is the reference faster at 25?
 
 Because the reference already wins before the later optimization phases dominate, isolate the initial behavior first.
 
@@ -873,7 +1015,7 @@ This can separate:
 - routing representation
 - incidental Treasure collection during mapping
 
-## Investigate local/incremental reindexing
+### Investigate local/incremental reindexing
 
 The generic full-reindex benchmark shows that whole-tree work can explode on 32x32.
 
@@ -888,7 +1030,7 @@ But correctness of subtree ranges is essential. A faster broken tree is not usef
 
 Benchmark this against the unchanged reference using identical seeds.
 
-## Consider world-size-dependent tuning
+### Consider world-size-dependent tuning
 
 A constant threshold optimized for 8x8 may not be optimal for 32x32.
 
@@ -905,7 +1047,7 @@ MAZE_REUSE_LIMIT
 
 The 32x32 data suggests algorithmic overhead grows much faster than on small maps, so adaptive values may be beneficial.
 
-## Benchmark only where information value justifies runtime
+### Benchmark only where information value justifies runtime
 
 The 32x32 runs are expensive.
 
@@ -921,175 +1063,14 @@ Recommended workflow:
 
 The old strategies can remain in `bench_maze.py` as historical baselines, but they do not need to run in every optimization iteration.
 
----
+-----
 
 -----
 
-## Spawn locality research
+### Spawn locality ownership
 
-Verified game/API behavior:
-
-- `clear()` moves the controlling drone to `(0,0)`.
-- `spawn_drone(task, *args)` creates the child on the caller's current tile.
-- successful `move()` costs about 200 ticks.
-- successful `spawn_drone()` costs about 200 ticks.
-
-Current `maze_parallel.run()` does:
-
-1. `clear()`, leaving the parent at `(0,0)`
-2. spawn every child at that same tile
-3. each child independently calls `utils.move_to(origin_x, origin_y)`
-4. parent later moves to its own Maze origin
-
-This makes spawn position a real setup variable.
-
-Important geometry correction:
-
-Because normal movement wraps, the visual center of the 32x32 farm is not inherently a globally better fixed spawn point. A useful spawn anchor must be chosen against the actual worker-origin set.
-
-For the current 32-worker uniform 4x4 production layout, the first 32 row-major block centers occupy only part of the 64 possible 4x4 slots. Therefore `(0,0)`, `(16,16)`, and a band-centered anchor such as `(0,8)` are meaningfully different for this exact origin set even though the full toroidal farm has no privileged center.
-
-Potential setup optimizations to benchmark:
-
-- one common anchor, then children self-position
-- choose a better 32-slot subset from the 64 possible 4x4 blocks
-- spawn the farthest children first so their travel overlaps later spawn calls
-- reserve the nearest Maze origin for the parent because it only starts its own positioning after child launch
-- controller `spawn_at`: move parent to each origin, spawn there, then continue
-- hierarchical spawning if a later benchmark shows sequential parent spawning is the bottleneck
-
-ScienceJiho's current-memory-compatible reference already contains a generic `spawn_at()` helper that moves the controller to a worker start before spawning. Its own documentation warns that controller repositioning becomes setup cost, so this must be measured rather than assumed faster.
-
-### Spawn locality microbenchmark
-
-Benchmark version: `spawn-v1`
-
-Benchmark commit: `c15c9f3ea47970cbbc6a4677bf5301a3a831b15e`
-
-Files:
-
-- `bench_spawn.py`
-- `bench_spawn_run.py`
-
-The benchmark isolates the 32-worker / 4x4-Maze setup and compares:
-
-```text
-baseline-origin00-rowmajor
-center-anchor-rowmajor
-band-anchor-rowmajor
-band-anchor-farthest-parent-near
-nearest-slots-origin00
-nearest-slots-farthest-parent-near
-spawn-at-rowmajor-origins
-```
-
-It deliberately does not run a Maze solver. Every worker only reaches its assigned origin and plants its initial Bush. This establishes whether spawn geometry has enough effect to justify adding the best topology as a mode to the expensive exact-9863168-Gold leaderboard benchmark.
-
-Run:
-
-`bench_spawn_run.py`
-
-Do not change `maze_parallel.py` production spawn topology until this microbenchmark is measured and the promising candidate is validated end-to-end in the Maze benchmark.
-
-
-## Spawn locality benchmark results
-
-### spawn-v1
-
-Benchmark version: `spawn-v1`
-
-Benchmark commit: `c15c9f3ea47970cbbc6a4677bf5301a3a831b15e`
-
-Measured 32x32 / 32-drone setup-only results, identical across seeds 1/2/3:
-
-```text
-baseline-origin00-rowmajor                   2.10 s / 12146 ticks
-center-anchor-rowmajor                      2.85 s / 16613 ticks
-band-anchor-rowmajor                        2.10 s / 12140 ticks
-band-anchor-farthest-parent-near            3.39 s / 20011 ticks
-nearest-slots-origin00                      6.91 s / 41374 ticks
-nearest-slots-farthest-parent-near          8.24 s / 49419 ticks
-spawn-at-rowmajor-origins                   5.98 s / 35671 ticks
-```
-
-Durable conclusions:
-
-- moving the parent to the visual farm center before spawning is worse than the current `(0,0)` baseline
-- a simple `(0,8)` band anchor ties the baseline almost exactly, so reducing average child travel alone does not improve wall-clock setup
-- moving the parent to every child origin and spawning in place is decisively worse
-- child travel is heavily overlapped with the serial spawn chain, so the critical path is not the sum of all child distances
-- the v1 nearest/farthest modes are not valid locality comparisons because their O(n²) runtime planning is inside the timed section and dominates their results
-- the identical outputs across all three seeds show this setup benchmark is deterministic
-
-The main architectural hypothesis after v1 is therefore hierarchical spawning: reduce the serial 31-spawn chain itself rather than merely shortening independently parallel child travel.
-
-### spawn-v4 follow-up
-
-Current benchmark version: `spawn-v4`
-
-Structural benchmark commit before the speedup-only bump: `2a217d6b4a42ea403c292fbc2e19428fd561b25b`.
-
-`spawn-v4` keeps the same precomputed locality/binary-tree topology as `spawn-v3` and changes the simulation request to `BENCH_SPEEDUP = 10000`.
-
-Modes:
-
-```text
-baseline-origin00-rowmajor
-origin00-parent-near
-band-anchor-rowmajor
-band-precomputed-farthest-parent-near
-nearest-slots-precomputed-rowmajor
-nearest-slots-precomputed-farthest-parent-near
-binary-tree-rowmajor-origin00
-binary-tree-nearest-origin00
-```
-
-The binary tree recursively splits a fixed worker range. Each branch spawns one child branch while continuing the other branch itself, reducing the dependency depth toward log2(worker_count). Only integer layout/start/count arguments are passed so copied spawn arguments do not include the full origin table.
-
-Run `bench_spawn_run.py` and require the first line to be:
-
-```text
-BENCHMARK VERSION spawn-v4
-```
-
-Do not promote spawn topology directly from the setup microbenchmark. The measured winner is now included in the full cold Maze leaderboard benchmark at 9863168 Gold.
-
-
-Measured `spawn-v4` result, repository code state `7c66b8422554d109e90220705e3841ea49081eca`:
-
-```text
-baseline-origin00-rowmajor                        2.10 s / 11832 ticks
-origin00-parent-near                             2.07 s / 11662 ticks
-band-anchor-rowmajor                             2.10 s / 11836 ticks
-band-precomputed-farthest-parent-near            1.68 s /  9201 ticks
-nearest-slots-precomputed-rowmajor               1.56 s /  8671 ticks
-nearest-slots-precomputed-farthest-parent-near   1.40 s /  7605 ticks
-binary-tree-rowmajor-origin00                    1.29 s /  6892 ticks
-binary-tree-nearest-origin00                     0.90 s /  4498 ticks
-```
-
-All three seeds were identical.
-
-Measured conclusions:
-
-- `binary-tree-nearest-origin00` reduced outer simulation runtime from 2.10 s to 0.90 s: about 57.1% less setup time, or 2.33x faster
-- tick count fell from 11832 to 4498: about 62.0% fewer ticks
-- binary spawning alone, keeping the row-major slot set, reached 1.29 s and therefore accounts for a large part of the gain
-- precomputed nearest-slot selection without the binary tree reached 1.56 s
-- combining both optimizations is materially better than either one alone
-- visual farm-center placement remains disproven as an optimization for this workload
-
-This is sufficient to promote the topology into the exact leaderboard benchmark, but not directly into production.
-
-The exact 9863168-Gold follow-up is now `maze-v3`, code state `7faabfb9bf3593837ac191a7b198c1ba30f41e68`.
-
-New exact-target modes:
-
-```text
-lb-uniform4-map-bfs-tree-spawn
-lb-nearest4-map-bfs-tree-spawn
-```
-
-The persistent tree variant cannot reuse the setup-only `wait_for()` design because Maze workers must remain alive. Instead every branch recursively spawns descendants, every leaf becomes a persistent Maze worker, and the root waits for the globally visible Bush planting cost to be consumed by all 32 Bushes before releasing the Weird-Substance barrier. This avoids a second full readiness walk in the normal case.
-
-Production `maze_parallel.py` remains unchanged until `maze-v3` proves the topology on the real leaderboard target.
+| Kind | Detail |
+| --- | --- |
+| Canonical results | Historical `spawn-v1`, `spawn-v4`, and current `spawn-v5` measurements live in `bench/runtime.md`. |
+| Maze use | Maze may reference the winning topology, but must not duplicate setup-only spawn timing tables here. |
+| End-to-end rule | A spawn microbenchmark winner still requires validation against the exact Maze Gold target before production promotion. |
