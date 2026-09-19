@@ -1,190 +1,43 @@
-# Dinosaur benchmarks
+# Benchmark: Dinosaur
 
-This file is the canonical home for measured benchmark results for this topic.
+## Scope
 
 | Field | Value |
 | --- | --- |
-| Migrated from | `docs/DINOSAUR.md`, `memory/dinosaurs.md` |
-| Result rule | Every canonical run must name the full Git source commit that pins runner and implementation. |
-| Separation | Use `-----` between runs produced from different code states or materially different setups. |
-| Interpretation | Keep measured facts separate from conclusions and open questions. |
+| Topic | Dinosaur |
+| Purpose | Compare Dinosaur path geometry, shortcut policies, field setup, tail targets, and exact leaderboard Bone throughput. |
+| Implementation | `bench_dinosaur.py` |
+| Runner | `bench_dinosaur_run.py` |
+| Primary metric | Bone throughput plus elapsed time at the same tail target; exact Bone gain for validity. |
+| Success condition | Candidate must reach the requested tail target, emit `DINOSAUR BENCH VALID`, and match the exact expected Bone gain. |
 
-## Referenced commits in migrated history
+## Benchmark index
 
-| Referenced commit | `624827d0520ca183353c0102562dfdc253d6fab1` |
-| Referenced commit | `92e420f70a8c76c498caf0d5beb2e06425456300` |
-| Referenced commit | `1ecfb09d2cdfd8078c182f7b5e7f48d291316e55` |
-| Referenced commit | `1f65a3663e6322d07b80496b71ea5bd84b4c2544` |
-| Referenced commit | `7e51103180c4484ef68e91c974fcca5b05f94af9` |
-| Referenced commit | `567e0ab6f96305cd6c9a05fd5eea2917449c2407` |
-| Referenced commit | `d3a0fc555d5e78466fd1eb39e608b9ef0627b6b6` |
-| Referenced commit | `fe4df71ae877a484b091c2fa276cae0a6f0e2039` |
-| Referenced commit | `be91a2d6ad846490130bea03cb965d48d86f085a` |
-| Referenced commit | `4ed309863c7199b3d3a9bf08bfd1137a7b57093a` |
-| Referenced commit | `7febc4bd1238a54e9ae4456ab3621d9d0625241d` |
-| Referenced commit | `cd3070188dce3da68a5c065fb16caafa5917c7f1` |
-| Referenced commit | `1e47c5201207fac0d6cf35b23f8fd56c2483c477` |
-| Referenced commit | `7081dc129241652273e6793d3352db487faf3fdf` |
-| Referenced commit | `68d906c195d9d063d100985490cc32343c96124f` |
-| Referenced commit | `965fd30828350a4167e5f74bb71ca91a4b213166` |
+| Run / version | Source commit | Profile | Status |
+| --- | --- | --- | --- |
+| Historical initial matrix | Unknown / not recorded | 8x8 / 16x16 / 32x32 target sweeps | Measured historical |
+| Near-full production sweep | Unknown / not recorded | 95 / 97 / 99 / board-1 | Measured historical |
+| v3 matrix | `7e51103180c4484ef68e91c974fcca5b05f94af9` | 32x32 / leaderboard-shaped matrix | Superseded before final measurement |
+| `dinosaur-v4` | Unknown / not recorded | Flekay diagnostics + Reddit candidates | Preview invalid due accounting bug |
+| `dinosaur-v5` | `cd3070188dce3da68a5c065fb16caafa5917c7f1` | Corrected head/tail accounting | Superseded |
+| `dinosaur-v6` | `7081dc129241652273e6793d3352db487faf3fdf` | Corrected Reddit phase translation | Superseded |
+| `dinosaur-v7` | `ed6bc455c7705cbd501798470fd3095f65b4f823` | Boolean move-check fix | Current; pending full run |
 
-A referenced commit is not automatically a benchmark source commit. Each result block must explicitly identify which commit produced it. If an older block lacks that mapping, treat it as historical/non-canonical and rerun it before using it for a production decision.
+## Results
 
------
-## Benchmark convention
+### 8x8
 
-Use the repository-wide convention:
+#### Provenance
 
-- `bench_dinosaur.py` — all Dinosaur benchmark modes
-- `bench_dinosaur_run.py` — matrix, seeds, `simulate()`, and result aggregation
+| Field | Value |
+| --- | --- |
+| Source commit | **Unknown / not recorded** |
+| Benchmark/version | Not versioned in this record |
+| Requested speedup | Not recorded |
+| Seeds | See recorded setup |
+| Canonical status | Historical/non-canonical until rerun from a committed state |
 
-Do not create one benchmark file per strategy.
-
-## Implemented initial benchmark modes
-
-The first benchmark now exists in:
-
-- `bench_dinosaur.py`
-- `bench_dinosaur_run.py`
-
-Current modes:
-
-| Mode | Strategy | Purpose |
-| ---: | --- | --- |
-| 0 | `hamiltonian-skyscraper` | current production-style baseline |
-| 1 | `safe-shortcuts-annealed-50` | source-like shortcut probability that fades toward 50% fill |
-| 2 | `safe-shortcuts-hard-25` | always evaluate safe shortcuts until 25% fill, then pure Hamiltonian |
-| 3 | `safe-shortcuts-hard-50` | always evaluate safe shortcuts until 50% fill, then pure Hamiltonian |
-| 4 | `skysdottir-tfwr-reference` | source-near behavioral port of `dinos3.py` + `hilbert.py`: Hilbert cycle, source tail queue semantics, annealing, 50% cutoff |
-
-Modes 1-3 deliberately use the same skyscraper/Hamiltonian geometry as production. This isolates shortcut value from path-shape changes.
-
-Mode 4 is intentionally different: it preserves the current `skysdottir/tfwr` reference path and control flow closely enough to detect performance lost in our adaptations. The benchmark still stops at the same actual consumed-Apple/tail target so runtime remains comparable.
-
-Future modes can add edge-wave, Moore, Hilbert, and the Pastebin implementations after the current benchmark establishes a shortcut baseline.
-
-Do not replace production `dinosaur.py` until a candidate wins deterministic simulation benchmarks.
-
-## Benchmark dimensions
-
-For production selection, the runner now focuses on:
-
-```text
-world size: 32
-target tail occupancy: 95%, 97%, 99%, 100% (clamped to board - 1)
-seeds: 1, 2, 3
-speedup: 10000
-strategies:
-- hamiltonian-skyscraper
-- skysdottir-tfwr-reference
-```
-
-8x8 and 16x16 remain useful as historical/debugging data, but they should not decide the production algorithm when the real production farm is 32x32.
-
-The benchmark stops at fixed tail occupancy rather than only filling the board. This remains useful because shortcut value is concentrated in the early/middle run and because the optimal cutoff may be 25% rather than 50%.
-
-The benchmark prints `DINOSAUR BENCH INVALID` if a strategy encounters a failed `move()` before reaching its requested tail target. Treat such a result as invalid even if the returned runtime looks fast.
-
-For each run, start from:
-
-- empty field
-- same world size
-- same simulation seed
-- oversized Cactus inventory
-- same unlock state
-
-### Primary production metric: Bone throughput
-
-Runtime is only directly comparable **between strategies at the same tail target**, because those runs produce the same Bone amount.
-
-Across different target tail lengths, the primary metric is:
-
-```text
-Bones per second = tail_length ** 2 / runtime
-Bones per minute = Bones per second * 60
-```
-
-The runner now prints:
-
-- runtime
-- target tail length
-- expected Bones
-- Bones/second
-- Bones/minute
-
-This distinction is critical because Bone yield grows quadratically with tail length. A 95% run can be much slower in absolute time and still produce far more Bones per unit time than a 25% run.
-
-Useful verbose diagnostics:
-
-- ending `get_tick_count()`
-- successful moves
-- Apples collected
-- shortcut attempts
-- shortcuts taken
-- moves saved by shortcuts
-- tail length at completion
-
-## Suggested benchmark workflow
-
-Dinosaur full-board 32x32 runs can be expensive.
-
-Use staged benchmarking:
-
-1. 8x8 for correctness/debugging
-2. 16x16 for tuning
-3. 32x32 only for promising finalists
-4. one seed during early iteration
-5. three seeds for final comparisons
-
-When tuning shortcut cutoff, compare only the current best path and candidate cutoff values rather than rerunning every historical mode.
-
-# Throughput reinterpretation
-
-The initial benchmark discussion focused too much on raw runtime. For production, Bone throughput is the more important metric.
-
-Because:
-
-```text
-Bones = tail_length ** 2
-```
-
-larger tail targets can dominate throughput even when they take longer.
-
-Example from the completed 16x16 data:
-
-| Target | Tail | Bones | Reference runtime | Reference Bones/s | Hamiltonian Bones/s |
-| ---: | ---: | ---: | ---: | ---: | ---: |
-| 25% | 64 | 4096 | 93.11 | 43.99 | 23.56 |
-| 50% | 128 | 16384 | 187.03 | 87.60 | 75.89 |
-| 75% | 192 | 36864 | 220.16 | 167.44 | 157.03 |
-| 95% | 243 | 59049 | 230.92 | **255.71** | 244.58 |
-
-So the 95% reference run has almost 6x the Bone throughput of the 25% reference run, despite taking much longer.
-
-The same effect already appears in partial 32x32 data:
-
-- 25% reference average:
-  - tail 256
-  - 65,536 Bones
-  - 684.99 s
-  - about **95.67 Bones/s**
-- 50% seed 1:
-  - tail 512
-  - 262,144 Bones
-  - Hamiltonian: about **152.67 Bones/s**
-  - reference: about **139.33 Bones/s**
-
-Therefore:
-
-> The fastest algorithm to a short tail is not automatically the best Bone producer.
-
-For production, the likely optimum may be a long 75-95% run even if its wall-clock duration is higher.
-
-# Preliminary benchmark results
-
-These are preview results from the first deterministic benchmark run. Lower is better.
-
-## 8x8
+#### Measurements and observations
 
 | Target | Hamiltonian | Annealed 50 | Hard 25 | Hard 50 | skysdottir reference |
 | ---: | ---: | ---: | ---: | ---: | ---: |
@@ -200,7 +53,22 @@ Observations:
 - The advantage becomes small near a full board.
 - Hard cutoff at 50% is consistently unattractive late in the run.
 
-## 16x16
+
+-----
+
+### 16x16
+
+#### Provenance
+
+| Field | Value |
+| --- | --- |
+| Source commit | **Unknown / not recorded** |
+| Benchmark/version | Not versioned in this record |
+| Requested speedup | Not recorded |
+| Seeds | See recorded setup |
+| Canonical status | Historical/non-canonical until rerun from a committed state |
+
+#### Measurements and observations
 
 | Target | Hamiltonian | Annealed 50 | Hard 25 | Hard 50 | skysdottir reference |
 | ---: | ---: | ---: | ---: | ---: | ---: |
@@ -222,13 +90,22 @@ Observations:
 - The source-like annealed skyscraper mode also becomes slower than baseline after 25% on 16x16.
 - This strongly supports an early-shortcut / late-Hamiltonian hybrid, but the path geometry matters: the Hilbert-based reference still outperforms our skyscraper adaptation on 16x16 despite earlier community reports that Hilbert can be slower.
 
-## Plausibility check
 
-For a 25% target, `safe-shortcuts-hard-25` and `safe-shortcuts-hard-50` are identical for every shown seed.
+-----
 
-That is expected: both modes use identical shortcut behavior until 25% fill, and the benchmark stops there. This is a useful confirmation that the cutoff plumbing behaves as intended.
+### 32x32, 25% tail target
 
-## 32x32, 25% tail target
+#### Provenance
+
+| Field | Value |
+| --- | --- |
+| Source commit | **Unknown / not recorded** |
+| Benchmark/version | Not versioned in this record |
+| Requested speedup | Not recorded |
+| Seeds | 1 |
+| Canonical status | Historical/non-canonical until rerun from a committed state |
+
+#### Measurements and observations
 
 | Strategy | Seed 1 | Seed 2 | Seed 3 | Average | Min | Max |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
@@ -252,7 +129,22 @@ This cleanly separates two ideas:
 
 The source-near Hilbert/reference algorithm scales much better in the early run.
 
-## 32x32, 50% tail target
+
+-----
+
+### 32x32, 50% tail target
+
+#### Provenance
+
+| Field | Value |
+| --- | --- |
+| Source commit | **Unknown / not recorded** |
+| Benchmark/version | Not versioned in this record |
+| Requested speedup | Not recorded |
+| Seeds | 1 |
+| Canonical status | Historical/non-canonical until rerun from a committed state |
+
+#### Measurements and observations
 
 | Strategy | Seed 1 | Seed 2 | Seed 3 | Average |
 | --- | ---: | ---: | ---: | ---: |
@@ -294,7 +186,22 @@ Safer optimization directions are:
 3. benchmark full-run throughput at 75% and 95%
 4. select the whole-run strategy based on requested Bone target if the later throughput diverges
 
-## 32x32, 75% tail target
+
+-----
+
+### 32x32, 75% tail target
+
+#### Provenance
+
+| Field | Value |
+| --- | --- |
+| Source commit | **Unknown / not recorded** |
+| Benchmark/version | Not versioned in this record |
+| Requested speedup | Not recorded |
+| Seeds | See recorded setup |
+| Canonical status | Historical/non-canonical until rerun from a committed state |
+
+#### Measurements and observations
 
 | Strategy | Average runtime | Bones/s | Bones/min |
 | --- | ---: | ---: | ---: |
@@ -306,7 +213,22 @@ Safer optimization directions are:
 
 At 75%, plain Hamiltonian is about **9.7% higher throughput** than the reference.
 
-## 32x32, 95% tail target
+
+-----
+
+### 32x32, 95% tail target
+
+#### Provenance
+
+| Field | Value |
+| --- | --- |
+| Source commit | **Unknown / not recorded** |
+| Benchmark/version | Not versioned in this record |
+| Requested speedup | Not recorded |
+| Seeds | See recorded setup |
+| Canonical status | Historical/non-canonical until rerun from a committed state |
+
+#### Measurements and observations
 
 | Strategy | Average runtime | Bones/s | Bones/min |
 | --- | ---: | ---: | ---: |
@@ -342,11 +264,26 @@ For this sweep, compare only:
 
 A natural collision/end-of-run harvest is also worth measuring because production currently behaves closer to that than to an arbitrary 95% cutoff.
 
-## Sustained-throughput results
+
+-----
+
+### Sustained-throughput results
+
+#### Provenance
+
+| Field | Value |
+| --- | --- |
+| Source commit | **Unknown / not recorded** |
+| Benchmark/version | Not versioned in this record |
+| Requested speedup | Not recorded |
+| Seeds | See recorded setup |
+| Canonical status | Historical/non-canonical until rerun from a committed state |
+
+#### Measurements and observations
 
 The three-cycle benchmark confirms that repeated harvest/restart does not change the broad strategy ranking.
 
-### Sustained 25%
+#### Sustained 25%
 
 | Strategy | Average runtime | Bones/s | Bones/min |
 | --- | ---: | ---: | ---: |
@@ -355,7 +292,7 @@ The three-cycle benchmark confirms that repeated harvest/restart does not change
 
 At 25%, the reference provides about **91% more sustained Bone throughput** than Hamiltonian.
 
-### Sustained 50%
+#### Sustained 50%
 
 | Strategy | Average runtime | Bones/s | Bones/min |
 | --- | ---: | ---: | ---: |
@@ -366,7 +303,7 @@ At 50%, the two strategies are effectively tied. Hamiltonian is only about **0.7
 
 This mirrors the single-run result and shows that restart/setup overhead is not responsible for the crossover.
 
-### Sustained 75% — partial
+#### Sustained 75% — partial
 
 The supplied output currently contains Hamiltonian seed 1:
 
@@ -380,11 +317,26 @@ That is very close to the single-run 75% Hamiltonian result of 279.48 Bones/s, s
 
 Finish the remaining sustained 75% and 95% cases before making the final production choice.
 
-## Final near-full benchmark results
+
+-----
+
+### Final near-full benchmark results
+
+#### Provenance
+
+| Field | Value |
+| --- | --- |
+| Source commit | **Unknown / not recorded** |
+| Benchmark/version | Not versioned in this record |
+| Requested speedup | Not recorded |
+| Seeds | See recorded setup |
+| Canonical status | Historical/non-canonical until rerun from a committed state |
+
+#### Measurements and observations
 
 The production-focused near-full sweep compared only the two remaining candidates on 32x32.
 
-### Single-run throughput
+#### Single-run throughput
 
 | Target | Tail | Hamiltonian Bones/s | Reference Bones/s |
 | ---: | ---: | ---: | ---: |
@@ -395,7 +347,7 @@ The production-focused near-full sweep compared only the two remaining candidate
 
 Single-run Hamiltonian throughput continues increasing up to the maximum safe target.
 
-### Sustained throughput, 3 cycles
+#### Sustained throughput, 3 cycles
 
 | Target | Hamiltonian Bones/s | Hamiltonian Bones/min | Reference Bones/s | Reference Bones/min |
 | ---: | ---: | ---: | ---: | ---: |
@@ -426,119 +378,26 @@ For steady-state Bone production, the current benchmark evidence therefore favor
 
 The skysdottir reference remains useful only for short targeted runs, where its early shortcut phase is substantially faster.
 
-## Current benchmark conclusion
 
-Do not promote the current skyscraper shortcut variants.
+-----
 
-For short 32x32 runs, the source-near reference is best, but the final near-full sweep resolves steady-state production in favor of plain Hamiltonian skyscraper. At board - 1, Hamiltonian reaches 453.57 sustained Bones/s versus 415.31 for the reference.
+### Flekay deep-dive findings (2026-09-19)
 
-This makes target-aware Bone production more important: if the planner needs only a modest Bone amount, stopping around a short tail target can exploit the reference algorithm's strongest phase instead of paying for a long late-game traversal.
+#### Provenance
 
-## Current benchmark v3
+| Field | Value |
+| --- | --- |
+| Source commit | **Unknown / not recorded** |
+| Benchmark/version | Not versioned in this record |
+| Requested speedup | Not recorded |
+| Seeds | See recorded setup |
+| Canonical status | Historical/non-canonical until rerun from a committed state |
 
-The old sustained-throughput results above remain useful historical evidence, but the next comparison is now explicitly leaderboard-shaped.
-
-Implementation commits:
-
-- `bench_dinosaur.py` strategy expansion: `624827d0520ca183353c0102562dfdc253d6fab1`
-- setup/accounting fix: `92e420f70a8c76c498caf0d5beb2e06425456300`
-- explicit valid-run marker: `1ecfb09d2cdfd8078c182f7b5e7f48d291316e55`
-- `bench_dinosaur_run.py` leaderboard matrix: `1f65a3663e6322d07b80496b71ea5bd84b4c2544`
-- raw-summary warning: `7e51103180c4484ef68e91c974fcca5b05f94af9`
-
-The runner uses:
-
-```text
-world size: 32
-targets: 25%, 50%, 75%, 95%, board-1
-seeds: 1, 2, 3
-simulate speedup: 10000
-starting items: 1e9 Cactus + 1e9 Power
-unlocks: all
-leaderboard target: 33,488,928 Bone
-```
-
-The board-1 case means tail length 1023. With the max Dinosaur yield multiplier this is exactly:
-
-```text
-1023 * 1023 * 32 = 33,488,928 Bone
-```
-
-### Algorithm matrix
-
-The v3 matrix contains 20 modes:
-
-- plain skyscraper Hamiltonian
-- existing skyscraper shortcut variants
-- skysdottir Hilbert source-near reference
-- skyscraper fast-lane shortcut variants
-- heartbeat Hamiltonian
-- heartbeat shortcut / fast-lane variants
-- Hilbert without shortcuts
-- Reddit coil/strike with 33%, 50%, and 66% safe-transition points
-
-The fast-lane modes implement the useful dormant ideas visible in the skysdottir source: use a cheap path-specific lane toward the cycle's return corridor before normal greedy Apple-direction shortcuts.
-
-### Field preparation / cleanup benchmark
-
-The second Reddit/skysdottir reference performs preparation in parallel with multiple drones before starting the Dinosaur:
-
-- harvest tiles
-- convert them to Soil
-- wait for all preparation workers
-- return to the origin
-- equip the Dinosaur Hat
-
-The Reddit author explicitly says they had not checked whether removing Grass was necessary for Dinosaurs.
-
-Current game documentation makes this worth measuring: Apples cannot spawn on occupied tiles, and Grass can grow automatically on Grassland. Therefore preparation may prevent later Apple blockage, but its startup cost may also be wasted on a fresh leaderboard field.
-
-The v3 runner separately compares six preparation modes:
-
-1. no cleanup
-2. `clear()`
-3. serial harvest + Soil conversion
-4. parallel harvest only
-5. parallel harvest + Soil conversion
-6. source-style Sunflower-Hat + parallel harvest + Soil conversion
-
-The main algorithm matrix currently uses parallel harvest + Soil conversion so route comparisons share the same field condition.
-
-### Result validity
-
-`simulate()` returns elapsed time, not a child-script success flag. Every successful child run therefore emits:
-
-```text
-DINOSAUR BENCH VALID ...
-```
-
-Failures emit:
-
-```text
-DINOSAUR BENCH INVALID ...
-```
-
-At the 32x32 board-1 target, the child also checks the real leaderboard threshold `num_items(Items.Bone) >= 33488928`.
-
-Runner summaries are intentionally labeled `RAW`. Never treat a fast summary row as a winner when any corresponding seed emitted `INVALID`.
-
-No v3 performance result has been measured yet. Do not change production `dinosaur.py` until the v3 output has been collected and all candidate winners are valid across the compared seeds.
-
-
-## Local upstream archive
-
-The reviewed skysdottir reference is indexed locally at:
-
-`external/skysdottir-tfwr/`
-
-The source-near benchmark should remain tied to the upstream revision recorded there.
-
-
-## Flekay deep-dive findings (2026-09-19)
+#### Measurements and observations
 
 The current upstream `Flekay/The-Farmer-Was-Replaced` still points at revision `567e0ab6f96305cd6c9a05fd5eea2917449c2407` from 2026-01-28, so the local mirror is current as of this review.
 
-### Historical Dinosaur benchmark caveat
+#### Historical Dinosaur benchmark caveat
 
 Flekay's Dinosaur README reports:
 
@@ -572,7 +431,7 @@ The old implementation also contains hard-coded `100`-cell assumptions. Other Fl
 
 These are useful **phase-ratio ideas**, not current 32x32 constants. The v4 diagnostic benchmark therefore tests 10%, 18%, 25%, 34%, and 50% occupancy rather than blindly reusing absolute lengths 18/34/50.
 
-### Failed moves as cheap branch probes
+#### Failed moves as cheap branch probes
 
 Flekay's early Dinosaur scripts frequently use:
 
@@ -592,7 +451,7 @@ Current Flekay tick research records both `can_move()` and a failed `move()` as 
 
 This makes optimistic "try preferred, fall back on failure" a useful early-phase policy when either successful direction is safe. It cannot replace the stronger cycle-order safety checks used by arbitrary Hamiltonian shortcuts.
 
-### Cleanup spawn topology
+#### Cleanup spawn topology
 
 Flekay's historical `Movement/line_formation` benchmark reports:
 
@@ -613,7 +472,7 @@ in addition to the existing serial/current/skysdottir preparation modes.
 
 These upstream tick numbers are historical evidence only; the local 32x32 setup sweep is the decision source.
 
-### Interpreter hot-path implications
+#### Interpreter hot-path implications
 
 Flekay's measured tick model records, among other things:
 
@@ -639,7 +498,7 @@ This supports the existing ring-buffer design and suggests a later ablation for 
 
 Do not optimize these before the route-level v4 results identify which shortcut family is worth keeping.
 
-### Path precomputation
+#### Path precomputation
 
 Flekay's loop-around benchmark shows that precomputed direction sequences can reduce repeated traversal decision overhead after setup.
 
@@ -651,7 +510,7 @@ This suggests a small future Dinosaur ablation:
 
 However, the current plain Hamiltonian baseline is already extremely simple, so this is lower priority than route policy and harvest target.
 
-### Generic pathfinding break-even
+#### Generic pathfinding break-even
 
 Flekay's pathfinding benchmark reinforces that more planning can cost more ticks than it saves.
 
@@ -675,7 +534,7 @@ The same README contains `divinepath` result rows, but the pinned/current `bench
 
 For Dinosaur, generic A*/TSP-style planning remains a control experiment rather than a primary production candidate.
 
-### All-pairs non-wrapping route precomputation
+#### All-pairs non-wrapping route precomputation
 
 Flekay reports:
 
@@ -686,55 +545,22 @@ runto_local.py setup 7.7344 s, 7470 ticks/benchmark
 
 The tiny warm-path saving does not justify the very large precomputation for changing random Apple targets. Do not add an all-pairs Dino routing table based on this evidence.
 
-## Dinosaur benchmark v4
 
-Flekay-derived additions were implemented after the v3 matrix:
+-----
 
-- `be91a2d6ad846490130bea03cb965d48d86f085a` — Flekay early-phase diagnostics, dual/line cleanup topologies, repeated Bone-target support
-- `4ed309863c7199b3d3a9bf08bfd1137a7b57093a` — v4 runner matrix
+### Dinosaur benchmark v5 accounting correction
 
-New algorithm diagnostic modes:
+#### Provenance
 
-- mode 20: simple axis-greedy
-- mode 21: parity-greedy based on Flekay `drone.py` phase one
+| Field | Value |
+| --- | --- |
+| Source commit | **Unknown / not recorded** |
+| Benchmark/version | `dinosaur-v4`, `dinosaur-v5` |
+| Requested speedup | Not recorded |
+| Seeds | 1 |
+| Canonical status | Historical/non-canonical until rerun from a committed state |
 
-These are intentionally early-phase diagnostics and are not assumed to survive near-full occupancy.
-
-New setup modes:
-
-- mode 6: Flekay line-spawn Soil cleanup
-- mode 7: Flekay dual-spawner Soil cleanup
-
-New exact leaderboard experiment:
-
-For selected route families, repeatedly harvest at tail targets:
-
-```text
-25%, 33%, 50%, 66%, 75%, 95%, board-1
-```
-
-and restart until:
-
-```text
-num_items(Items.Bone) >= 33488928
-```
-
-This directly tests the leaderboard objective instead of assuming one maximum tail is optimal.
-
-The v4 runner contains:
-
-```text
-main algorithm matrix:       20 * 5 * 3 = 300 simulations
-setup sweep:                  3 * 8 * 3 = 72 simulations
-Flekay early diagnostics:     2 * 5 * 3 = 30 simulations
-leaderboard harvest sweep:    3 * 7 * 3 = 63 simulations
-total:                                      465 simulations
-```
-
-As with v3, runtime correctness and performance are not verified until the in-game simulation output is collected. Reject any candidate/seed that emits `DINOSAUR BENCH INVALID`.
-
-
-## Dinosaur benchmark v5 accounting correction
+#### Measurements and observations
 
 The first live `dinosaur-v4` preview exposed a benchmark accounting bug.
 
@@ -788,16 +614,16 @@ Implementation:
 - `7febc4bd1238a54e9ae4456ab3621d9d0625241d` — fix head/tail accounting and per-cycle Bone validation
 - `cd3070188dce3da68a5c065fb16caafa5917c7f1` — bump runner to `dinosaur-v5`
 
-### v4 preview signal
+#### v4 preview signal
 
 The incomplete v4 Seed 1 / 25% preview is not valid final benchmark data because of the one-Apple-short target, but its relative route signal is useful:
 
-```text
-hamiltonian-skyscraper             1176.76 s
-skysdottir-hilbert-reference        677.80 s
-heartbeat-shortcuts-annealed50      999.26 s
-heartbeat-fastlane-annealed50      1133.28 s
-```
+| Scenario | Mode / metric | Time (s) | Ticks | Notes |
+| --- | --- | ---: | ---: | --- |
+| — | `hamiltonian-skyscraper` | 1176.76 | — | — |
+| — | `skysdottir-hilbert-reference` | 677.80 | — | — |
+| — | `heartbeat-shortcuts-annealed50` | 999.26 | — | — |
+| — | `heartbeat-fastlane-annealed50` | 1133.28 | — | — |
 
 Relative to the Hamiltonian preview:
 
@@ -809,8 +635,321 @@ The tested skyscraper shortcut / fast-lane variants were ~46% to ~59% slower tha
 
 Do not promote any of these based on v4. Re-run `bench_dinosaur_run.py` with `BENCH_VERSION = "dinosaur-v5"`.
 
+## Interpretation
 
-## Dinosaur benchmark v6 Reddit coil/strike correction
+### Throughput reinterpretation
+
+The initial benchmark discussion focused too much on raw runtime. For production, Bone throughput is the more important metric.
+
+Because:
+
+```text
+Bones = tail_length ** 2
+```
+
+larger tail targets can dominate throughput even when they take longer.
+
+Example from the completed 16x16 data:
+
+| Target | Tail | Bones | Reference runtime | Reference Bones/s | Hamiltonian Bones/s |
+| ---: | ---: | ---: | ---: | ---: | ---: |
+| 25% | 64 | 4096 | 93.11 | 43.99 | 23.56 |
+| 50% | 128 | 16384 | 187.03 | 87.60 | 75.89 |
+| 75% | 192 | 36864 | 220.16 | 167.44 | 157.03 |
+| 95% | 243 | 59049 | 230.92 | **255.71** | 244.58 |
+
+So the 95% reference run has almost 6x the Bone throughput of the 25% reference run, despite taking much longer.
+
+The same effect already appears in partial 32x32 data:
+
+- 25% reference average:
+  - tail 256
+  - 65,536 Bones
+  - 684.99 s
+  - about **95.67 Bones/s**
+- 50% seed 1:
+  - tail 512
+  - 262,144 Bones
+  - Hamiltonian: about **152.67 Bones/s**
+  - reference: about **139.33 Bones/s**
+
+Therefore:
+
+> The fastest algorithm to a short tail is not automatically the best Bone producer.
+
+For production, the likely optimum may be a long 75-95% run even if its wall-clock duration is higher.
+
+### Plausibility check
+
+For a 25% target, `safe-shortcuts-hard-25` and `safe-shortcuts-hard-50` are identical for every shown seed.
+
+That is expected: both modes use identical shortcut behavior until 25% fill, and the benchmark stops there. This is a useful confirmation that the cutoff plumbing behaves as intended.
+
+### Current benchmark conclusion
+
+Do not promote the current skyscraper shortcut variants.
+
+For short 32x32 runs, the source-near reference is best, but the final near-full sweep resolves steady-state production in favor of plain Hamiltonian skyscraper. At board - 1, Hamiltonian reaches 453.57 sustained Bones/s versus 415.31 for the reference.
+
+This makes target-aware Bone production more important: if the planner needs only a modest Bone amount, stopping around a short tail target can exploit the reference algorithm's strongest phase instead of paying for a long late-game traversal.
+
+## Reproduction
+
+### Benchmark convention
+
+Use the repository-wide convention:
+
+- `bench_dinosaur.py` — all Dinosaur benchmark modes
+- `bench_dinosaur_run.py` — matrix, seeds, `simulate()`, and result aggregation
+
+Do not create one benchmark file per strategy.
+
+### Suggested benchmark workflow
+
+Dinosaur full-board 32x32 runs can be expensive.
+
+Use staged benchmarking:
+
+1. 8x8 for correctness/debugging
+2. 16x16 for tuning
+3. 32x32 only for promising finalists
+4. one seed during early iteration
+5. three seeds for final comparisons
+
+When tuning shortcut cutoff, compare only the current best path and candidate cutoff values rather than rerunning every historical mode.
+
+## Notes
+
+### Implemented initial benchmark modes
+
+The first benchmark now exists in:
+
+- `bench_dinosaur.py`
+- `bench_dinosaur_run.py`
+
+Current modes:
+
+| Mode | Strategy | Purpose |
+| ---: | --- | --- |
+| 0 | `hamiltonian-skyscraper` | current production-style baseline |
+| 1 | `safe-shortcuts-annealed-50` | source-like shortcut probability that fades toward 50% fill |
+| 2 | `safe-shortcuts-hard-25` | always evaluate safe shortcuts until 25% fill, then pure Hamiltonian |
+| 3 | `safe-shortcuts-hard-50` | always evaluate safe shortcuts until 50% fill, then pure Hamiltonian |
+| 4 | `skysdottir-tfwr-reference` | source-near behavioral port of `dinos3.py` + `hilbert.py`: Hilbert cycle, source tail queue semantics, annealing, 50% cutoff |
+
+Modes 1-3 deliberately use the same skyscraper/Hamiltonian geometry as production. This isolates shortcut value from path-shape changes.
+
+Mode 4 is intentionally different: it preserves the current `skysdottir/tfwr` reference path and control flow closely enough to detect performance lost in our adaptations. The benchmark still stops at the same actual consumed-Apple/tail target so runtime remains comparable.
+
+Future modes can add edge-wave, Moore, Hilbert, and the Pastebin implementations after the current benchmark establishes a shortcut baseline.
+
+Do not replace production `dinosaur.py` until a candidate wins deterministic simulation benchmarks.
+
+### Benchmark dimensions
+
+For production selection, the runner now focuses on:
+
+```text
+world size: 32
+target tail occupancy: 95%, 97%, 99%, 100% (clamped to board - 1)
+seeds: 1, 2, 3
+speedup: 10000
+strategies:
+- hamiltonian-skyscraper
+- skysdottir-tfwr-reference
+```
+
+8x8 and 16x16 remain useful as historical/debugging data, but they should not decide the production algorithm when the real production farm is 32x32.
+
+The benchmark stops at fixed tail occupancy rather than only filling the board. This remains useful because shortcut value is concentrated in the early/middle run and because the optimal cutoff may be 25% rather than 50%.
+
+The benchmark prints `DINOSAUR BENCH INVALID` if a strategy encounters a failed `move()` before reaching its requested tail target. Treat such a result as invalid even if the returned runtime looks fast.
+
+For each run, start from:
+
+- empty field
+- same world size
+- same simulation seed
+- oversized Cactus inventory
+- same unlock state
+
+#### Primary production metric: Bone throughput
+
+Runtime is only directly comparable **between strategies at the same tail target**, because those runs produce the same Bone amount.
+
+Across different target tail lengths, the primary metric is:
+
+```text
+Bones per second = tail_length ** 2 / runtime
+Bones per minute = Bones per second * 60
+```
+
+The runner now prints:
+
+- runtime
+- target tail length
+- expected Bones
+- Bones/second
+- Bones/minute
+
+This distinction is critical because Bone yield grows quadratically with tail length. A 95% run can be much slower in absolute time and still produce far more Bones per unit time than a 25% run.
+
+Useful verbose diagnostics:
+
+- ending `get_tick_count()`
+- successful moves
+- Apples collected
+- shortcut attempts
+- shortcuts taken
+- moves saved by shortcuts
+- tail length at completion
+
+### Current benchmark v3
+
+The old sustained-throughput results above remain useful historical evidence, but the next comparison is now explicitly leaderboard-shaped.
+
+Implementation commits:
+
+- `bench_dinosaur.py` strategy expansion: `624827d0520ca183353c0102562dfdc253d6fab1`
+- setup/accounting fix: `92e420f70a8c76c498caf0d5beb2e06425456300`
+- explicit valid-run marker: `1ecfb09d2cdfd8078c182f7b5e7f48d291316e55`
+- `bench_dinosaur_run.py` leaderboard matrix: `1f65a3663e6322d07b80496b71ea5bd84b4c2544`
+- raw-summary warning: `7e51103180c4484ef68e91c974fcca5b05f94af9`
+
+The runner uses:
+
+```text
+world size: 32
+targets: 25%, 50%, 75%, 95%, board-1
+seeds: 1, 2, 3
+simulate speedup: 10000
+starting items: 1e9 Cactus + 1e9 Power
+unlocks: all
+leaderboard target: 33,488,928 Bone
+```
+
+The board-1 case means tail length 1023. With the max Dinosaur yield multiplier this is exactly:
+
+```text
+1023 * 1023 * 32 = 33,488,928 Bone
+```
+
+#### Algorithm matrix
+
+The v3 matrix contains 20 modes:
+
+- plain skyscraper Hamiltonian
+- existing skyscraper shortcut variants
+- skysdottir Hilbert source-near reference
+- skyscraper fast-lane shortcut variants
+- heartbeat Hamiltonian
+- heartbeat shortcut / fast-lane variants
+- Hilbert without shortcuts
+- Reddit coil/strike with 33%, 50%, and 66% safe-transition points
+
+The fast-lane modes implement the useful dormant ideas visible in the skysdottir source: use a cheap path-specific lane toward the cycle's return corridor before normal greedy Apple-direction shortcuts.
+
+#### Field preparation / cleanup benchmark
+
+The second Reddit/skysdottir reference performs preparation in parallel with multiple drones before starting the Dinosaur:
+
+- harvest tiles
+- convert them to Soil
+- wait for all preparation workers
+- return to the origin
+- equip the Dinosaur Hat
+
+The Reddit author explicitly says they had not checked whether removing Grass was necessary for Dinosaurs.
+
+Current game documentation makes this worth measuring: Apples cannot spawn on occupied tiles, and Grass can grow automatically on Grassland. Therefore preparation may prevent later Apple blockage, but its startup cost may also be wasted on a fresh leaderboard field.
+
+The v3 runner separately compares six preparation modes:
+
+1. no cleanup
+2. `clear()`
+3. serial harvest + Soil conversion
+4. parallel harvest only
+5. parallel harvest + Soil conversion
+6. source-style Sunflower-Hat + parallel harvest + Soil conversion
+
+The main algorithm matrix currently uses parallel harvest + Soil conversion so route comparisons share the same field condition.
+
+#### Result validity
+
+`simulate()` returns elapsed time, not a child-script success flag. Every successful child run therefore emits:
+
+```text
+DINOSAUR BENCH VALID ...
+```
+
+Failures emit:
+
+```text
+DINOSAUR BENCH INVALID ...
+```
+
+At the 32x32 board-1 target, the child also checks the real leaderboard threshold `num_items(Items.Bone) >= 33488928`.
+
+Runner summaries are intentionally labeled `RAW`. Never treat a fast summary row as a winner when any corresponding seed emitted `INVALID`.
+
+No v3 performance result has been measured yet. Do not change production `dinosaur.py` until the v3 output has been collected and all candidate winners are valid across the compared seeds.
+
+### Local upstream archive
+
+The reviewed skysdottir reference is indexed locally at:
+
+`external/skysdottir-tfwr/`
+
+The source-near benchmark should remain tied to the upstream revision recorded there.
+
+### Dinosaur benchmark v4
+
+Flekay-derived additions were implemented after the v3 matrix:
+
+- `be91a2d6ad846490130bea03cb965d48d86f085a` — Flekay early-phase diagnostics, dual/line cleanup topologies, repeated Bone-target support
+- `4ed309863c7199b3d3a9bf08bfd1137a7b57093a` — v4 runner matrix
+
+New algorithm diagnostic modes:
+
+- mode 20: simple axis-greedy
+- mode 21: parity-greedy based on Flekay `drone.py` phase one
+
+These are intentionally early-phase diagnostics and are not assumed to survive near-full occupancy.
+
+New setup modes:
+
+- mode 6: Flekay line-spawn Soil cleanup
+- mode 7: Flekay dual-spawner Soil cleanup
+
+New exact leaderboard experiment:
+
+For selected route families, repeatedly harvest at tail targets:
+
+```text
+25%, 33%, 50%, 66%, 75%, 95%, board-1
+```
+
+and restart until:
+
+```text
+num_items(Items.Bone) >= 33488928
+```
+
+This directly tests the leaderboard objective instead of assuming one maximum tail is optimal.
+
+The v4 runner contains:
+
+```text
+main algorithm matrix:       20 * 5 * 3 = 300 simulations
+setup sweep:                  3 * 8 * 3 = 72 simulations
+Flekay early diagnostics:     2 * 5 * 3 = 30 simulations
+leaderboard harvest sweep:    3 * 7 * 3 = 63 simulations
+total:                                      465 simulations
+```
+
+As with v3, runtime correctness and performance are not verified until the in-game simulation output is collected. Reject any candidate/seed that emits `DINOSAUR BENCH INVALID`.
+
+### Dinosaur benchmark v6 Reddit coil/strike correction
 
 A live screenshot from the first v4 run showed the next candidate after mode 9 building several vertical lanes on the west side while an Apple remained visible on the east side.
 
@@ -850,3 +989,12 @@ The previous v4 run should not be continued:
 - modes 10/11/12 additionally have the Reddit translation errors fixed in v6
 
 Re-run from the beginning and require the first line to report `BENCHMARK VERSION dinosaur-v6`.
+
+### Current v7 runner state
+
+| Field | Value |
+| --- | --- |
+| Benchmark/version | `dinosaur-v7` |
+| Source commit | `ed6bc455c7705cbd501798470fd3095f65b4f823` |
+| Change | Boolean-returning movement helpers are checked as booleans instead of integer return codes. |
+| Validity | A full v7 matrix is still required; earlier invalid v4 previews must not be promoted. |
