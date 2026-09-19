@@ -37,7 +37,7 @@ Use as many drones as `max_drones()` permits when useful.
 
 Do NOT limit drone count to the number of available hats.
 
-Hats may repeat. `workers.py` assigns hats cyclically.
+Generic workers intentionally keep their current/default hat. `change_hat()` costs 200 ticks; do not add cosmetic hat cycling. `workers.set_main_hat()` is reserved for explicit state changes such as leaving the Dinosaur Hat.
 
 Prefer **contiguous chunks** of the map rather than one tiny task per column/tile. This avoids drones spending most of their time flying to and from their assigned work.
 
