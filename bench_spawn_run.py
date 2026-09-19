@@ -1,4 +1,4 @@
-BENCH_VERSION = "spawn-v1"
+BENCH_VERSION = "spawn-v2"
 
 BENCH_WORLD_SIZE = 32
 BENCH_SPEEDUP = 64
@@ -11,12 +11,13 @@ BENCH_SEEDS = [
 
 MODE_NAMES = [
     "baseline-origin00-rowmajor",
-    "center-anchor-rowmajor",
+    "origin00-parent-near",
     "band-anchor-rowmajor",
-    "band-anchor-farthest-parent-near",
-    "nearest-slots-origin00",
-    "nearest-slots-farthest-parent-near",
-    "spawn-at-rowmajor-origins"
+    "band-precomputed-farthest-parent-near",
+    "nearest-slots-precomputed-rowmajor",
+    "nearest-slots-precomputed-farthest-parent-near",
+    "binary-tree-rowmajor-origin00",
+    "binary-tree-nearest-origin00"
 ]
 
 
