@@ -17,7 +17,7 @@
 | --- | --- | --- | --- |
 | `reset-v2` | `7e58b52cb9d990121b0741a84330a6e0e53263b1` | Empty-state progression; seeds 1, 2, 3 | Invalid harness: first simulation returned `None`, runner crashed on aggregation |
 | `reset-v3` | `8190fcd5ecb55b9f2286cf98d92fffb1c815603b` | Empty-state progression; seeds 1, 2, 3; diagnostic checkpoints | Invalid: every simulation returned `None` before `RESET WORKER START` |
-| `reset-v4` | Pending commit | Empty-state progression; staged top-level import checkpoints | Diagnostic run pending |
+| `reset-v4` | `2cc2fe3133e3692042e3a3f881793416fcc7de6c` | Empty-state progression; staged top-level import checkpoints | Diagnostic run pending |
 
 ## Results
 
