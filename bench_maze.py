@@ -2580,7 +2580,7 @@ def spec_packed_run(
     maze_size,
     start_gold,
     maze_ready,
-    reuse
+    reuse_limit
 ):
     while not spec_gold_done(
         start_gold
@@ -2592,11 +2592,11 @@ def spec_packed_run(
 
         maze_ready = False
 
-        if reuse:
+        if reuse_limit > 0:
             if not spec_zapakh_solve_current(
                 start_gold,
                 maze_size,
-                300
+                reuse_limit
             ):
                 return
 
@@ -2623,7 +2623,7 @@ def spec_packed_worker(
     maze_size,
     start_gold,
     start_substance,
-    reuse
+    reuse_limit
 ):
     spec_move_to(
         origin_x,
@@ -2651,12 +2651,12 @@ def spec_packed_worker(
         maze_size,
         start_gold,
         True,
-        reuse
+        reuse_limit
     )
 
 
 def spec_run_packed_32(
-    reuse
+    reuse_limit
 ):
     clear()
 
@@ -2694,7 +2694,7 @@ def spec_run_packed_32(
             square[2],
             start_gold,
             start_substance,
-            reuse
+            reuse_limit
         )
 
         index += 1
@@ -2705,7 +2705,7 @@ def spec_run_packed_32(
             origin[1]
         )
 
-    if reuse:
+    if reuse_limit > 0:
         label = "PACKED REUSE READY"
     else:
         label = "PACKED FRESH READY"
@@ -2743,7 +2743,7 @@ def spec_run_packed_32(
         parent_square[2],
         start_gold,
         True,
-        reuse
+        reuse_limit
     )
 
 
