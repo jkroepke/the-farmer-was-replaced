@@ -160,3 +160,75 @@ Run `bench_cactus_run.py` in-game and compare:
 A mode that is faster but does not complete all requested cycles or produces materially less Cactus is invalid.
 
 After a winner is measured, promote only the winning generalized architecture to `cactus.py`. Keep 32x32 specialization only when the benchmark proves it useful.
+
+
+## Benchmark results 2026-09-19
+
+Measured by the user in-game on 32x32, 32 drones, three cycles, seeds 1..3:
+
+- `current-production`: 238.25 s average for 3 cycles
+- `two-wave-bubble-reset`: 221.38 s
+- `two-wave-insertion-reset`: 168.89 s
+- `two-wave-insertion-reuse`: 163.42 s
+- `two-wave-insertion-reroll-reuse`: 136.91 s
+- every finalist completed all requested cycles and produced the full expected gain
+
+The measured improvement from current production to
+`two-wave-insertion-reroll-reuse` is about 42.5%.
+
+The source-near one-cycle references measured:
+
+- `tstambaugh-reference-32`: 37.97 s
+- `nql1314-reference`: 89.22 s
+
+The Tstambaugh reference is therefore still materially faster than the
+generalized reroll candidate. Comparing one source-reference cycle with the
+three-cycle average of the generalized winner gives roughly 37.97 s versus
+45.64 s per cycle.
+
+Measured generalization behavior:
+
+- 6x6: rerolling was much slower (8.70 s vs 3.75 s)
+- 16x16: rerolling was slower (20.50 s vs 17.19 s)
+- 32x32 with 8 drones: rerolling was faster (168.30 s vs 192.38 s)
+
+Therefore rerolling is currently only treated as a measured optimization for
+world size 32. It must not be assumed beneficial for smaller worlds.
+
+## Follow-up finding: worker placement and batched rerolls
+
+The source-near Tstambaugh worker does two things that the first generalized
+candidate did not preserve closely enough:
+
+1. it spawns each row/column drone while the caller is already standing on
+   that worker's first row/column, so the child does not first travel from
+   (0,0) to its assignment
+2. it collects all bad Cactus positions into a local `redo` list and revisits
+   them as a batch, allowing other plants to grow while the worker services a
+   different rejected tile
+
+The first generalized reroll implementation instead waited on rejected plants
+inline and also watered every initially scanned tile. Those differences are
+now isolated in new benchmark modes.
+
+New modes:
+
+- `tstambaugh-placed-generalized`
+  - generalized placed-worker dispatch
+  - batched local reroll queue
+  - Tstambaugh 32x32 reroll heuristic
+  - reset every cycle
+- `adaptive-placed-pool`
+  - same placed two-wave worker architecture
+  - reroll only when `world_size == 32`, because that is the measured case
+  - explicit readiness waiting on smaller worlds
+  - field reset only on the first benchmark cycle so consecutive-cycle reuse
+    can be measured separately
+
+The follow-up benchmark compares modes 4, 5, 7 and 8 on the full 32x32
+three-seed matrix. Smaller-world smoke tests compare the prior no-reroll
+insertion control with the adaptive mode. The 32x32 / 8-drone smoke compares
+the old reroll candidate with both new placed-worker candidates.
+
+Do not promote a new production implementation until these follow-up results
+are measured in-game.
