@@ -28,9 +28,12 @@ The default target is 200000 Gold, seeds 1/2/3, speedup 64. Results are pending 
 - `simulate()` uses an isolated copy of the inventory. Gold earned by a benchmark does not change the real farm inventory, and `simulate()` returns only runtime.
 - Special Maze modes print `MAZE SPECIAL RESULT <mode> gold gained <value> target <target> PASS|FAIL` inside the simulation so target completion can be verified independently from runtime.
 
-Benchmark implementation commit: `47bda0eb607f66c0c5e3959dd77eccd8855b4625`.
+Benchmark implementation commit: `64c5f4bc4a8407303caac6a675d6f4709846bf2`.
 
 ## Stationary coverage design
+
+- A 3x3 Maze at full Maze upgrades yields 9 * 32 = 288 Gold per collected Treasure, so a 200000-Gold benchmark necessarily crosses the 300-relocation reuse cap and must recreate at least once.
+- `measure()` is not a reuse-cap signal: it continues to return the Treasure position after the cap. Detect the cap from failed `use_item(Items.Weird_Substance, amount)` instead, then `harvest()` so the fixed-root creator can recreate the Maze.
 
 - Never start stationary Treasure workers while the Maze topology is still being mapped. A worker can relocate Treasure immediately, opening walls and invalidating the DFS that is still discovering cells.
 - Coverage setup is therefore two-phase: map and harvest a temporary small Maze with one drone, place workers on the discovered cells while the field is open, then create the actual benchmark Maze at the same root.
