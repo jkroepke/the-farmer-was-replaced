@@ -530,48 +530,53 @@ This cleanly separates two ideas:
 
 The source-near Hilbert/reference algorithm scales much better in the early run.
 
-## 32x32, 50% tail target — partial
+## 32x32, 50% tail target
 
-Available values so far:
+| Strategy | Seed 1 | Seed 2 | Seed 3 | Average |
+| --- | ---: | ---: | ---: | ---: |
+| Hamiltonian | 1717.07 | 1815.90 | 1864.77 | 1799.24 |
+| Annealed 50 | 2830.86 | 3247.93 | 3194.96 | 3091.25 |
+| Hard 25 | 2293.98 | 2445.27 | 2495.80 | 2411.68 |
+| Hard 50 | 3255.35 | 3447.38 | 3452.73 | 3385.16 |
+| skysdottir reference | 1881.48 | 1779.06 | 1815.69 | 1825.41 |
 
-| Strategy | Seed 1 | Seed 2 | Seed 3 |
-| --- | ---: | ---: | ---: |
-| Hamiltonian | 1717.07 | 1815.90 | not yet recorded |
-| Annealed 50 | 2830.86 | 3247.93 | not yet recorded |
-| Hard 25 | 2293.98 | 2445.27 | not yet recorded |
-| Hard 50 | 3255.35 | 3447.38 | not yet recorded |
-| skysdottir reference | 1881.48 | not yet recorded | not yet recorded |
+At a 50% target on 32x32:
 
-The first completed reference point suggests a possible crossover:
+- target tail length: 512
+- expected harvest: 262,144 Bones
+- Hamiltonian throughput: about **145.70 Bones/s**
+- skysdottir reference throughput: about **143.61 Bones/s**
 
-- at 25%, the reference is dramatically faster than Hamiltonian
-- at 50% on seed 1, the reference is about **9.6% slower** than Hamiltonian
+The difference is only about 1.5% in favor of Hamiltonian.
 
-Do not conclude the crossover is confirmed until the remaining reference seeds complete.
+This is very different from the 25% target:
 
-However, the possibility is important because the source reference changes character around half-board: shortcutting disappears and the run becomes mostly pure traversal of the Hilbert cycle.
+- Hamiltonian: about **51.57 Bones/s**
+- skysdottir reference: about **95.67 Bones/s**
 
-That may expose a path-geometry tradeoff:
+So the reference nearly doubles throughput early, but by 50% the two whole-run strategies are essentially tied.
+
+The source reference changes character around half-board because shortcutting disappears and the remaining run becomes mostly Hilbert traversal.
+
+That suggests a path-geometry tradeoff:
 
 - Hilbert/reference: excellent early shortcut opportunities
-- skyscraper: potentially cheaper/faster pure late-cycle traversal
+- skyscraper: potentially cheaper pure traversal once shortcut value has disappeared
 
 A mid-run switch from one unrelated Hamiltonian cycle to another is **not automatically safe**, because the existing tail occupies positions according to the old path/history. Do not switch from a Hilbert body directly onto the skyscraper cycle without proving tail safety.
 
 Safer optimization directions are:
 
-1. tune the reference cutoff earlier than 50%
-2. keep the Hilbert path but stop expensive shortcut evaluation earlier
-3. design a source-style shortcut algorithm on a path geometry that remains efficient after the shortcut phase
-4. select the whole-run strategy based on requested Bone/tail target:
-   - short target: reference
-   - long target: possibly plain Hamiltonian
+1. tune the reference shortcut cutoff earlier
+2. keep Hilbert but stop expensive shortcut evaluation earlier
+3. benchmark full-run throughput at 75% and 95%
+4. select the whole-run strategy based on requested Bone target if the later throughput diverges
 
 ## Current benchmark conclusion
 
 Do not promote the current skyscraper shortcut variants.
 
-For 32x32 at 25%, the source-near reference is decisively best. The first 50% result suggests that the best strategy may depend on requested tail length rather than one algorithm winning the entire run.
+For 32x32 at 25%, the source-near reference is decisively best. At 50%, Hamiltonian and reference are effectively tied on Bone throughput. The 75% and 95% results will therefore decide whether long production runs should favor one whole-run strategy over the other.
 
 This makes target-aware Bone production more important: if the planner needs only a modest Bone amount, stopping around a short tail target can exploit the reference algorithm's strongest phase instead of paying for a long late-game traversal.
 
