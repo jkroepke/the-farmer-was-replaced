@@ -307,11 +307,11 @@ This mirrors the single-run result and shows that restart/setup overhead is not 
 
 The supplied output currently contains Hamiltonian seed 1:
 
-```text
-6403.10 s
-276.35 Bones/s
-16,580.77 Bones/min
-```
+| Metric | Value |
+| --- | ---: |
+| Runtime (s) | 6403.10 |
+| Bones/s | 276.35 |
+| Bones/min | 16,580.77 |
 
 That is very close to the single-run 75% Hamiltonian result of 279.48 Bones/s, suggesting restart overhead becomes negligible for long-tail runs.
 
@@ -401,12 +401,12 @@ The current upstream `Flekay/The-Farmer-Was-Replaced` still points at revision `
 
 Flekay's Dinosaur README reports:
 
-```text
-drone.py    18.741 s
-circle.py   23.924 s
-timon.py    27.889 s
-almighty.py 42.221 s
-```
+| Upstream mode | Time (s) |
+| --- | ---: |
+| `drone.py` | 18.741 |
+| `circle.py` | 23.924 |
+| `timon.py` | 27.889 |
+| `almighty.py` | 42.221 |
 
 Do not treat these times as measurements of the files currently present on `main`.
 
@@ -538,10 +538,10 @@ For Dinosaur, generic A*/TSP-style planning remains a control experiment rather 
 
 Flekay reports:
 
-```text
-goto.py        setup 0.0002 s, 7590 ticks/benchmark
-runto_local.py setup 7.7344 s, 7470 ticks/benchmark
-```
+| Upstream mode | Setup time (s) | Ticks / benchmark |
+| --- | ---: | ---: |
+| `goto.py` | 0.0002 | 7,590 |
+| `runto_local.py` | 7.7344 | 7,470 |
 
 The tiny warm-path saving does not justify the very large precomputation for changing random Apple targets. Do not add an all-pairs Dino routing table based on this evidence.
 
