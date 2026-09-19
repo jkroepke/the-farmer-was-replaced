@@ -55,7 +55,10 @@ MODE_NAMES = [
     "nearest-slots-precomputed-rowmajor",
     "nearest-slots-precomputed-farthest-parent-near",
     "binary-tree-rowmajor-origin00",
-    "binary-tree-nearest-origin00"
+    "binary-tree-nearest-origin00",
+    "dual-spawner-rowmajor",
+    "flekay-powers-rowmajor",
+    "jarvan-powers-rowmajor"
 ]
 
 
@@ -166,6 +169,196 @@ def tree_worker(
     )
 
 
+POWER_CHILDREN = [
+    [1, 2, 4, 8, 16],
+    [3, 5, 9, 17],
+    [6, 10, 18],
+    [7, 11, 19],
+    [12, 20],
+    [13, 21],
+    [14, 22],
+    [15, 23],
+    [24],
+    [25],
+    [26],
+    [27],
+    [28],
+    [29],
+    [30],
+    [31],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    []
+]
+
+
+def dual_branch(
+    start,
+    count
+):
+    handles = []
+    index = start + 1
+    end = start + count
+
+    while index < end:
+        origin = CURRENT_ORIGINS[
+            index
+        ]
+
+        drone = spawn_drone(
+            worker,
+            origin[0],
+            origin[1]
+        )
+
+        if drone == None:
+            return False
+
+        handles.append(
+            drone
+        )
+
+        index += 1
+
+    origin = CURRENT_ORIGINS[
+        start
+    ]
+
+    success = worker(
+        origin[0],
+        origin[1]
+    )
+
+    for drone in handles:
+        if not wait_for(
+            drone
+        ):
+            success = False
+
+    return success
+
+
+def run_dual_spawner():
+    second = spawn_drone(
+        dual_branch,
+        16,
+        16
+    )
+
+    if second == None:
+        return False
+
+    own_success = dual_branch(
+        0,
+        16
+    )
+
+    other_success = wait_for(
+        second
+    )
+
+    return (
+        own_success
+        and other_success
+    )
+
+
+def flekay_power_worker(
+    index
+):
+    handles = []
+
+    for child_index in POWER_CHILDREN[
+        index
+    ]:
+        drone = spawn_drone(
+            flekay_power_worker,
+            child_index
+        )
+
+        if drone == None:
+            return False
+
+        handles.append(
+            drone
+        )
+
+    origin = CURRENT_ORIGINS[
+        index
+    ]
+
+    success = worker(
+        origin[0],
+        origin[1]
+    )
+
+    for drone in handles:
+        if not wait_for(
+            drone
+        ):
+            success = False
+
+    return success
+
+
+def jarvan_power_worker(
+    index
+):
+    handles = []
+    power = 1
+
+    while (
+        index + power
+        < len(
+            CURRENT_ORIGINS
+        )
+    ):
+        if power > index:
+            drone = spawn_drone(
+                jarvan_power_worker,
+                index + power
+            )
+
+            if drone == None:
+                return False
+
+            handles.append(
+                drone
+            )
+
+        power = power * 2
+
+    origin = CURRENT_ORIGINS[
+        index
+    ]
+
+    success = worker(
+        origin[0],
+        origin[1]
+    )
+
+    for drone in handles:
+        if not wait_for(
+            drone
+        ):
+            success = False
+
+    return success
+
+
 def run_setup(mode):
     if max_drones() < 32:
         return False
@@ -239,10 +432,23 @@ def run_setup(mode):
             len(CURRENT_ORIGINS)
         )
 
-    return tree_worker(
-        1,
-        0,
-        len(NEAREST_ORIGINS)
+    if mode == 7:
+        return tree_worker(
+            1,
+            0,
+            len(NEAREST_ORIGINS)
+        )
+
+    if mode == 8:
+        return run_dual_spawner()
+
+    if mode == 9:
+        return flekay_power_worker(
+            0
+        )
+
+    return jarvan_power_worker(
+        0
     )
 
 
