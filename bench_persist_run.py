@@ -4,9 +4,13 @@ import main
 BENCH_WORLD_SIZE = 32
 BENCH_SPEEDUP = 64
 
-BENCH_CARROT_GAIN = 5000000
-BENCH_HAY_GAIN = 5000000
-BENCH_WOOD_GAIN = 10000000
+FINAL_CARROT_GAIN = 5000000
+FINAL_HAY_GAIN = 5000000
+FINAL_WOOD_GAIN = 10000000
+
+SCREEN_CARROT_GAIN = 1000000
+SCREEN_HAY_GAIN = 1000000
+SCREEN_WOOD_GAIN = 2000000
 
 BENCH_SEEDS = [
     1,
@@ -14,10 +18,45 @@ BENCH_SEEDS = [
     3
 ]
 
-MODE_NAMES = [
-    "sync-respawn",
-    "persistent-workers"
+PROFILE_NAMES = [
+    "partial-megafarm-level-3",
+    "max-megafarm"
 ]
+
+LAYOUT_NAMES = [
+    "pure-crop",
+    "one-row-dumb",
+    "one-col-dumb",
+    "two-col-dumb",
+    "one-col-max"
+]
+
+ARCH_NAMES = [
+    "main-stride",
+    "main-chunks",
+    "main-pairs",
+    "scheduler-chunks"
+]
+
+
+def simulation_unlocks(
+    profile
+):
+    if profile == 1:
+        return Unlocks
+
+    unlocks = {}
+
+    for unlock in Unlocks:
+        unlocks[
+            unlock
+        ] = -1
+
+    unlocks[
+        Unlocks.Megafarm
+    ] = 3
+
+    return unlocks
 
 
 def simulation_items():
@@ -37,20 +76,30 @@ def simulation_items():
 
 
 def run_one(
-    mode,
-    seed
+    profile,
+    kind,
+    layout,
+    architecture,
+    seed,
+    carrot_gain,
+    hay_gain,
+    wood_gain
 ):
     globals = {
-        "BENCH_MODE": mode,
+        "BENCH_KIND": kind,
+        "BENCH_LAYOUT": layout,
+        "BENCH_ARCH": architecture,
         "BENCH_WORLD_SIZE": BENCH_WORLD_SIZE,
-        "BENCH_CARROT_GAIN": BENCH_CARROT_GAIN,
-        "BENCH_HAY_GAIN": BENCH_HAY_GAIN,
-        "BENCH_WOOD_GAIN": BENCH_WOOD_GAIN
+        "BENCH_CARROT_GAIN": carrot_gain,
+        "BENCH_HAY_GAIN": hay_gain,
+        "BENCH_WOOD_GAIN": wood_gain
     }
 
     return simulate(
         "bench_persist",
-        Unlocks,
+        simulation_unlocks(
+            profile
+        ),
         simulation_items(),
         globals,
         seed,
@@ -58,24 +107,108 @@ def run_one(
     )
 
 
-def run_benchmarks():
-    totals = [
-        0,
-        0
-    ]
-
-    minimums = [
-        -1,
-        -1
-    ]
-
-    maximums = [
-        0,
-        0
-    ]
+def screen_architecture(
+    profile
+):
+    # Two dumb Sunflower columns are the existing full-Megafarm
+    # production layout and a useful neutral architecture screen.
+    layout = 3
+    seed = 1
+    best_arch = 0
+    best_time = -1
 
     quick_print(
-        "PERSIST BENCH SUITE START"
+        "PERSIST ARCH SCREEN",
+        PROFILE_NAMES[
+            profile
+        ],
+        "layout",
+        LAYOUT_NAMES[
+            layout
+        ]
+    )
+
+    for architecture in range(
+        len(
+            ARCH_NAMES
+        )
+    ):
+        run_time = run_one(
+            profile,
+            1,
+            layout,
+            architecture,
+            seed,
+            SCREEN_CARROT_GAIN,
+            SCREEN_HAY_GAIN,
+            SCREEN_WOOD_GAIN
+        )
+
+        quick_print(
+            ARCH_NAMES[
+                architecture
+            ],
+            run_time
+        )
+
+        if (
+            best_time < 0
+            or run_time < best_time
+        ):
+            best_time = run_time
+            best_arch = architecture
+
+    quick_print(
+        "PERSIST ARCH WINNER",
+        PROFILE_NAMES[
+            profile
+        ],
+        ARCH_NAMES[
+            best_arch
+        ],
+        best_time
+    )
+
+    return best_arch
+
+
+def benchmark_profile(
+    profile,
+    architecture
+):
+    mode_count = (
+        len(
+            LAYOUT_NAMES
+        )
+        + 1
+    )
+
+    totals = []
+    minimums = []
+    maximums = []
+
+    for _ in range(
+        mode_count
+    ):
+        totals.append(
+            0
+        )
+        minimums.append(
+            -1
+        )
+        maximums.append(
+            0
+        )
+
+    quick_print(
+        "PERSIST FINAL CASE",
+        PROFILE_NAMES[
+            profile
+        ],
+        "architecture",
+        ARCH_NAMES[
+            architecture
+        ]
     )
 
     for seed in BENCH_SEEDS:
@@ -84,52 +217,159 @@ def run_benchmarks():
             seed
         )
 
-        for mode in range(
-            len(MODE_NAMES)
+        sync_time = run_one(
+            profile,
+            0,
+            0,
+            architecture,
+            seed,
+            FINAL_CARROT_GAIN,
+            FINAL_HAY_GAIN,
+            FINAL_WOOD_GAIN
+        )
+
+        totals[0] += sync_time
+
+        if (
+            minimums[0] < 0
+            or sync_time < minimums[0]
+        ):
+            minimums[0] = sync_time
+
+        if sync_time > maximums[0]:
+            maximums[0] = sync_time
+
+        quick_print(
+            "sync-selected",
+            sync_time
+        )
+
+        for layout in range(
+            len(
+                LAYOUT_NAMES
+            )
         ):
             run_time = run_one(
-                mode,
-                seed
+                profile,
+                1,
+                layout,
+                architecture,
+                seed,
+                FINAL_CARROT_GAIN,
+                FINAL_HAY_GAIN,
+                FINAL_WOOD_GAIN
             )
 
-            totals[mode] += run_time
+            result_index = (
+                layout
+                + 1
+            )
+
+            totals[
+                result_index
+            ] += run_time
 
             if (
-                minimums[mode] < 0
-                or run_time < minimums[mode]
+                minimums[
+                    result_index
+                ] < 0
+                or run_time
+                < minimums[
+                    result_index
+                ]
             ):
-                minimums[mode] = run_time
+                minimums[
+                    result_index
+                ] = run_time
 
             if (
                 run_time
-                > maximums[mode]
+                > maximums[
+                    result_index
+                ]
             ):
-                maximums[mode] = run_time
+                maximums[
+                    result_index
+                ] = run_time
 
             quick_print(
-                MODE_NAMES[mode],
+                LAYOUT_NAMES[
+                    layout
+                ],
                 run_time
             )
-
-    quick_print(
-        "PERSIST BENCH SUMMARY"
-    )
 
     count = len(
         BENCH_SEEDS
     )
 
-    for mode in range(
-        len(MODE_NAMES)
+    quick_print(
+        "PERSIST FINAL SUMMARY",
+        PROFILE_NAMES[
+            profile
+        ],
+        "architecture",
+        ARCH_NAMES[
+            architecture
+        ]
+    )
+
+    quick_print(
+        "sync-selected",
+        "avg",
+        totals[0] / count,
+        "min",
+        minimums[0],
+        "max",
+        maximums[0]
+    )
+
+    for layout in range(
+        len(
+            LAYOUT_NAMES
+        )
     ):
+        result_index = (
+            layout
+            + 1
+        )
+
         quick_print(
-            MODE_NAMES[mode],
+            LAYOUT_NAMES[
+                layout
+            ],
             "avg",
-            totals[mode] / count,
+            totals[
+                result_index
+            ] / count,
             "min",
-            minimums[mode],
+            minimums[
+                result_index
+            ],
             "max",
-            maximums[mode]
+            maximums[
+                result_index
+            ]
+        )
+
+
+def run_benchmarks():
+    quick_print(
+        "PERSIST BENCH SUITE START"
+    )
+
+    for profile in range(
+        len(
+            PROFILE_NAMES
+        )
+    ):
+        architecture = screen_architecture(
+            profile
+        )
+
+        benchmark_profile(
+            profile,
+            architecture
         )
 
     quick_print(
