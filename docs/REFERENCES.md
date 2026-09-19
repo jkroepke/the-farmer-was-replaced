@@ -28,6 +28,9 @@ Always validate assumptions against:
 - https://pastebin.com/raw/ugCFADtN
 - https://pastebin.com/raw/ZkBRZv3P
   - raw community source references; inspect the actual source before deriving assumptions from them
+- https://github.com/skysdottir/tfwr
+  - focused Dinosaur/Snake research with indexed Hamiltonian cycles, safe shortcutting, tail-history accounting, and multiple cycle generators
+  - complete pinned snapshot and detailed review: `external/skysdottir-tfwr/`
 - https://github.com/nql1314/The-Farmer-Was-Replaced-AI-Code
   - broad implementation repository covering multiple mechanics; useful for alternative algorithms, data structures, and optimization ideas
 - https://github.com/msmith93/thefarmerwasreplaced
@@ -258,7 +261,7 @@ Prefer a complex algorithm when it measures faster, but never assume complexity 
 
 - `external/mateusmarochi-the-farmer-was-replaced-codes/` — complete MIT-licensed source snapshot at `d303d81d6a3eb59887eff75ed0454a6d8f4ff5ad`
 - `external/juritox-the-farmer-was-replaced/` — MIT-licensed source/text snapshot at `544bb832ffcec00aacf2c8dd5278bdb534ab674b`; large binary media is provenance-manifested
-- `external/skysdottir-tfwr/` — provenance and analysis at `e15968982e957045c5239e580e2d040a9ac73a52`; no redistribution license found
+- `external/skysdottir-tfwr/` — complete 8-file source snapshot and Dinosaur analysis at `e15968982e957045c5239e580e2d040a9ac73a52`; source-near behavior is benchmarked locally
 - `external/ketrab2004-the-farmer-was-replaced/` — provenance and analysis at `cdbbcf32ca100237cdfc3b78783cee77722a96fd`; no redistribution license found
 - `external/msmith93-thefarmerwasreplaced/` — complete main-branch source snapshot at `7fef7c327e8d0b6ef34af2fafc3e5aeaf0b89823`; includes the Sunflowers_Single simulator/iteration series and multi-drone reference implementations
 
