@@ -34,8 +34,9 @@ MAZE_STOCKPILE = 5
 # At 32x32 / 32 drones, the benchmarked winner is 32 independent
 # 4x4 Mazes using the zapakh-style ranked iterative DFS.
 #
-# Production waits until it can fund one complete burst up front:
-# one Maze creation plus this many Treasure relocations per worker.
+# Minimum relocations per worker before parallel Gold production may start.
+# If more Weird Substance is already available, production automatically
+# increases the relocation count up to MAZE_REUSE_LIMIT.
 MAZE_PARALLEL_RELOCATIONS = 25
 MAZE_PARALLEL_MIN_WORKERS = 2
 
