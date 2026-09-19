@@ -31,6 +31,22 @@ BENCH_SPEEDUP = 64
 
 BENCH_VERBOSE = False
 
+# Fixed-target runs isolate path efficiency.
+BENCH_CYCLES = 1
+
+# Sustained runs measure production efficiency across repeated
+# harvest/restart cycles in one simulation.
+SUSTAINED_CYCLES = 3
+SUSTAINED_TARGET_PERCENTS = [
+    50,
+    75,
+    95
+]
+SUSTAINED_MODES = [
+    0,
+    4
+]
+
 
 MODE_NAMES = [
     "hamiltonian-skyscraper",
@@ -100,13 +116,15 @@ def run_one(
     mode,
     world_size,
     target_percent,
-    seed
+    seed,
+    cycles
 ):
     globals = {
         "BENCH_MODE": mode,
         "BENCH_WORLD_SIZE": world_size,
         "BENCH_TARGET_PERCENT": target_percent,
-        "BENCH_VERBOSE": BENCH_VERBOSE
+        "BENCH_VERBOSE": BENCH_VERBOSE,
+        "BENCH_CYCLES": cycles
     }
 
     return simulate(
@@ -151,7 +169,8 @@ def benchmark_case(
                 mode,
                 world_size,
                 target_percent,
-                seed
+                seed,
+                BENCH_CYCLES
             )
 
             totals[mode] += (
@@ -175,9 +194,12 @@ def benchmark_case(
                     run_time
                 )
 
-            bones = expected_bones(
-                world_size,
-                target_percent
+            bones = (
+                expected_bones(
+                    world_size,
+                    target_percent
+                )
+                * BENCH_CYCLES
             )
 
             bones_per_second = (
@@ -212,9 +234,12 @@ def benchmark_case(
             / seed_count
         )
 
-        bones = expected_bones(
-            world_size,
-            target_percent
+        bones = (
+            expected_bones(
+                world_size,
+                target_percent
+            )
+            * BENCH_CYCLES
         )
 
         bones_per_second = (
@@ -244,6 +269,68 @@ def benchmark_case(
         )
 
 
+def benchmark_sustained():
+    world_size = 32
+
+    quick_print(
+        "DINOSAUR SUSTAINED START",
+        "cycles",
+        SUSTAINED_CYCLES
+    )
+
+    for target_percent in SUSTAINED_TARGET_PERCENTS:
+        quick_print(
+            "SUSTAINED CASE",
+            world_size,
+            target_percent
+        )
+
+        for seed in BENCH_SEEDS:
+            quick_print(
+                "SEED",
+                seed
+            )
+
+            for mode in SUSTAINED_MODES:
+                run_time = run_one(
+                    mode,
+                    world_size,
+                    target_percent,
+                    seed,
+                    SUSTAINED_CYCLES
+                )
+
+                bones = (
+                    expected_bones(
+                        world_size,
+                        target_percent
+                    )
+                    * SUSTAINED_CYCLES
+                )
+
+                bones_per_second = (
+                    bones
+                    / run_time
+                )
+
+                quick_print(
+                    MODE_NAMES[mode],
+                    run_time,
+                    "cycles",
+                    SUSTAINED_CYCLES,
+                    "bones",
+                    bones,
+                    "bones/s",
+                    bones_per_second,
+                    "bones/min",
+                    bones_per_second * 60
+                )
+
+    quick_print(
+        "DINOSAUR SUSTAINED DONE"
+    )
+
+
 def main():
     quick_print(
         "DINOSAUR BENCH START"
@@ -259,6 +346,8 @@ def main():
     quick_print(
         "DINOSAUR BENCH DONE"
     )
+
+    benchmark_sustained()
 
 
 main()
