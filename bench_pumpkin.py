@@ -29,6 +29,7 @@ MODE_NAMES = [
 
 TAIL_LIMIT = 3
 FALLBACK_ROUNDS = 200
+PERSISTENT_MERGE_TIMEOUT = 30
 
 
 def _repair_current():
@@ -554,6 +555,12 @@ def _persistent_region_worker(
             ):
                 pass
 
+            # Normal full-map harvest leaves the Pumpkin field on Soil.
+            # A non-Soil origin means worker 0 aborted the benchmark with
+            # clear() after the bounded merge wait.
+            if get_ground_type() != Grounds.Soil:
+                return False
+
     if index == 0:
         return gains
 
@@ -815,10 +822,21 @@ def _persistent_ring_worker(
             # This is intentionally the same merge condition as current
             # production. The ring traversal is already measured valid;
             # this mode changes worker lifetime, not repair semantics.
+            merge_deadline = (
+                get_time()
+                + PERSISTENT_MERGE_TIMEOUT
+            )
+
             while not pumpkin.is_full_map_pumpkin():
-                pass
+                if get_time() >= merge_deadline:
+                    # Global abort signal for the waiting column owners.
+                    # A normal giant-Pumpkin harvest leaves Soil; clear()
+                    # resets the failed test field instead.
+                    clear()
+                    return []
 
             if not harvest():
+                clear()
                 return []
 
             gains.append(
