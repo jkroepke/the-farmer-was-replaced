@@ -28,41 +28,34 @@ MODE_NAMES = [
     "persistent-4x8-tail",
     "persistent-8x4-tail",
     "persistent-tree-4x8-tail",
-    "persistent-tree-8x4-tail"
+    "persistent-tree-8x4-tail",
+    "ring-reuse",
+    "persistent-ring",
+    "persistent-tree-ring"
 ]
 
 PRIMARY_MODES = [
     0,
-    7,
-    8,
-    9,
-    10,
-    11,
-    12
+    19,
+    20
 ]
 
-SHAPE_SMOKE_MODES = [
-    1,
-    2,
-    3,
-    4,
-    5,
-    6
+CONTROL_MODES = [
+    1
 ]
 
 AMORTIZED_MODES = [
     0,
-    7,
-    8,
-    9,
-    13,
-    14,
-    15,
-    16,
-    17
+    18,
+    19,
+    20
 ]
 
 AMORTIZED_CYCLES = 3
+
+# Verified from the supplied in-game current-production runs for the fully
+# upgraded 32x32 simulation: every valid full-map harvest yielded 3,145,728.
+EXPECTED_CYCLE_GAIN = 3145728
 
 
 def simulation_items():
@@ -89,7 +82,8 @@ def run_one(
     globals = {
         "BENCH_MODE": mode,
         "BENCH_WORLD_SIZE": BENCH_WORLD_SIZE,
-        "BENCH_CYCLES": cycles
+        "BENCH_CYCLES": cycles,
+        "BENCH_EXPECTED_CYCLE_GAIN": EXPECTED_CYCLE_GAIN
     }
 
     return simulate(
@@ -231,8 +225,8 @@ def run_benchmarks():
     )
 
     benchmark_modes(
-        "PUMPKIN SHAPE SMOKE",
-        SHAPE_SMOKE_MODES,
+        "PUMPKIN CONTROL",
+        CONTROL_MODES,
         [1],
         1
     )
