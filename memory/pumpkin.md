@@ -134,3 +134,52 @@ Compare runtime first, then resource consumption. After measured results exist:
 2. record the full 40-character benchmark commit SHA together with the measured numbers
 3. update `docs/PUMPKIN.md`
 4. re-run a smaller-world / fewer-drone smoke if the winning architecture is generalized beyond 32x32 / 32 drones
+
+
+## Multi-cycle persistent extension 2026-09-19
+
+The first benchmark commit measured one full-map harvest per simulation. That is necessary for cold-start comparison, but it does not answer whether worker setup should be amortized across consecutive Pumpkin production cycles.
+
+The benchmark now also has a three-cycle `PUMPKIN AMORTIZED` matrix.
+
+Fresh-per-cycle controls:
+
+- `current-production`
+- `sparse-1x32-tail`
+- `sparse-4x8-tail`
+- `sparse-8x4-tail`
+
+True persistent modes:
+
+- `persistent-1x32-tail`
+- `persistent-4x8-tail`
+- `persistent-8x4-tail`
+- `persistent-tree-4x8-tail`
+- `persistent-tree-8x4-tail`
+
+The persistent modes call `clear()` and create their worker topology exactly once. Every worker then executes the same fixed number of full-map cycles.
+
+No shared mutable Python state is required. Synchronization uses globally observable farm state:
+
+1. each worker finishes its local region
+2. worker 0 waits for the full-map Pumpkin-ID merge and harvests it
+3. non-root workers wait for the Pumpkin at their region origin to disappear
+4. that disappearance is the start signal for the next cycle
+
+This directly tests the user's setup-cost concern: a candidate can lose the one-cycle cold benchmark but still win after three cycles if spawn/layout setup is sufficiently expensive.
+
+The result line now includes:
+
+- `completed`
+- requested `cycles`
+- total Pumpkin `gain`
+- per-cycle `cycle gain`
+
+A multi-cycle result is valid only if all requested cycles completed and every cycle produced the same positive gain.
+
+The current decision rule is therefore:
+
+1. use `PUMPKIN PRIMARY` to understand cold one-cycle behavior
+2. use `PUMPKIN AMORTIZED` for the production architecture decision
+3. reject any mode with `valid False`
+4. do not promote production until the in-game results are measured
