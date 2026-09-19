@@ -128,7 +128,7 @@ def _wait_row(y, size):
 
 
 def _insertion_row(y, values, size):
-    current_x = 0
+    current_x = get_pos_x()
 
     for i in range(1, size):
         j = i
@@ -158,7 +158,7 @@ def _insertion_column(x, size):
         values.append(measure())
         move(North)
 
-    current_y = 0
+    current_y = get_pos_y()
 
     for i in range(1, size):
         j = i
@@ -434,6 +434,18 @@ def run_two_wave_positioned(
 # but also means vertical and horizontal mutations can overlap between
 # workers. Keep benchmark-only until measurements prove it reliable.
 # ==================================================
+def _mateus_measure(direction):
+    if direction == None:
+        value = measure()
+    else:
+        value = measure(direction)
+
+    if value == None:
+        return -1
+
+    return value
+
+
 def _mateus_vertical_pass(x, size):
     utils.move_to(x, 0)
 
@@ -441,17 +453,17 @@ def _mateus_vertical_pass(x, size):
         _ensure_cactus()
         utils.water()
 
-        current = measure()
+        current = _mateus_measure(None)
 
         if y < size - 1:
-            north = measure(North)
+            north = _mateus_measure(North)
 
             if current > north:
                 swap(North)
-                current = measure()
+                current = _mateus_measure(None)
 
         if y > 0:
-            south = measure(South)
+            south = _mateus_measure(South)
 
             if current < south:
                 swap(South)
@@ -467,17 +479,17 @@ def _mateus_horizontal_pass(y, size):
         _ensure_cactus()
         utils.water()
 
-        current = measure()
+        current = _mateus_measure(None)
 
         if x < size - 1:
-            east = measure(East)
+            east = _mateus_measure(East)
 
             if current > east:
                 swap(East)
-                current = measure()
+                current = _mateus_measure(None)
 
         if x > 0:
-            west = measure(West)
+            west = _mateus_measure(West)
 
             if current < west:
                 swap(West)
@@ -1138,11 +1150,45 @@ def main():
 
     completed = 0
 
+    # All benchmark simulations use the fully upgraded Cactus yield.
+    # Measured full-chain yield is field_area**2 * 32.
+    field_area = (
+        BENCH_WORLD_SIZE
+        * BENCH_WORLD_SIZE
+    )
+    expected_cycle_gain = (
+        field_area
+        * field_area
+        * 32
+    )
+
     for cycle in range(BENCH_CYCLES):
+        cycle_start_items = num_items(
+            Items.Cactus
+        )
+
         if not run_cycle(
             BENCH_MODE,
             cycle
         ):
+            break
+
+        cycle_gain = (
+            num_items(Items.Cactus)
+            - cycle_start_items
+        )
+
+        if cycle_gain != expected_cycle_gain:
+            quick_print(
+                "CACTUS INVALID",
+                MODE_NAMES[BENCH_MODE],
+                "cycle",
+                cycle + 1,
+                "gain",
+                cycle_gain,
+                "expected",
+                expected_cycle_gain
+            )
             break
 
         completed += 1
@@ -1152,6 +1198,14 @@ def main():
     gained = (
         num_items(Items.Cactus)
         - start_items
+    )
+    expected_gain = (
+        expected_cycle_gain
+        * BENCH_CYCLES
+    )
+    valid = (
+        completed == BENCH_CYCLES
+        and gained == expected_gain
     )
 
     quick_print(
@@ -1164,7 +1218,11 @@ def main():
         "ticks",
         ticks,
         "gain",
-        gained
+        gained,
+        "expected",
+        expected_gain,
+        "valid",
+        valid
     )
 
 
