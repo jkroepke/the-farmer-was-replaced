@@ -753,3 +753,67 @@ max_drones() == world_size
 
 The isolated cold-start benchmark remains useful for identifying candidate algorithms, but persistent transition behavior takes precedence for the production path.
 
+
+
+## Persistent full-Megafarm worker benchmark
+
+Benchmark commit: `39240a92d2659a9c342d5f770d79185efd3b78eb`
+
+Files:
+
+- `bench_persist.py`
+- `bench_persist_run.py`
+
+Motivation:
+
+The current full-Megafarm production path uses `workers.run(tasks)`. One pass creates the column workers, waits for every worker to finish its assigned column, destroys those drones, returns to the planner, and creates the workers again on the next normal-farm pass.
+
+This has two potential costs:
+
+1. repeated `spawn_drone()` overhead
+2. a round barrier: a worker that finishes its column early cannot immediately start its next column because the caller waits for the slowest worker before starting the next farm pass
+
+The persistent candidate removes both behaviors.
+
+At 32x32 / 32 drones:
+
+```text
+main drone:
+    scheduler only
+
+29 crop workers:
+    cover 30 crop columns
+    one worker owns two columns
+    no round barrier
+
+2 sunflower workers:
+    one worker per permanent Sunflower column
+
+total:
+    31 spawned workers + main = 32 drones
+```
+
+Each worker loops continuously. After finishing one column it immediately starts its next owned column instead of waiting for other workers.
+
+The benchmark compares:
+
+```text
+sync-respawn
+persistent-workers
+```
+
+with one continuous workload:
+
+```text
+Carrot +5M -> Hay +5M -> Wood +10M
+```
+
+The persistent candidate switches focus from globally visible item counts and does not use shared Python memory.
+
+Run:
+
+```text
+bench_persist_run.py
+```
+
+Do not replace the production full-Megafarm route until this benchmark has completed and its results are documented against the benchmark commit above.
