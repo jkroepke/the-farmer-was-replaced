@@ -3,295 +3,76 @@ import utils
 
 MAZE_SIZE = 4
 
+CURRENT_ORIGINS = [
+    (2, 2), (6, 2), (10, 2), (14, 2),
+    (18, 2), (22, 2), (26, 2), (30, 2),
+    (2, 6), (6, 6), (10, 6), (14, 6),
+    (18, 6), (22, 6), (26, 6), (30, 6),
+    (2, 10), (6, 10), (10, 10), (14, 10),
+    (18, 10), (22, 10), (26, 10), (30, 10),
+    (2, 14), (6, 14), (10, 14), (14, 14),
+    (18, 14), (22, 14), (26, 14), (30, 14)
+]
+
+NEAREST_ORIGINS = [
+    (2, 2), (6, 2), (10, 2), (14, 2),
+    (18, 2), (22, 2), (26, 2), (30, 2),
+    (2, 6), (6, 6), (10, 6), (22, 6),
+    (26, 6), (30, 6), (2, 10), (6, 10),
+    (26, 10), (30, 10), (2, 14), (30, 14),
+    (2, 22), (30, 22), (2, 26), (6, 26),
+    (26, 26), (30, 26), (2, 30), (6, 30),
+    (10, 30), (22, 30), (26, 30), (30, 30)
+]
+
+BAND_FARTHEST_CHILDREN = [
+    (14, 2), (18, 2), (14, 14), (18, 14),
+    (10, 2), (22, 2), (14, 6), (18, 6),
+    (14, 10), (18, 10), (10, 14), (22, 14),
+    (6, 2), (26, 2), (10, 6), (22, 6),
+    (10, 10), (22, 10), (6, 14), (26, 14),
+    (2, 2), (30, 2), (6, 6), (26, 6),
+    (6, 10), (26, 10), (2, 14), (30, 14),
+    (30, 6), (2, 10), (30, 10)
+]
+
+NEAREST_FARTHEST_CHILDREN = [
+    (14, 2), (18, 2), (10, 6), (22, 6),
+    (6, 10), (26, 10), (2, 14), (30, 14),
+    (10, 2), (22, 2), (6, 6), (26, 6),
+    (2, 10), (30, 10), (2, 22), (30, 22),
+    (6, 26), (26, 26), (10, 30), (22, 30),
+    (6, 2), (26, 2), (2, 6), (30, 6),
+    (2, 26), (30, 26), (6, 30), (26, 30),
+    (30, 2), (2, 30), (30, 30)
+]
 
 MODE_NAMES = [
     "baseline-origin00-rowmajor",
-    "center-anchor-rowmajor",
+    "origin00-parent-near",
     "band-anchor-rowmajor",
-    "band-anchor-farthest-parent-near",
-    "nearest-slots-origin00",
-    "nearest-slots-farthest-parent-near",
-    "spawn-at-rowmajor-origins"
+    "band-precomputed-farthest-parent-near",
+    "nearest-slots-precomputed-rowmajor",
+    "nearest-slots-precomputed-farthest-parent-near",
+    "binary-tree-rowmajor-origin00",
+    "binary-tree-nearest-origin00"
 ]
 
 
-def torus_axis_distance(a, b, size):
-    direct = abs(a - b)
-    wrapped = size - direct
-    return min(direct, wrapped)
+def copy_origins(source):
+    result = []
+
+    for origin in source:
+        result.append(origin)
+
+    return result
 
 
-def torus_distance(x1, y1, x2, y2, size):
-    return (
-        torus_axis_distance(x1, x2, size)
-        + torus_axis_distance(y1, y2, size)
+def worker(origin_x, origin_y):
+    utils.move_to(
+        origin_x,
+        origin_y
     )
-
-
-def block_origin(index, blocks_per_row):
-    column = index % blocks_per_row
-    row = index // blocks_per_row
-    offset = MAZE_SIZE // 2
-
-    return (
-        column * MAZE_SIZE + offset,
-        row * MAZE_SIZE + offset
-    )
-
-
-def current_origins(worker_count, blocks_per_row):
-    origins = []
-
-    for index in range(worker_count):
-        origins.append(
-            block_origin(
-                index,
-                blocks_per_row
-            )
-        )
-
-    return origins
-
-
-def all_origins(blocks_per_row):
-    origins = []
-    capacity = blocks_per_row * blocks_per_row
-
-    for index in range(capacity):
-        origins.append(
-            block_origin(
-                index,
-                blocks_per_row
-            )
-        )
-
-    return origins
-
-
-def select_nearest(
-    origins,
-    count,
-    anchor_x,
-    anchor_y,
-    size
-):
-    remaining = []
-
-    for origin in origins:
-        remaining.append(origin)
-
-    selected = []
-
-    while len(selected) < count:
-        best_index = 0
-        best_distance = torus_distance(
-            remaining[0][0],
-            remaining[0][1],
-            anchor_x,
-            anchor_y,
-            size
-        )
-
-        index = 1
-
-        while index < len(remaining):
-            origin = remaining[index]
-            distance = torus_distance(
-                origin[0],
-                origin[1],
-                anchor_x,
-                anchor_y,
-                size
-            )
-
-            if distance < best_distance:
-                best_distance = distance
-                best_index = index
-
-            index += 1
-
-        selected.append(
-            remaining.pop(best_index)
-        )
-
-    return selected
-
-
-def order_farthest(
-    origins,
-    anchor_x,
-    anchor_y,
-    size
-):
-    remaining = []
-
-    for origin in origins:
-        remaining.append(origin)
-
-    ordered = []
-
-    while len(remaining) > 0:
-        best_index = 0
-        best_distance = torus_distance(
-            remaining[0][0],
-            remaining[0][1],
-            anchor_x,
-            anchor_y,
-            size
-        )
-
-        index = 1
-
-        while index < len(remaining):
-            origin = remaining[index]
-            distance = torus_distance(
-                origin[0],
-                origin[1],
-                anchor_x,
-                anchor_y,
-                size
-            )
-
-            if distance > best_distance:
-                best_distance = distance
-                best_index = index
-
-            index += 1
-
-        ordered.append(
-            remaining.pop(best_index)
-        )
-
-    return ordered
-
-
-def nearest_origin_index(
-    origins,
-    anchor_x,
-    anchor_y,
-    size
-):
-    best_index = 0
-    best_distance = torus_distance(
-        origins[0][0],
-        origins[0][1],
-        anchor_x,
-        anchor_y,
-        size
-    )
-
-    index = 1
-
-    while index < len(origins):
-        origin = origins[index]
-        distance = torus_distance(
-            origin[0],
-            origin[1],
-            anchor_x,
-            anchor_y,
-            size
-        )
-
-        if distance < best_distance:
-            best_distance = distance
-            best_index = index
-
-        index += 1
-
-    return best_index
-
-
-def prepare_plan(mode, worker_count, world_size):
-    blocks_per_row = world_size // MAZE_SIZE
-    origins = current_origins(
-        worker_count,
-        blocks_per_row
-    )
-
-    anchor = (0, 0)
-    spawn_at = False
-    parent_near = False
-    farthest_first = False
-
-    if mode == 1:
-        anchor = (
-            world_size // 2,
-            world_size // 2
-        )
-
-    elif mode == 2:
-        anchor = (
-            0,
-            world_size // 4
-        )
-
-    elif mode == 3:
-        anchor = (
-            0,
-            world_size // 4
-        )
-        parent_near = True
-        farthest_first = True
-
-    elif mode == 4:
-        origins = select_nearest(
-            all_origins(blocks_per_row),
-            worker_count,
-            0,
-            0,
-            world_size
-        )
-
-    elif mode == 5:
-        origins = select_nearest(
-            all_origins(blocks_per_row),
-            worker_count,
-            0,
-            0,
-            world_size
-        )
-        parent_near = True
-        farthest_first = True
-
-    elif mode == 6:
-        spawn_at = True
-
-    parent_origin = origins[len(origins) - 1]
-
-    if parent_near:
-        parent_index = nearest_origin_index(
-            origins,
-            anchor[0],
-            anchor[1],
-            world_size
-        )
-        parent_origin = origins.pop(parent_index)
-
-    else:
-        origins.pop()
-
-    if farthest_first:
-        origins = order_farthest(
-            origins,
-            anchor[0],
-            anchor[1],
-            world_size
-        )
-
-    return [
-        anchor,
-        origins,
-        parent_origin,
-        spawn_at
-    ]
-
-
-def worker(origin_x, origin_y, move_self):
-    if move_self:
-        utils.move_to(
-            origin_x,
-            origin_y
-        )
 
     if not plant(Entities.Bush):
         return False
@@ -299,27 +80,11 @@ def worker(origin_x, origin_y, move_self):
     return True
 
 
-def run_setup(mode):
-    world_size = utils.size()
-    worker_count = min(
-        max_drones(),
-        (
-            world_size
-            // MAZE_SIZE
-        ) ** 2
-    )
-
-    plan = prepare_plan(
-        mode,
-        worker_count,
-        world_size
-    )
-
-    anchor = plan[0]
-    child_origins = plan[1]
-    parent_origin = plan[2]
-    spawn_at = plan[3]
-
+def run_linear(
+    anchor,
+    child_origins,
+    parent_origin
+):
     utils.move_to(
         anchor[0],
         anchor[1]
@@ -328,20 +93,10 @@ def run_setup(mode):
     handles = []
 
     for origin in child_origins:
-        if spawn_at:
-            utils.move_to(
-                origin[0],
-                origin[1]
-            )
-            move_self = False
-        else:
-            move_self = True
-
         drone = spawn_drone(
             worker,
             origin[0],
-            origin[1],
-            move_self
+            origin[1]
         )
 
         if drone == None:
@@ -349,12 +104,10 @@ def run_setup(mode):
 
         handles.append(drone)
 
-    utils.move_to(
+    if not worker(
         parent_origin[0],
         parent_origin[1]
-    )
-
-    if not plant(Entities.Bush):
+    ):
         return False
 
     success = True
@@ -366,6 +119,128 @@ def run_setup(mode):
     return success
 
 
+def tree_worker(
+    origins,
+    start,
+    count
+):
+    if count == 1:
+        origin = origins[start]
+
+        return worker(
+            origin[0],
+            origin[1]
+        )
+
+    second_count = count // 2
+    first_count = count - second_count
+
+    drone = spawn_drone(
+        tree_worker,
+        origins,
+        start + first_count,
+        second_count
+    )
+
+    if drone == None:
+        return False
+
+    own_success = tree_worker(
+        origins,
+        start,
+        first_count
+    )
+
+    child_success = wait_for(
+        drone
+    )
+
+    return (
+        own_success
+        and child_success
+    )
+
+
+def run_setup(mode):
+    if max_drones() < 32:
+        return False
+
+    if mode == 0:
+        origins = copy_origins(
+            CURRENT_ORIGINS
+        )
+        parent_origin = origins.pop()
+
+        return run_linear(
+            (0, 0),
+            origins,
+            parent_origin
+        )
+
+    if mode == 1:
+        origins = copy_origins(
+            CURRENT_ORIGINS
+        )
+        parent_origin = origins.pop(0)
+
+        return run_linear(
+            (0, 0),
+            origins,
+            parent_origin
+        )
+
+    if mode == 2:
+        origins = copy_origins(
+            CURRENT_ORIGINS
+        )
+        parent_origin = origins.pop()
+
+        return run_linear(
+            (0, 8),
+            origins,
+            parent_origin
+        )
+
+    if mode == 3:
+        return run_linear(
+            (0, 8),
+            BAND_FARTHEST_CHILDREN,
+            (2, 6)
+        )
+
+    if mode == 4:
+        origins = copy_origins(
+            NEAREST_ORIGINS
+        )
+        parent_origin = origins.pop(0)
+
+        return run_linear(
+            (0, 0),
+            origins,
+            parent_origin
+        )
+
+    if mode == 5:
+        return run_linear(
+            (0, 0),
+            NEAREST_FARTHEST_CHILDREN,
+            (2, 2)
+        )
+
+    if mode == 6:
+        return tree_worker(
+            CURRENT_ORIGINS,
+            0,
+            len(CURRENT_ORIGINS)
+        )
+
+    return tree_worker(
+        NEAREST_ORIGINS,
+        0,
+        len(NEAREST_ORIGINS)
+    )
+
+
 def main():
     set_world_size(BENCH_WORLD_SIZE)
     clear()
@@ -373,7 +248,9 @@ def main():
     start_time = get_time()
     start_ticks = get_tick_count()
 
-    success = run_setup(BENCH_MODE)
+    success = run_setup(
+        BENCH_MODE
+    )
 
     elapsed = get_time() - start_time
     ticks = get_tick_count() - start_ticks
