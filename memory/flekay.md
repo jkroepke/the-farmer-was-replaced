@@ -217,19 +217,97 @@ map_inline setup 15 ticks / 12 ticks per benchmark
 
 Physical movement still dominates at 200 ticks per successful move, so this is lower priority. It may matter only in extremely repeated persistent-worker scans or non-moving computation-heavy traversal logic.
 
+## Measured current-runtime results
+
+### move-v2 measured
+
+Measured on 32x32 with requested simulation speedup 10000.
+
+Key warm result at 1000 targets:
+
+| Mode | Run ticks | Outer sim time |
+| --- | ---: | ---: |
+| `utils-arithmetic` | 4,415,004 | 1453.75 |
+| `delta-static` | 4,416,320 | 1454.18 |
+| `direction-static` | 4,420,320 | 1455.50 |
+| `dict-runtime` | 4,422,320 | 1456.25 |
+| `list-runtime` | 4,422,320 | 1456.25 |
+| `delta-known-current` | **4,412,322** | **1452.89** |
+
+Cold behavior tells the same story:
+
+- current arithmetic helper and static delta are effectively tied at low counts
+- runtime-built dict/list lookup pays about 197-199 setup ticks and never
+  recovers that cost in this workload
+- direction/count lookup is slower than arithmetic
+- carrying known current coordinates is the only measured improvement
+
+At 1000 targets, `delta-known-current` saves only 2,682 ticks versus
+`utils-arithmetic`, about 0.061% of total run ticks.
+
+Durable conclusion:
+
+- keep `utils.move_to()` as the generic repository helper
+- do not replace it with precomputed delta/list/dict navigation
+- only use the known-current-coordinate specialization inside a hot algorithm
+  that already has authoritative current coordinates for other reasons
+- Flekay's historical 10x10 navigation ranking does not transfer materially to
+  the current 32x32 runtime
+
+### spawn-v5 measured
+
+Topology-only comparison on the same 32 row-major origins and the same parent
+target:
+
+| Topology | Outer runtime | Internal ticks |
+| --- | ---: | ---: |
+| serial parent | 2.07 | 11,662 |
+| dual spawner | 1.56 | 8,546 |
+| **Flekay powers-of-two** | **1.29** | **6,886** |
+| Jarvan powers-of-two | 1.30 | 6,977 |
+| balanced binary | **1.29** | 6,892 |
+
+All three seeds were identical.
+
+Interpretation:
+
+- serial -> dual gives a large improvement
+- deeper hierarchical fan-out gives another large improvement
+- Flekay powers-of-two and local balanced binary are effectively tied
+- Flekay is only 6 ticks cheaper than balanced binary (~0.087%)
+- Jarvan's dynamic power calculation costs 91 ticks versus Flekay and 85 ticks
+  versus balanced binary
+- the tiny Flekay edge does not justify replacing the generic balanced binary
+  helper with a hard-coded 32-worker dependency graph
+
+The previously measured `binary-tree-nearest-origin00` result remains the
+strongest complete spawn+locality setup:
+
+```text
+0.90 s / 4498 ticks
+```
+
+That improvement comes mainly from combining hierarchical spawning with better
+target locality, not from choosing a particular hierarchical dependency graph.
+
+Durable conclusion:
+
+- retain balanced binary as the generic spawn topology
+- optimize worker origin/locality before micro-optimizing binary vs powers-of-two
+- use hard-coded Flekay fan-out only if a domain benchmark shows a real
+  end-to-end advantage, not from the 6-tick setup microbenchmark alone
+
 ## Priority order
 
-Recommended next work after measuring the two ready suites:
+Recommended next work after the measured spawn/movement suites:
 
-1. run `spawn-v5`
-2. run `move-v2`
-3. continue exact Maze leaderboard work (currently `maze-v5`, including the
+1. continue exact Maze leaderboard work (currently `maze-v5`, including the
    Flekay stationary 5x5 family)
-4. Maze shared-flow-field / incremental-repair ablation
-5. Sunflower 7-petal simplification benchmark
-6. multi-target routing break-even by target count
-7. extend `bench_ticks` with function/module/list/spin-loop costs
-8. Pumpkin repair-list data-structure ablation
+2. Maze shared-flow-field / incremental-repair ablation
+3. Sunflower 7-petal simplification benchmark
+4. multi-target routing break-even by target count
+5. extend `bench_ticks` with function/module/list/spin-loop costs
+6. Pumpkin repair-list data-structure ablation
 
 Cactus and Dinosaur already have stronger local domain-specific benchmark suites; Flekay is more useful there as corroborating strategy evidence than as the next benchmark source.
 
