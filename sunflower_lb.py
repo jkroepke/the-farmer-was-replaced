@@ -95,12 +95,10 @@ def water_if_useful():
 
 
 def wait_until_ready():
+    # Complete the selected petal tier atomically. Stopping workers here when
+    # the Power target is crossed would leave the controller's PETALS cache
+    # claiming that unharvested flowers were removed.
     while not can_harvest():
-        if num_items(
-            Items.Power
-        ) >= TARGET_POWER:
-            return False
-
         if (
             USE_FERTILIZER
             and num_items(
@@ -513,23 +511,13 @@ def harvest_tier_column(
         ][
             row
         ] == tier:
-            if num_items(
-                Items.Power
-            ) >= TARGET_POWER:
-                return True
-
             move_to(
                 column,
                 row
             )
 
             if not wait_until_ready():
-                return True
-
-            if num_items(
-                Items.Power
-            ) >= TARGET_POWER:
-                return True
+                return False
 
             harvest()
 
