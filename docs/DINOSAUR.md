@@ -574,3 +574,70 @@ A reference mode may adapt setup/termination to the benchmark contract, but shou
 ## Benchmarks
 
 Measured Dinosaur matrices, throughput results, corrections, and follow-up runs are maintained in `bench/dinosaurs.md`.
+
+
+## Dinosaur benchmark v7 boolean move-result correction
+
+A second live run identified a no-progress hang in mode 10 (`reddit-coil-strike-safe33`).
+
+The root cause was independent of the v6 phase-transition fixes:
+
+- `baseline_move()` returns the booleans `True` / `False`
+- several translated Reddit/Flekay call sites treated that result like an integer-returning helper and checked `< 0` / `>= 0`
+- in the TFWR Python-like language, `False` behaves like zero for these comparisons
+- therefore `False < 0` is false and `False >= 0` is true
+- a blocked `baseline_move()` was consequently interpreted as success
+
+Inside `coil_move_to()`, this created an infinite loop:
+
+1. position is still short of the target
+2. `baseline_move(direction)` fails because the Dinosaur body blocks the cell
+3. the `< 0` check fails to detect the boolean `False`
+4. position does not change
+5. the same while-loop iteration repeats forever
+
+This exactly matches the live screenshot: mode 10 remained on the same small west-side coil for more than 26 minutes.
+
+Affected code:
+
+- Reddit `coil_move_to()`
+- Reddit safe-finish helper
+- Reddit transition fix move
+- Flekay diagnostic `flekay_try_move()`
+
+v7 changes all such call sites to boolean checks:
+
+```text
+if not baseline_move(direction):
+    ...
+```
+
+and:
+
+```text
+if first:
+    ...
+```
+
+For Reddit modes, a blocked source-near route now emits:
+
+```text
+DINOSAUR COIL BLOCKED mode <n> at <x> <y> direction <dir> target <x> <y> tail <n> apple <pos>
+```
+
+and then returns `INVALID` instead of hanging.
+
+Implementation:
+
+- `fee2e8e0d586a8a4b2fb0b275d1cf9a3ffc1e707` — fix all boolean move-result checks and add blocked-route diagnostics
+- `ed6bc455c7705cbd501798470fd3095f65b4f823` — bump runner to `dinosaur-v7`
+
+Static verification:
+
+- no remaining `baseline_move(...) < 0` or `>= 0` comparisons
+- no remaining `if first >= 0` / `if second >= 0` in Flekay diagnostic movement
+- exactly one Reddit runner and one `coil_move_to()` definition remain
+
+The completed v6 modes 0 through 9 are still useful route measurements because their Bone accounting was already fixed and they do not use the broken Reddit/Flekay boolean helper. The v6 suite as a whole must not be treated as complete because mode 10 could hang.
+
+Re-run from the beginning with `BENCHMARK VERSION dinosaur-v7`.
