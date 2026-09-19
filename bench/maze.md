@@ -521,9 +521,6 @@ Current benchmark implementation commit: `55734c855dd464dd846deef280d8a65d9f2c3b
 
 -----
 
-
------
-
 ### 8x8, 25 relocations
 
 #### Provenance
@@ -1062,8 +1059,6 @@ Recommended workflow:
 5. run the full seed matrix only for finalists
 
 The old strategies can remain in `bench_maze.py` as historical baselines, but they do not need to run in every optimization iteration.
-
------
 
 -----
 
