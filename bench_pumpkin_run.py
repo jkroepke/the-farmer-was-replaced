@@ -1,11 +1,9 @@
 import main
 
 
-BENCH_VERSION = "pumpkin-v1"
-
-BENCH_VERSION = "pumpkin-v3-spawn-locality"
+BENCH_VERSION = "pumpkin-v4-spawn-locality"
 BENCH_WORLD_SIZE = 32
-BENCH_SPEEDUP = 64
+BENCH_SPEEDUP = 10000
 
 BENCH_SEEDS = [
     1,
