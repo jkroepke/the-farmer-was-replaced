@@ -57,10 +57,12 @@ The source-near one-cycle references measured:
 | `tstambaugh-reference-32` | 37.97 | — | — |
 | `nql1314-reference` | 89.22 | — | — |
 
-The Tstambaugh reference is therefore still materially faster than the
-generalized reroll candidate. Comparing one source-reference cycle with the
-three-cycle average of the generalized winner gives roughly 37.97 s versus
-45.64 s per cycle.
+The Tstambaugh reference is therefore still materially faster than the generalized reroll candidate.
+
+| Comparison | Time per cycle (s) |
+| --- | ---: |
+| `tstambaugh-reference-32` | 37.97 |
+| generalized three-cycle winner | 45.64 |
 
 Measured generalization behavior:
 
@@ -196,8 +198,10 @@ Therefore `adaptive-placed-pool` is the measured 32x32 / 32-drone winner:
 Smaller-world smoke tests were also valid and favored the adaptive placed
 architecture:
 
-- 6x6: adaptive 3.50 s vs insertion-reset 3.75 s
-- 16x16: adaptive 16.05 s vs insertion-reset 17.19 s
+| Profile | Adaptive (s) | Insertion-reset (s) |
+| --- | ---: | ---: |
+| 6x6 | 3.50 | 3.75 |
+| 16x16 | 16.05 | 17.19 |
 
 The Mateus persistent single-wave experiment completed with full gain but is
 rejected for production:
