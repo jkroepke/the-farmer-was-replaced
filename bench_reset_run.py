@@ -1,7 +1,7 @@
 import main
 
 
-BENCH_VERSION = "reset-v3"
+BENCH_VERSION = "reset-v4"
 
 BENCH_SPEEDUP = 10000
 BENCH_MAX_ACTIONS = 10000

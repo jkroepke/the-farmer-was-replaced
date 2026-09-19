@@ -1,7 +1,30 @@
-import farm
-import production
-import unlocks
+quick_print(
+    "RESET LOAD START"
+)
+
 import utils
+
+quick_print(
+    "RESET LOAD UTILS"
+)
+
+import unlocks
+
+quick_print(
+    "RESET LOAD UNLOCKS"
+)
+
+import farm
+
+quick_print(
+    "RESET LOAD FARM"
+)
+
+import production
+
+quick_print(
+    "RESET LOAD PRODUCTION"
+)
 
 
 MODE_NAMES = [

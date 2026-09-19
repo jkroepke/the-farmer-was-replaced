@@ -16,14 +16,16 @@
 | Run / version | Source commit | Profile | Status |
 | --- | --- | --- | --- |
 | `reset-v2` | `7e58b52cb9d990121b0741a84330a6e0e53263b1` | Empty-state progression; seeds 1, 2, 3 | Invalid harness: first simulation returned `None`, runner crashed on aggregation |
-| `reset-v3` | `8190fcd5ecb55b9f2286cf98d92fffb1c815603b` | Empty-state progression; seeds 1, 2, 3; diagnostic checkpoints | Pending measurement |
+| `reset-v3` | `8190fcd5ecb55b9f2286cf98d92fffb1c815603b` | Empty-state progression; seeds 1, 2, 3; diagnostic checkpoints | Invalid: every simulation returned `None` before `RESET WORKER START` |
+| `reset-v4` | Pending commit | Empty-state progression; staged top-level import checkpoints | Diagnostic run pending |
 
 ## Results
 
 | Status | Detail |
 | --- | --- |
 | Invalid | `reset-v2` returned `None` for the first simulation and then raised on `totals[mode] += elapsed`; no timing result exists. |
-| Pending | `reset-v3` removes the redundant initial `clear()`, reports worker checkpoints, and treats `simulate() == None` as a per-case failure instead of crashing the suite. |
+| Invalid | `reset-v3` reached `RESET CASE START` in the outer runner but produced no worker-side output at all; all nine simulations returned `None`. This proves failure occurs before `bench_reset.main()`. |
+| Pending | `reset-v4` adds zero-tick checkpoints before and after each top-level import to identify the exact load boundary. |
 
 ## Interpretation
 
@@ -49,7 +51,7 @@
 
 | Field | Value |
 | --- | ---: |
-| Benchmark/version | `reset-v3` |
+| Benchmark/version | `reset-v4` |
 | Requested speedup | 10000 |
 | Action watchdog | 10,000 |
 | Seeds | 1, 2, 3 |
