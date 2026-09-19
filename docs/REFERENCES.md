@@ -20,6 +20,14 @@ Always validate assumptions against:
   - queue implementation: https://github.com/ketrab2004/the-farmer-was-replaced/blob/main/queue.py
   - tail data structure: https://github.com/ketrab2004/the-farmer-was-replaced/blob/main/tail.py
 - https://github.com/jdeokkim/tfwr
+- https://g.j4.lc/general-stuff/the-farmer-was-replaced
+  - collection of highly optimized community scripts; use as a generic implementation/benchmark reference
+- https://pastebin.com/raw/i9kVXysm
+- https://pastebin.com/raw/ugCFADtN
+- https://pastebin.com/raw/ZkBRZv3P
+  - raw community source references; inspect the actual source before deriving assumptions from them
+- https://github.com/nql1314/The-Farmer-Was-Replaced-AI-Code
+  - broad implementation repository covering multiple mechanics; useful for alternative algorithms, data structures, and optimization ideas
 
 When looking for an optimization:
 
