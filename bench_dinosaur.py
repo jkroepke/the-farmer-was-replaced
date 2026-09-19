@@ -1198,7 +1198,9 @@ def setup_skysdottir_reference():
 # SETUP / ENTRYPOINT
 # ==================================================
 
-def setup():
+def setup_cycle(
+    reset_world
+):
     global CURRENT_TAIL_LENGTH
     global NEXT_APPLE
     global SHORTCUT_ATTEMPTS
@@ -1206,12 +1208,13 @@ def setup():
     global SHORTCUT_STEPS_SAVED
     global MOVES_MADE
 
-    set_world_size(
-        BENCH_WORLD_SIZE
-    )
+    if reset_world:
+        set_world_size(
+            BENCH_WORLD_SIZE
+        )
 
-    clear()
-
+    # Between sustained cycles the harvested tail leaves the field
+    # empty. Reposition without clearing/resetting the world again.
     move_to_x = get_pos_x()
 
     while move_to_x > 0:
@@ -1264,23 +1267,13 @@ def setup():
     return True
 
 
-def main():
+def run_one_cycle():
     global CURRENT_TAIL_LENGTH
 
-    if not setup():
-        quick_print(
-            "DINOSAUR BENCH INVALID",
-            "setup"
-        )
-        return
-
-    start_ticks = get_tick_count()
-    start_time = get_time()
-
     if BENCH_MODE == 0:
-        success = run_baseline()
+        return run_baseline()
 
-    elif BENCH_MODE == 4:
+    if BENCH_MODE == 4:
         success = (
             run_skysdottir_reference()
         )
@@ -1289,8 +1282,48 @@ def main():
             REF_ACTUAL_TAIL_LENGTH
         )
 
-    else:
-        success = run_shortcuts()
+        return success
+
+    return run_shortcuts()
+
+
+def main():
+    start_ticks = get_tick_count()
+    start_time = get_time()
+
+    completed_cycles = 0
+
+    for cycle in range(
+        BENCH_CYCLES
+    ):
+        if not setup_cycle(
+            cycle == 0
+        ):
+            quick_print(
+                "DINOSAUR BENCH INVALID",
+                "setup",
+                cycle
+            )
+            return
+
+        success = run_one_cycle()
+
+        if not success:
+            quick_print(
+                "DINOSAUR BENCH INVALID",
+                BENCH_MODE,
+                BENCH_WORLD_SIZE,
+                BENCH_TARGET_PERCENT,
+                CURRENT_TAIL_LENGTH,
+                "cycle",
+                cycle
+            )
+
+            harvest_tail()
+            return
+
+        harvest_tail()
+        completed_cycles += 1
 
     elapsed_ticks = (
         get_tick_count()
@@ -1302,23 +1335,14 @@ def main():
         - start_time
     )
 
-    if not success:
-        quick_print(
-            "DINOSAUR BENCH INVALID",
-            BENCH_MODE,
-            BENCH_WORLD_SIZE,
-            BENCH_TARGET_PERCENT,
-            CURRENT_TAIL_LENGTH
-        )
-
-    harvest_tail()
-
     if BENCH_VERBOSE:
         quick_print(
             "DINOSAUR BENCH",
             BENCH_MODE,
             BENCH_WORLD_SIZE,
             BENCH_TARGET_PERCENT,
+            "cycles",
+            completed_cycles,
             "tail",
             CURRENT_TAIL_LENGTH,
             "moves",
