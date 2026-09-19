@@ -42,7 +42,7 @@ def main():
         # - all upgrade lines already unlocked at least once
         # - the next never-unlocked feature in configured order
         #
-        # Lowest remaining total get_cost() wins.
+        # Priority-weighted remaining get_cost() wins inside that frontier.
         # =================================================
 
         target = unlocks.next_target()
