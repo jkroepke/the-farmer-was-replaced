@@ -1820,17 +1820,30 @@ def spec_back(direction):
 
 def spec_neighbor(coord, direction):
     x, y = coord
+    size = get_world_size()
 
     if direction == North:
-        return (x, y + 1)
+        return (
+            x,
+            (y + 1) % size
+        )
 
     if direction == East:
-        return (x + 1, y)
+        return (
+            (x + 1) % size,
+            y
+        )
 
     if direction == South:
-        return (x, y - 1)
+        return (
+            x,
+            (y - 1) % size
+        )
 
-    return (x - 1, y)
+    return (
+        (x - 1) % size,
+        y
+    )
 
 
 def spec_move_to(x, y):
@@ -2361,9 +2374,11 @@ def spec_zapakh_worker(
                 harvest()
                 break
 
-            spec_relocate(
+            if not spec_relocate(
                 4
-            )
+            ):
+                harvest()
+                break
 
             solved += 1
             goal = measure()
