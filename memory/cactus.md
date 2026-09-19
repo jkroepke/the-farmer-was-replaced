@@ -236,34 +236,24 @@ are measured in-game.
 
 ## 2026-09-19 persistent-worker follow-up
 
-Two additional benchmark candidates were added after reviewing the current
-32x32 path and the Mateus persistent-worker reference again.
+The later placed-worker work superseded the separate positioned mode idea.
 
-### Positioned two-wave insertion
+Current placed modes already cover spawn locality:
 
-Mode:
+- `tstambaugh-placed-generalized`
+- `adaptive-placed-pool`
 
-- `two-wave-insertion-positioned-reuse`
-
-When `max_drones() >= world_size`, the caller walks one row/column between
-`spawn_drone()` calls. Current game semantics start each child at the
-caller's current position, so every worker begins directly on its assigned
-line instead of first paying a `move_to()` fan-out.
-
-The algorithm keeps the safe row barrier -> column barrier invariant. If
-fewer drones than lines are available, it falls back to the generic two-wave
-implementation, so the candidate remains valid for arbitrary world sizes and
-Megafarm levels.
-
-This specifically targets the 32x32 / 32-drone case without hard-coding 32.
+They move the caller between `spawn_drone()` calls so children start on
+their first owned row/column. This preserves the safe row barrier -> column
+barrier architecture and is the preferred way to test placement optimization.
 
 ### Mateus-style persistent single wave
 
-Mode:
+New benchmark mode:
 
 - `persistent-mateus`
 
-This is a source-near generalized experiment based on:
+This is a generalized finite experiment based on:
 
 - `external/mateusmarochi-the-farmer-was-replaced-codes/source/cactus_farm.py`
 
@@ -276,24 +266,31 @@ One worker lifetime spans:
 
 The caller participates as worker 0, so no scheduler slot is reserved.
 
-The candidate intentionally has no global barrier between vertical and
-horizontal mutation. Different workers can therefore enter horizontal work
-while other workers are still performing vertical swaps. That is the main
-correctness/performance risk and the reason this mode is benchmark-only.
+The finite adaptation uses `world_size // 2` bidirectional passes. At 32x32
+this matches the reference's 16 vertical and 16 horizontal sweep passes.
 
-The finite benchmark adaptation uses `world_size // 2` bidirectional passes,
-matching the reference's 16 passes at 32x32 while still scaling to other
-sizes. It waits for worker completion before the final chain harvest.
+Important caveat:
+
+There is no global barrier between the vertical and horizontal parts inside
+the worker wave. A faster worker can therefore start horizontal swaps while
+another worker is still doing vertical swaps. This is intentionally retained
+as the central persistent-worker experiment and is not assumed race-safe.
+
+The final harvest only happens after every worker in the wave has returned,
+so the mode is finite and cannot leave permanent benchmark workers behind.
 
 ### Benchmark policy
 
-Run the positioned two-wave mode with the normal finalist matrix.
+`persistent-mateus` is mode 9 and runs only in the one-seed, one-cycle
+reference smoke section initially.
 
-Run `persistent-mateus` initially only as a one-seed, one-cycle reference
-smoke test. Promote it into the full candidate matrix only if it reliably
-completes a full chain and is competitive.
+Promote it to the full finalist matrix only when the in-game result shows:
 
-Do not replace production `cactus.py` until measured results establish a
-winner. A one-wave persistent implementation is attractive because it halves
-spawn waves, but source shape alone is not enough to justify accepting the
-row/column race.
+- `completed 1`
+- full expected Cactus gain
+- runtime competitive with the placed two-wave finalists
+
+Do not promote this architecture into production from source inspection
+alone. Its value is testing whether removing one complete worker wave is
+worth the row/column overlap risk.
+
