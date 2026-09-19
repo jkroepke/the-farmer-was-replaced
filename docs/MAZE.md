@@ -423,31 +423,108 @@ zapakh DFS already does this through its per-solve `visited` set, so reuse is
 a meaningful extension even though the Reddit author describes a fresh-only
 solver.
 
-New benchmark modes:
+### Extended reference + mutation matrix
 
-- `packed-4to7-fresh`
-  - mode 12
-  - full 32-square exact-cover layout
-  - one fresh Maze per Treasure
-  - closest to the Reddit author's stated no-reuse behavior
-- `packed-4to7-reuse`
-  - mode 13
-  - identical layout
-  - zapakh visited-set DFS
-  - reuses each Maze
+The Packed follow-up has been expanded into a deliberate ablation matrix.
 
-The active runner now compares only:
+Reference/source-near families:
 
-- `zapakh-32x4x4` — current measured winner/control
-- `packed-4to7-fresh`
-- `packed-4to7-reuse`
+- mode 10 — `ref-zapakh-4-reuse300`
+  - current measured winner/control
+  - source-near ranked iterative DFS
+- mode 11 — `ref-steam-4-reuse300`
+  - January 2026 route/map/path-search architecture
+- mode 14 — `ref-msmith93-full32-fresh`
+  - source-near port of the archived multi-drone full-Maze implementation
+  - deliberately kept last in the run because its original shared-world
+    synchronization is the riskiest
+- mode 15 — `ref-reddit5-map-bfs-reuse300`
+  - source-described February 2026 architecture
+  - 32 independent 5x5 Mazes
+  - right-hand fresh-Maze map
+  - BFS routing
+  - learn newly opened walls during reuse
+  - reuse 300 then remap
+- mode 16 — `desc-reddit-packed-fresh`
+  - source-described September 2026 fresh-Maze solver
+  - forced corridors
+  - record intersections
+  - choose the branch best aligned with the Treasure vector
+  - backtrack recorded movement on dead ends
+  - no reuse, matching the author's stated assumption
 
-The previously measured modes are not rerun automatically.
+No source code is available for the two Reddit descriptions. They are behavioral
+reconstructions, not byte-for-byte ports.
 
-Packed experiment code state: `e6e1d5b16120ca56329463fcc65d8ffc55fb5650`.
+Mutation/ablation modes:
+
+| Mode | Name | Question |
+| ---: | --- | --- |
+| 12 | `mut-packed-zapakh-fresh` | Full 4..7 packing without reuse |
+| 13 | `mut-packed-zapakh-reuse300` | Full packing + current ranked DFS + max reuse |
+| 17 | `mut-reddit-packed-visited-reuse300` | Can the Reddit branch solver be made loop-safe with a visited set? |
+| 18 | `mut-packed-zapakh-reuse1` | Reuse-cap sweep |
+| 19 | `mut-packed-zapakh-reuse2` | Reuse-cap sweep |
+| 20 | `mut-packed-zapakh-reuse4` | Reuse-cap sweep |
+| 21 | `mut-packed-zapakh-reuse8` | Reuse-cap sweep |
+| 22 | `mut-packed-zapakh-reuse16` | Reuse-cap sweep |
+| 23 | `mut-packed-unranked-fresh` | Does Treasure-direction ranking help on fresh Mazes? |
+| 24 | `mut-packed-unranked-reuse300` | Does ranking still matter after walls open? |
+| 25 | `mut-uniform4-zapakh-fresh` | Isolate fresh-vs-reuse on the old 4x4 geometry |
+| 26 | `mut-uniform5-zapakh-reuse300` | Isolate 5x5 geometry from map+BFS |
+| 27 | `mut-uniform5-zapakh-fresh` | Uniform 5x5 fresh control |
+| 28 | `mut-packed-map-bfs-reuse300` | Put February map+BFS on the 4..7 full-field packing |
+| 29 | `mut-packed-map-bfs-fresh` | Mapping overhead without reuse |
+| 30 | `mut-uniform4-map-bfs-reuse300` | Isolate map+BFS solver from 5x5 geometry |
+| 31 | `mut-uniform4-zapakh-reuse8` | Reuse-cap control on the existing uniform 4x4 layout |
+
+The runner is split into four groups so an unsafe historical reference cannot
+hide all newer results:
+
+1. `MAZE CORE` — fast ranked/unranked/Reddit/pacing ablations
+2. `MAZE MAP` — Steam and map+BFS families
+3. `MAZE SUSTAINED` — selected architectures at a 1,000,000 Gold target
+4. `MAZE LEGACY REF` — msmith93 last
+
+Short-screen configuration:
+
+```text
+Gold target: 200000
+Seeds: 1, 2, 3
+Speedup: 64
+```
+
+Sustained configuration:
+
+```text
+Gold target: 1000000
+Seeds: 1, 2
+Speedup: 64
+```
+
+Every special result now reports:
+
+- Gold gained
+- fixed Gold target
+- Weird Substance consumed
+- tick count
+- PASS/FAIL
+
+This makes runtime and resource efficiency independently comparable.
+
+Extended benchmark code state: `b51873132eec90ee623e513f5b8479b1e86f0997`.
 
 Local provenance:
-`external/reddit-32-square-maze/README.md`.
+
+- `external/reddit-32-square-maze/README.md`
+- `external/reddit-5x5-bfs/README.md`
+- `external/zapakh-maze-dfs/README.md`
+- `external/steam-32x4x4/README.md`
+- `external/msmith93-thefarmerwasreplaced/source/multidrone/maze_leaderboard.py`
+
+Results for this extended matrix are intentionally pending an in-game run.
+The last measured winner remains `zapakh-32x4x4` from benchmark commit
+`55734c855dd464dd846deef280d8a65d9f2c3bf7`.
 
 ### Results
 
