@@ -595,7 +595,7 @@ Measured conclusion:
 - one dedicated max-petal Sunflower worker wins all three target-oriented crop cases
 - compared with the legacy L, time-to-target/return improves by about 65% for Hay, 28% for Wood, and 48% for Carrot
 - the legacy L can still show high raw crop/sec because one `farm.run_legacy()` call overshoots targets heavily; this is not the same metric as planner responsiveness
-- the adaptive production path therefore uses one dedicated max-petal Sunflower column when `max_drones() < world_size`
+- at this benchmark stage, one dedicated max-petal Sunflower column was the leading **candidate** for `max_drones() < world_size`; the later persistent transition benchmark superseded this as a production decision
 
 ### Maximum Megafarm: 32 drones
 
@@ -623,15 +623,17 @@ Measured conclusion:
   - only about 0.40 s behind the best Hay time
 - avoiding layout changes between planner focus switches is expected to be more valuable than chasing those very small isolated per-crop differences
 
-Therefore production uses:
+Candidate selection after this isolated cold-start benchmark:
 
 ```text
 max_drones() < world_size:
-    one max-petal Sunflower column
+    one max-petal Sunflower column candidate
 
 max_drones() == world_size:
-    two dumb Sunflower columns
+    two dumb Sunflower columns candidate
 ```
+
+This was not the final production decision. The persistent transition benchmark below takes precedence for production behavior.
 
 ### Reference smoke results
 
@@ -648,25 +650,19 @@ These modes remain as historical/reference implementations but are no longer use
 
 ## Production selection after cold-start benchmark
 
-The legacy Sunflower/Carrot L is no longer the production layout. It is retained through `farm.run_legacy()` only for historical benchmark reproduction.
+Benchmark commit: `610e0e082d110c30a42d4ef900ef8a68efdb7405`
 
-Measured production strategy:
+The isolated cold-start benchmark selected these candidates for follow-up:
 
 ```text
 max_drones() < world_size
-    reserve one Sunflower column
-    dedicate one worker to current-max-petal harvesting
-    split remaining columns across crop workers
+    one dedicated max-petal Sunflower column candidate
 
 max_drones() == world_size
-    one worker per column
-    reserve the final two columns for simple Sunflower harvest/replant
-    use the remaining columns for the focus crop
+    two simple Sunflower columns candidate
 ```
 
-Normal production is persistent: `farm.run()` does not clear the field when the focus changes. Special full-field jobs clear the field when required; the adaptive normal layout is then rebuilt lazily on the next normal farm run.
-
-The old L benchmark remains available as `legacy-l`.
+The later persistent transition benchmark changed the partial-Megafarm production decision. See the transition results below for the current production state.
 
 ## Persistent transition benchmark
 
