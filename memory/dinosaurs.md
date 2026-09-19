@@ -503,3 +503,43 @@ total                      465
 ```
 
 Runtime correctness and performance remain unverified until `bench_dinosaur_run.py` is executed in the game/simulator and the complete `VALID` / `INVALID` output is inspected.
+
+
+## 2026-09-19 Dinosaur v5 accounting correction
+
+The first live v4 preview revealed an off-by-one in the benchmark's tail terminology.
+
+At nominal target 25%, the child reported occupied length 256 but harvested exactly 2,080,800 Bones:
+
+`255^2 * 32 = 2,080,800`
+
+Therefore `CURRENT_TAIL_LENGTH` and `REF_ACTUAL_TAIL_LENGTH` were really **head + tail occupied length**. Bone rewards count only tail segments.
+
+v4 consequently stopped one Apple early at every target and is not valid final benchmark data. In particular, nominal board-1 would have produced only:
+
+`1022^2 * 32 = 33,423,488`
+
+instead of the leaderboard requirement 33,488,928.
+
+v5 fix:
+
+- `target_tail_length()` = actual reward tail segments
+- `target_snake_length()` = head + tail = target tail + 1
+- all route termination checks compare occupied counters with `target_snake_length()`
+- every successful harvest validates exact cycle gain `target_tail_length()^2 * 32`
+- full 32x32 target = 1023 tail segments / 1024 occupied cells / 33,488,928 Bones
+
+Commits:
+
+- `7febc4bd1238a54e9ae4456ab3621d9d0625241d`
+- `cd3070188dce3da68a5c065fb16caafa5917c7f1`
+
+Incomplete v4 Seed 1 / nominal-25% preview signal only:
+
+- Hamiltonian: 1176.76 s
+- skysdottir reference: 677.80 s (~42.4% faster than Hamiltonian)
+- heartbeat annealed shortcuts: 999.26 s (~15.1% faster)
+- heartbeat fast-lane annealed: 1133.28 s (~3.7% faster)
+- tested skyscraper shortcut/fast-lane variants were ~46-59% slower
+
+These relative values are only preview evidence. Re-run the full suite as `dinosaur-v5`.
