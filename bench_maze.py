@@ -1795,8 +1795,22 @@ def run_reference():
 # 9 = two independent 4x4 mazes, 16 stationary drones each
 # 10 = 32 independent 4x4 mazes using a source-near zapakh ranked DFS
 # 11 = 32 independent 4x4 mazes using the Jan-2026 Steam route/path solver
-# 12 = 32 packed 4..7 mazes, fresh Maze for every Treasure
-# 13 = 32 packed 4..7 mazes, zapakh DFS with Maze reuse
+# 12 = packed 4..7 + zapakh fresh
+# 13 = packed 4..7 + zapakh reuse 300
+# 14 = msmith93 source-near full 32x32 multi-drone fresh search
+# 15 = Feb-2026 Reddit 32x5x5 right-hand map + BFS + reuse
+# 16 = Sep-2026 Reddit-described packed fresh intersection DFS
+# 17 = mode 16 mutated with visited-set loop handling + reuse
+# 18..22 = packed zapakh reuse caps 1, 2, 4, 8, 16
+# 23 = packed unranked DFS fresh
+# 24 = packed unranked DFS reuse 300
+# 25 = uniform 32x4x4 zapakh fresh
+# 26 = uniform 32x5x5 zapakh reuse 300
+# 27 = uniform 32x5x5 zapakh fresh
+# 28 = packed map+BFS reuse 300
+# 29 = packed map+BFS fresh
+# 30 = uniform 32x4x4 map+BFS reuse 300
+# 31 = uniform 32x4x4 zapakh reuse 8
 
 
 SPEC_DIRECTIONS = [
@@ -4713,12 +4727,132 @@ def run_special():
 
     elif BENCH_MODE == 12:
         spec_run_packed_32(
-            False
+            0
+        )
+
+    elif BENCH_MODE == 13:
+        spec_run_packed_32(
+            300
+        )
+
+    elif BENCH_MODE == 14:
+        spec_run_msmith93()
+
+    elif BENCH_MODE == 15:
+        spec_run_map_bfs_layout(
+            2,
+            300,
+            "REDDIT BFS5"
+        )
+
+    elif BENCH_MODE == 16:
+        spec_run_search_layout(
+            0,
+            2,
+            0,
+            "PACKED REDDIT FRESH"
+        )
+
+    elif BENCH_MODE == 17:
+        spec_run_search_layout(
+            0,
+            3,
+            300,
+            "PACKED REDDIT VISITED"
+        )
+
+    elif BENCH_MODE == 18:
+        spec_run_packed_32(
+            1
+        )
+
+    elif BENCH_MODE == 19:
+        spec_run_packed_32(
+            2
+        )
+
+    elif BENCH_MODE == 20:
+        spec_run_packed_32(
+            4
+        )
+
+    elif BENCH_MODE == 21:
+        spec_run_packed_32(
+            8
+        )
+
+    elif BENCH_MODE == 22:
+        spec_run_packed_32(
+            16
+        )
+
+    elif BENCH_MODE == 23:
+        spec_run_search_layout(
+            0,
+            1,
+            0,
+            "PACKED UNRANKED FRESH"
+        )
+
+    elif BENCH_MODE == 24:
+        spec_run_search_layout(
+            0,
+            1,
+            300,
+            "PACKED UNRANKED REUSE"
+        )
+
+    elif BENCH_MODE == 25:
+        spec_run_search_layout(
+            1,
+            0,
+            0,
+            "UNIFORM4 FRESH"
+        )
+
+    elif BENCH_MODE == 26:
+        spec_run_search_layout(
+            2,
+            0,
+            300,
+            "UNIFORM5 ZAPAKH REUSE"
+        )
+
+    elif BENCH_MODE == 27:
+        spec_run_search_layout(
+            2,
+            0,
+            0,
+            "UNIFORM5 ZAPAKH FRESH"
+        )
+
+    elif BENCH_MODE == 28:
+        spec_run_map_bfs_layout(
+            0,
+            300,
+            "PACKED MAP BFS REUSE"
+        )
+
+    elif BENCH_MODE == 29:
+        spec_run_map_bfs_layout(
+            0,
+            0,
+            "PACKED MAP BFS FRESH"
+        )
+
+    elif BENCH_MODE == 30:
+        spec_run_map_bfs_layout(
+            1,
+            300,
+            "UNIFORM4 MAP BFS"
         )
 
     else:
-        spec_run_packed_32(
-            True
+        spec_run_search_layout(
+            1,
+            0,
+            8,
+            "UNIFORM4 REUSE8"
         )
 
     spec_report_result(
