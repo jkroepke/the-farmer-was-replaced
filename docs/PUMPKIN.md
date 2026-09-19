@@ -281,3 +281,45 @@ Also record:
 - setup/restart cost over several consecutive production cycles
 
 Do not replace the column strategy based only on fewer source-code lines or theoretical path length. Use simulated production throughput.
+
+
+## Implemented benchmark matrix 2026-09-19
+
+The planned Pumpkin benchmark is implemented in:
+
+- `bench_pumpkin.py`
+- `bench_pumpkin_run.py`
+
+It now has two distinct decision layers.
+
+### Cold one-cycle comparison
+
+`PUMPKIN PRIMARY` compares the current production path against sparse local-repair shapes and distributed spawn-tree variants.
+
+This answers which algorithm reaches one valid full-map harvest fastest when all setup cost is paid from scratch.
+
+### Three-cycle amortized comparison
+
+`PUMPKIN AMORTIZED` explicitly measures the setup/restart concern.
+
+Fresh-per-cycle controls recreate their workers for each harvest. Persistent variants create the topology once and keep the same workers alive for all three harvest cycles.
+
+The persistent modes are:
+
+- `persistent-1x32-tail`
+- `persistent-4x8-tail`
+- `persistent-8x4-tail`
+- `persistent-tree-4x8-tail`
+- `persistent-tree-8x4-tail`
+
+Drone-memory isolation prevents a normal shared Python barrier. The persistent benchmark instead uses the farm as synchronization state:
+
+1. all workers complete their local Pumpkin region
+2. worker 0 waits for the full-map Pumpkin-ID merge
+3. worker 0 harvests
+4. other workers observe their merged Pumpkin disappearing
+5. all workers immediately begin the next cycle
+
+Every simulation reports completed cycles, total gain, per-cycle gain, ticks, runtime, and resource consumption. A mode is valid only when every requested cycle completes and every cycle has the same positive Pumpkin gain.
+
+Production must remain unchanged until the in-game benchmark log establishes a measured winner. For the production decision, the three-cycle amortized result is more important than the one-cycle cold result.
