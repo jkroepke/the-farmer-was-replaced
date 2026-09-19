@@ -1,4 +1,4 @@
-BENCH_VERSION = "move-v1"
+BENCH_VERSION = "move-v2"
 BENCH_SPEEDUP = 10000
 BENCH_WORLD_SIZE = 32
 
@@ -22,6 +22,10 @@ WARM_COUNTS = [
     100,
     1000
 ]
+
+# For warm comparisons, use the internal "run ticks" from MOVE RESULT as the
+# primary metric. The outer simulate() time still includes lookup construction
+# because each simulation starts from a fresh file execution.
 
 
 def run_one(
@@ -75,7 +79,7 @@ def run_phase(
             )
 
             quick_print(
-                "MOVE SIM TIME",
+                "MOVE OUTER SIM TIME",
                 MODE_NAMES[mode],
                 "count",
                 count,
