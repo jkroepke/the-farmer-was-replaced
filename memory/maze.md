@@ -379,3 +379,66 @@ Run:
 `bench_spawn_run.py`
 
 Do not change `maze_parallel.py` production spawn topology until this microbenchmark is measured and the promising candidate is validated end-to-end in the Maze benchmark.
+
+
+## Spawn locality benchmark results
+
+### spawn-v1
+
+Benchmark version: `spawn-v1`
+
+Benchmark commit: `c15c9f3ea47970cbbc6a4677bf5301a3a831b15e`
+
+Measured 32x32 / 32-drone setup-only results, identical across seeds 1/2/3:
+
+```text
+baseline-origin00-rowmajor                   2.10 s / 12146 ticks
+center-anchor-rowmajor                      2.85 s / 16613 ticks
+band-anchor-rowmajor                        2.10 s / 12140 ticks
+band-anchor-farthest-parent-near            3.39 s / 20011 ticks
+nearest-slots-origin00                      6.91 s / 41374 ticks
+nearest-slots-farthest-parent-near          8.24 s / 49419 ticks
+spawn-at-rowmajor-origins                   5.98 s / 35671 ticks
+```
+
+Durable conclusions:
+
+- moving the parent to the visual farm center before spawning is worse than the current `(0,0)` baseline
+- a simple `(0,8)` band anchor ties the baseline almost exactly, so reducing average child travel alone does not improve wall-clock setup
+- moving the parent to every child origin and spawning in place is decisively worse
+- child travel is heavily overlapped with the serial spawn chain, so the critical path is not the sum of all child distances
+- the v1 nearest/farthest modes are not valid locality comparisons because their O(n²) runtime planning is inside the timed section and dominates their results
+- the identical outputs across all three seeds show this setup benchmark is deterministic
+
+The main architectural hypothesis after v1 is therefore hierarchical spawning: reduce the serial 31-spawn chain itself rather than merely shortening independently parallel child travel.
+
+### spawn-v3 follow-up
+
+Current benchmark version: `spawn-v3`
+
+Current benchmark commit: `2a217d6b4a42ea403c292fbc2e19428fd561b25b`
+
+`spawn-v3` replaces runtime nearest/farthest planning with precomputed origin tables and adds binary-tree spawning.
+
+Modes:
+
+```text
+baseline-origin00-rowmajor
+origin00-parent-near
+band-anchor-rowmajor
+band-precomputed-farthest-parent-near
+nearest-slots-precomputed-rowmajor
+nearest-slots-precomputed-farthest-parent-near
+binary-tree-rowmajor-origin00
+binary-tree-nearest-origin00
+```
+
+The binary tree recursively splits a fixed worker range. Each branch spawns one child branch while continuing the other branch itself, reducing the dependency depth toward log2(worker_count). Only integer layout/start/count arguments are passed so copied spawn arguments do not include the full origin table.
+
+Run `bench_spawn_run.py` and require the first line to be:
+
+```text
+BENCHMARK VERSION spawn-v3
+```
+
+Do not promote spawn topology to production from the setup microbenchmark alone. If a v3 mode materially beats the 2.10-second baseline, add that exact topology to the full cold Maze leaderboard benchmark at 9863168 Gold before changing production.
