@@ -294,3 +294,72 @@ Do not promote this architecture into production from source inspection
 alone. Its value is testing whether removing one complete worker wave is
 worth the row/column overlap risk.
 
+
+
+## Follow-up benchmark run: placed-worker bug found
+
+The next in-game run compared the prior winner, the source-near Tstambaugh
+control, and the two placed-worker candidates over three seeds / three cycles.
+
+Valid full-gain results:
+
+- `two-wave-insertion-reroll-reuse`: 136.85 s average for 3 cycles
+- `tstambaugh-reference-32`: 124.86 s average for 3 cycles
+
+Both produced the full expected 100,663,296 Cactus over three 32x32 cycles.
+
+Therefore the source-near Tstambaugh 32x32 path remained about 8.8% faster
+than the best previously generalized candidate in this longer comparison.
+
+The two new placed-worker candidates were invalid:
+
+- `tstambaugh-placed-generalized`: repeated farm-edge `swap(East)` warnings
+  and only partial gain
+- `adaptive-placed-pool`: the same edge warnings and partial gain despite
+  reporting `completed 3`
+
+Root cause:
+
+`_insertion_row()` initialized its local movement tracker with
+`current_x = 0`. That assumption was true for the earlier scan path because
+a complete row scan wraps back to x=0, but it is false after the batched
+`redo` loop, which leaves the worker on the last rerolled x coordinate.
+The movement helper then tracked a different x coordinate than the physical
+drone position and could issue `swap(East)` from x=world_size-1.
+
+Fix:
+
+- initialize the row insertion movement tracker from `get_pos_x()`
+- initialize the column insertion tracker from `get_pos_y()` for the same
+  robustness principle
+
+### Benchmark validity hardening
+
+The run also exposed that `completed` was too weak: `harvest()` can return
+success after harvesting only part of the field.
+
+The benchmark now validates every cycle against the measured fully-upgraded
+full-chain yield:
+
+`(world_size * world_size) ** 2 * 32`
+
+For 32x32 this is 33,554,432 Cactus per cycle, matching the current Cactus
+leaderboard target and prior full-chain benchmark results.
+
+A cycle increments `completed` only when its exact gain matches that value.
+The result line now also prints `expected` and `valid`.
+
+### Mateus persistent experiment fix
+
+The first `persistent-mateus` smoke run aborted during its first vertical
+pass because a not-yet-planted neighboring tile returned `None` from
+`measure(North)`.
+
+The upstream Mateus implementation has a `safe_measure()` helper that maps
+`None` to `-1`. The local benchmark adaptation had accidentally omitted
+that behavior. The candidate now restores that source behavior for current
+and directional measurements.
+
+The benchmark run stopped at the Mateus error, so the 6x6, 16x16, and
+32x32/8-drone smoke sections did not execute. Re-run the suite after the
+fixes before making a production decision.
