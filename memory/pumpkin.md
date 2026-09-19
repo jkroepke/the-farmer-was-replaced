@@ -65,4 +65,4 @@ Measured Pumpkin runs, validity failures, and benchmark-derived comparisons are 
 
 | Kind | Statement | Evidence |
 | --- | --- | --- |
-| Open question | Continue tuning initial and patch waits empirically instead of assuming fixed values are optimal. | Migrated durable note from the former `AGENT_NOTES.md`. |
+| Open question | Continue tuning initial and patch waits empirically instead of assuming fixed values are optimal. | Durable research note retained during the 2026-09-19 documentation consolidation. |
