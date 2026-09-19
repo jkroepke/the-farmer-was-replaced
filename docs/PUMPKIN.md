@@ -323,3 +323,38 @@ Drone-memory isolation prevents a normal shared Python barrier. The persistent b
 Every simulation reports completed cycles, total gain, per-cycle gain, ticks, runtime, and resource consumption. A mode is valid only when every requested cycle completes and every cycle has the same positive Pumpkin gain.
 
 Production must remain unchanged until the in-game benchmark log establishes a measured winner. For the production decision, the three-cycle amortized result is more important than the one-cycle cold result.
+
+
+## Sparse-repair benchmark failure and corrected matrix
+
+The first sparse-region benchmark run exposed a Pumpkin-specific correctness trap.
+
+Measured valid controls on 32x32 / 32 drones:
+
+- current production: 3,145,728 Pumpkin per full-map cycle on seeds 1, 2, and 3
+- legacy Patch & Wait: 3,145,728 Pumpkin on the smoke run
+
+All sparse local-repair shapes finished their local work faster but produced no full-map harvest.
+
+The failure is caused by partial Giant Pumpkins.
+
+A sparse worker previously treated:
+
+`Entities.Pumpkin + can_harvest()`
+
+as proof that a coordinate was finished. That is also true when the coordinate belongs to an already merged smaller Giant Pumpkin. Independent local completion therefore allowed the field to fragment into a mosaic of harvestable Giant Pumpkins with different IDs.
+
+At that point there may be no dead/missing/unripe coordinate left to repair, but the opposite-corner IDs never become equal.
+
+Therefore sparse coordinate elimination is rejected for full-map Pumpkin production in its current form.
+
+The active benchmark now preserves the known-good North-only column-ring semantics and measures only lifecycle/setup changes:
+
+- `current-production`
+- `ring-reuse`
+- `persistent-ring`
+- `persistent-tree-ring`
+
+`ring-reuse` isolates the cost of clearing/re-tilling the field between cycles. The two persistent modes additionally amortize worker creation across cycles; the tree variant isolates distributed spawn topology.
+
+The fully-upgraded 32x32 validity check is now exact: every cycle must yield 3,145,728 Pumpkin.
