@@ -433,3 +433,28 @@ Gold state:
 
 This lets the measured consecutive-cycle reuse optimization affect the real
 main loop rather than only the benchmark.
+
+
+## Completed 32x32 / 8-drone smoke
+
+The full follow-up log includes the previously missing lower-drone result.
+
+Measured one-cycle 32x32 / 8-drone results:
+
+- `two-wave-insertion-reroll-reuse`: 164.77 s, valid full gain
+- `tstambaugh-placed-generalized`: 129.84 s, valid full gain
+- `adaptive-placed-pool`: 133.20 s, valid full gain
+
+This proves that the placed/batched worker architecture also works when each
+worker owns multiple rows/columns via `index += worker_count`.
+
+The previous production safeguard that switched back to the older generalized
+two-wave fallback when `max_drones() < world_size` is therefore no longer
+needed. Production now uses the placed/batched architecture for all drone
+counts. The row/column assignment already scales to fewer workers.
+
+At 8 drones the placed source-near variant is about 21.2% faster than the old
+reroll two-wave fallback. The adaptive placed result is about 19.2% faster.
+
+The remaining `_run_fallback()` code is currently retained only as historical
+implementation context; it is no longer selected by the production entrypoint.
