@@ -99,3 +99,54 @@ Run:
 `bench_poly_run.py`
 
 No production switch has been made yet. Paste the complete `FARMX ...` output back and only record measured conclusions against the benchmark SHA above.
+
+
+## Sunflower placement challenge
+
+Verified reference finding: there is no source-backed reason to reserve Sunflowers at a farm edge. Normal farm movement wraps, so coordinates at an apparent edge are not topologically special. The meaningful choices are concentration vs distribution, crop-area loss, worker ownership, Sunflower servicing overhead, and whether max-petal ordering repays its coordination/movement cost.
+
+Relevant references:
+
+- `external/sciencejiho-tfwr-solutions/source/strategy_polyculture.py`
+  - treats `Items.Power -> Entities.Sunflower` as a normal primary crop selected by inventory ratio
+  - Sunflowers can therefore be placed by the asynchronous Polyculture lanes instead of being isolated at an edge
+- `external/mateusmarochi-the-farmer-was-replaced-codes/source/sunflower_farm.py`
+  - uses the whole 32x32 field with one persistent worker per column
+  - demonstrates that Sunflower maintenance itself has no edge requirement
+- `external/msmith93-thefarmerwasreplaced/source/multidrone/sunflowers.py`
+  - plants/harvests Sunflowers across the complete field with parallel column workers
+- `external/flekay-the-farmer-was-replaced/source/Sunflowers/`
+  - compares full-field/simple spam, immediate replant, petal maps, and nearest-neighbor routing
+  - its recorded single-drone results show simple strategies can beat more elaborate ordered/pathing strategies in that upstream environment; treat this as candidate evidence, not current-runtime proof
+- `external/reddit-normal-farm-sunflower-research/README.md`
+  - records community candidates including one worker per row/column and smaller fixed rectangles such as synchronized 4x8 chunks
+- current local `bench_farm_run.py`
+  - already measured one integrated Sunflower row as highly competitive at full Megafarm; this is direct evidence that reserving dedicated Sunflower columns is not automatically optimal
+
+New benchmark hypotheses:
+
+1. **embedded diagonal, 32 Sunflowers**
+   - one Sunflower per column
+   - use `y = (x + 1) % size` so every Sunflower occupies odd parity
+   - preserves the even-parity Bush checkerboard used by the static Polyculture candidate
+   - no dedicated Sunflower worker is required if each crop worker services its local Sunflower during normal traversal
+
+2. **embedded sparse grid, 16 Sunflowers**
+   - evenly distribute 16 Sunflowers across the toroidal field
+   - place only on odd-parity crop cells so Bush companion cells remain intact
+   - halves Sunflower tile cost relative to a 32-tile row/diagonal and uses only 1.56% of a 32x32 field
+   - must prove that 16 flowers sustain enough Power from cold start
+
+3. **compact 4x4 or 4x8 block**
+   - inspired by the smaller fixed-rectangle community references
+   - allows a dedicated max-petal worker to exploit locality without consuming an entire 32-tile column or two 32-tile columns
+   - 4x8 keeps 32 Sunflowers; 4x4 uses 16
+
+4. **dynamic integrated Power**
+   - ScienceJiho-style inventory-ratio selection can make Sunflower a normal lane crop only while Power is deficient
+   - potentially avoids permanently reserving any geometry
+   - setup/transition churn must be measured
+
+Do not frame this as "edge vs center": because movement wraps, the real benchmark dimensions are **dedicated vs embedded**, **compact vs distributed**, **Sunflower count**, **worker allocation**, and **ordered vs dumb harvesting**.
+
+The existing `bench_poly_run.py` does not yet cover these placement families. Extend or add a placement screen before making a production decision.
