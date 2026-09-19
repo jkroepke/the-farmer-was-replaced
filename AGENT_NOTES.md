@@ -20,6 +20,8 @@ The automation is split into modules:
 - `bench_dinosaur_run.py` — Dinosaur simulation matrix, seeds, `simulate()` calls, and aggregation
 - `bench_transition.py` — persistent normal-farm transition workload
 - `bench_transition_run.py` — transition matrix for partial/max Megafarm
+- `bench_persist.py` — full-Megafarm persistent-worker candidate
+- `bench_persist_run.py` — persistent-worker benchmark runner
 - `docs/NORMAL_FARM.md` — canonical normal-farm/Sunflower design, references, and benchmark notes
 - `docs/PUMPKIN.md` — canonical Pumpkin strategy, references, and multi-drone optimization notes
 - `docs/MAZE.md` — canonical Maze design, benchmark results, and optimization notes
