@@ -268,17 +268,29 @@ The dedicated Power benchmark compares:
 | `fullfield-dumb-north-only` | our wrap-only adaptation |
 | `juritox-reference-max-petal` | source-near ordered-petal reference |
 
-The target gain is 100,000 Power, matching the current multi-drone Sunflower leaderboard target scale.
+The initial target was +100,000 Power. The current suite uses +20,000 Power for each of three seeds; this is still large enough to amortize setup while keeping all source-near reference modes practical.
 
 ## Crop benchmark targets
 
-To keep the suite large enough to amortize setup but practical to run, crop gains are 1% of the current multi-drone leaderboard targets:
+The first screening run used +20M Hay / +100M Wood / +20M Carrot. That was intentionally conservative, but the 8-drone Hay results already exposed two order-of-magnitude losers.
+
+The current finalist matrix therefore uses:
 
 ```text
-Hay:    +20,000,000
-Wood:   +100,000,000
-Carrot: +20,000,000
+Hay:    +10,000,000
+Wood:   +20,000,000
+Carrot: +10,000,000
 ```
+
+Source-near crop references use a smaller one-seed smoke target:
+
+```text
+Hay:    +1,000,000
+Wood:   +2,000,000
+Carrot: +1,000,000
+```
+
+This keeps reference implementations intact without allowing an intentionally old/single-drone implementation to dominate suite runtime.
 
 All runs use:
 
@@ -406,3 +418,28 @@ This avoids cross-drone companion writes and may preserve the very large Polycul
 It should become a new benchmark mode after the first layout suite establishes which Sunflower placement and worker geometry are worth keeping.
 
 Do not silently add rerolling to an existing mode.
+
+
+## First screening prune
+
+The first completed 32x32 / 8-drone Hay screening produced:
+
+```text
+current-l-production                         avg 44.56 s
+current-l-no-polyculture                     avg 298.71 s
+columns-pure-current-crop                    avg 29.82 s
+columns-one-sunflower-row-dumb               avg 29.64 s
+columns-one-sunflower-column-dumb            avg 30.31 s
+columns-two-sunflower-columns-dumb           avg 30.53 s
+columns-one-sunflower-column-max-petal       avg 31.63 s
+columns-one-sunflower-column-simple-crop     avg 436.96 s
+```
+
+Therefore:
+
+- `current-l-no-polyculture` is removed from the expensive finalist matrix
+- `columns-one-sunflower-column-simple-crop` is removed from the expensive finalist matrix
+- both implementations remain in `bench_farm.py` for reproducibility
+- source-near external references remain unchanged and run as smaller smoke tests
+
+This is intentional benchmark pruning, not deletion of inconvenient results.
