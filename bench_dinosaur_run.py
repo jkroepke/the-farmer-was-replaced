@@ -1,27 +1,28 @@
 import main
 
-BENCH_VERSION = "dinosaur-v2"
 
-# Dinosaur simulation benchmark controller.
+BENCH_VERSION = "dinosaur-v3"
+
+# Primary Dinosaur benchmark:
 #
-# All implementations live in bench_dinosaur.py.
+# - exact Leaderboards.Dinosaur starting items
+# - 32x32 farm
+# - speedup 10000
+# - many route/shortcut variants
+# - fixed-tail diagnostic targets plus the exact board-1 leaderboard target
 #
-# This benchmark measures time to reach fixed tail occupancy targets,
-# but production decisions must be based on Bone throughput.
-#
-# For the same target tail, lower runtime means higher throughput.
-# Across different tail targets, compare Bones/second or Bones/minute
-# because Dinosaur yield grows quadratically with tail length.
+# The primary algorithm matrix uses parallel Soil preparation so every
+# algorithm sees the same permanently empty field. A separate setup sweep
+# measures whether that preparation is actually worth its startup cost.
 
 
-BENCH_WORLD_SIZES = [
-    32
-]
+BENCH_WORLD_SIZE = 32
 
 BENCH_TARGET_PERCENTS = [
+    25,
+    50,
+    75,
     95,
-    97,
-    99,
     100
 ]
 
@@ -32,49 +33,102 @@ BENCH_SEEDS = [
 ]
 
 BENCH_SPEEDUP = 10000
-
 BENCH_VERBOSE = False
-
-# Fixed-target runs isolate path efficiency.
 BENCH_CYCLES = 1
+BENCH_MAX_MOVES = 2000000
 
-# Only benchmark the two remaining production candidates.
-BENCH_MODES = [
-    0,
-    4
-]
+# Maxed Unlocks.Dinosaurs yield multiplier. The exact leaderboard target
+# confirms it for a board-1 tail:
+#
+# 1023 * 1023 * 32 = 33,488,928
+DINO_YIELD_MULTIPLIER = 32
+LEADERBOARD_BONES = 33488928
 
-# Sustained runs measure production efficiency across repeated
-# harvest/restart cycles in one simulation.
-SUSTAINED_CYCLES = 3
-SUSTAINED_TARGET_PERCENTS = [
-    95,
-    97,
-    99,
-    100
-]
-SUSTAINED_MODES = [
-    0,
-    4
-]
+# Main comparisons use parallel harvest + Soil conversion.
+PRIMARY_SETUP_MODE = 4
 
+SETUP_NAMES = [
+    "none",
+    "clear",
+    "serial-soil",
+    "parallel-harvest",
+    "parallel-soil",
+    "source-parallel-soil"
+]
 
 MODE_NAMES = [
     "hamiltonian-skyscraper",
-    "safe-shortcuts-annealed-50",
-    "safe-shortcuts-hard-25",
-    "safe-shortcuts-hard-50",
-    "skysdottir-tfwr-reference"
+    "skyscraper-shortcuts-annealed50",
+    "skyscraper-shortcuts-hard25",
+    "skyscraper-shortcuts-hard50",
+    "skysdottir-hilbert-reference",
+    "skyscraper-fastlane-annealed50",
+    "heartbeat-hamiltonian",
+    "heartbeat-shortcuts-annealed50",
+    "heartbeat-fastlane-annealed50",
+    "hilbert-hamiltonian",
+    "reddit-coil-strike-safe33",
+    "reddit-coil-strike-source50",
+    "reddit-coil-strike-safe66",
+    "skyscraper-fastlane-annealed25",
+    "heartbeat-fastlane-annealed25",
+    "skyscraper-fastlane-hard25",
+    "heartbeat-fastlane-hard25",
+    "heartbeat-shortcuts-hard50",
+    "skyscraper-fastlane-hard50",
+    "heartbeat-fastlane-hard50"
 ]
+
+BENCH_MODES = [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15,
+    16,
+    17,
+    18,
+    19
+]
+
+# Cleanup/preparation uncertainty is benchmarked separately. Use one simple
+# path, the skysdottir reference, and the Reddit coil/strike route so setup
+# behavior is not accidentally coupled to one route family.
+SETUP_SWEEP_MODES = [
+    0,
+    4,
+    11
+]
+
+SETUP_SWEEP_SETUPS = [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5
+]
+
+SETUP_SWEEP_TARGET_PERCENT = 100
 
 
 def target_tail_length(
-    world_size,
     target_percent
 ):
     board = (
-        world_size
-        * world_size
+        BENCH_WORLD_SIZE
+        * BENCH_WORLD_SIZE
     )
 
     target = (
@@ -93,49 +147,42 @@ def target_tail_length(
 
 
 def expected_bones(
-    world_size,
     target_percent
 ):
     tail = target_tail_length(
-        world_size,
         target_percent
     )
 
     return (
         tail
         * tail
+        * DINO_YIELD_MULTIPLIER
     )
 
 
 def simulation_items():
+    # Exact Leaderboards.Dinosaur equivalent simulation state from the
+    # current Wiki: everything unlocked, 1e9 Cactus, 1e9 Power.
     return {
-        Items.Hay: 1000000000,
-        Items.Wood: 1000000000,
-        Items.Carrot: 1000000000,
-        Items.Pumpkin: 1000000000,
         Items.Cactus: 1000000000,
-        Items.Bone: 0,
-        Items.Gold: 1000000000,
-        Items.Power: 1000000000,
-        Items.Water: 1000000000,
-        Items.Fertilizer: 1000000000,
-        Items.Weird_Substance: 1000000000
+        Items.Power: 1000000000
     }
 
 
 def run_one(
     mode,
-    world_size,
+    setup_mode,
     target_percent,
-    seed,
-    cycles
+    seed
 ):
     globals = {
         "BENCH_MODE": mode,
-        "BENCH_WORLD_SIZE": world_size,
+        "BENCH_WORLD_SIZE": BENCH_WORLD_SIZE,
         "BENCH_TARGET_PERCENT": target_percent,
         "BENCH_VERBOSE": BENCH_VERBOSE,
-        "BENCH_CYCLES": cycles
+        "BENCH_CYCLES": BENCH_CYCLES,
+        "BENCH_SETUP_MODE": setup_mode,
+        "BENCH_MAX_MOVES": BENCH_MAX_MOVES
     }
 
     return simulate(
@@ -148,221 +195,114 @@ def run_one(
     )
 
 
-def benchmark_case(
-    world_size,
-    target_percent
+def print_result(
+    prefix,
+    mode,
+    setup_mode,
+    target_percent,
+    seed,
+    elapsed
 ):
-    totals = []
-    minimums = []
-    maximums = []
-
-    for _ in BENCH_MODES:
-        totals.append(0)
-        minimums.append(-1)
-        maximums.append(0)
-
-    quick_print(
-        "CASE",
-        world_size,
+    bones = expected_bones(
         target_percent
     )
 
-    for seed in BENCH_SEEDS:
-        quick_print(
-            "SEED",
-            seed
-        )
+    bones_per_second = 0
 
-        mode_index = 0
-
-        for mode in BENCH_MODES:
-            run_time = run_one(
-                mode,
-                world_size,
-                target_percent,
-                seed,
-                BENCH_CYCLES
-            )
-
-            totals[mode_index] += (
-                run_time
-            )
-
-            if (
-                minimums[mode_index] < 0
-                or run_time
-                < minimums[mode_index]
-            ):
-                minimums[mode_index] = (
-                    run_time
-                )
-
-            if (
-                run_time
-                > maximums[mode_index]
-            ):
-                maximums[mode_index] = (
-                    run_time
-                )
-
-            bones = (
-                expected_bones(
-                    world_size,
-                    target_percent
-                )
-                * BENCH_CYCLES
-            )
-
-            bones_per_second = (
-                bones
-                / run_time
-            )
-
-            quick_print(
-                MODE_NAMES[mode],
-                run_time,
-                "bones/s",
-                bones_per_second,
-                "bones/min",
-                bones_per_second * 60
-            )
-
-            mode_index += 1
-
-    seed_count = len(
-        BENCH_SEEDS
-    )
-
-    quick_print(
-        "SUMMARY",
-        world_size,
-        target_percent
-    )
-
-    mode_index = 0
-
-    for mode in BENCH_MODES:
-        average = (
-            totals[mode_index]
-            / seed_count
-        )
-
-        bones = (
-            expected_bones(
-                world_size,
-                target_percent
-            )
-            * BENCH_CYCLES
-        )
-
+    if elapsed > 0:
         bones_per_second = (
             bones
-            / average
+            / elapsed
         )
-
-        quick_print(
-            MODE_NAMES[mode],
-            "avg",
-            average,
-            "min",
-            minimums[mode_index],
-            "max",
-            maximums[mode_index],
-            "tail",
-            target_tail_length(
-                world_size,
-                target_percent
-            ),
-            "bones",
-            bones,
-            "bones/s",
-            bones_per_second,
-            "bones/min",
-            bones_per_second * 60
-        )
-
-        mode_index += 1
-
-
-def benchmark_sustained():
-    world_size = 32
 
     quick_print(
-        "DINOSAUR SUSTAINED START",
-        "cycles",
-        SUSTAINED_CYCLES
+        prefix,
+        MODE_NAMES[mode],
+        "setup",
+        SETUP_NAMES[setup_mode],
+        "target",
+        target_percent,
+        "tail",
+        target_tail_length(
+            target_percent
+        ),
+        "seed",
+        seed,
+        "elapsed",
+        elapsed,
+        "bones",
+        bones,
+        "bones/s",
+        bones_per_second
     )
 
-    for target_percent in SUSTAINED_TARGET_PERCENTS:
+
+def run_algorithm_matrix():
+    quick_print(
+        "DINOSAUR ALGORITHM MATRIX START",
+        "modes",
+        len(BENCH_MODES),
+        "targets",
+        len(BENCH_TARGET_PERCENTS),
+        "seeds",
+        len(BENCH_SEEDS),
+        "setup",
+        SETUP_NAMES[
+            PRIMARY_SETUP_MODE
+        ]
+    )
+
+    for target_percent in BENCH_TARGET_PERCENTS:
         totals = []
 
-        for _ in SUSTAINED_MODES:
-            totals.append(0)
-
-        quick_print(
-            "SUSTAINED CASE",
-            world_size,
-            target_percent
-        )
-
-        for seed in BENCH_SEEDS:
-            quick_print(
-                "SEED",
-                seed
+        for _ in BENCH_MODES:
+            totals.append(
+                0
             )
 
+        for seed in BENCH_SEEDS:
             mode_index = 0
 
-            for mode in SUSTAINED_MODES:
-                run_time = run_one(
+            for mode in BENCH_MODES:
+                elapsed = run_one(
                     mode,
-                    world_size,
+                    PRIMARY_SETUP_MODE,
                     target_percent,
-                    seed,
-                    SUSTAINED_CYCLES
+                    seed
                 )
 
                 totals[
                     mode_index
-                ] += run_time
+                ] += elapsed
 
-                bones = (
-                    expected_bones(
-                        world_size,
-                        target_percent
-                    )
-                    * SUSTAINED_CYCLES
-                )
-
-                bones_per_second = (
-                    bones
-                    / run_time
-                )
-
-                quick_print(
-                    MODE_NAMES[mode],
-                    run_time,
-                    "cycles",
-                    SUSTAINED_CYCLES,
-                    "bones",
-                    bones,
-                    "bones/s",
-                    bones_per_second,
-                    "bones/min",
-                    bones_per_second * 60
+                print_result(
+                    "DINOSAUR RESULT",
+                    mode,
+                    PRIMARY_SETUP_MODE,
+                    target_percent,
+                    seed,
+                    elapsed
                 )
 
                 mode_index += 1
 
         quick_print(
-            "SUSTAINED SUMMARY",
-            world_size,
-            target_percent
+            "DINOSAUR SUMMARY",
+            "target",
+            target_percent,
+            "tail",
+            target_tail_length(
+                target_percent
+            ),
+            "setup",
+            SETUP_NAMES[
+                PRIMARY_SETUP_MODE
+            ]
         )
 
         mode_index = 0
 
-        for mode in SUSTAINED_MODES:
+        for mode in BENCH_MODES:
             average = (
                 totals[
                     mode_index
@@ -370,37 +310,108 @@ def benchmark_sustained():
                 / len(BENCH_SEEDS)
             )
 
-            bones = (
-                expected_bones(
-                    world_size,
-                    target_percent
-                )
-                * SUSTAINED_CYCLES
+            bones = expected_bones(
+                target_percent
             )
 
-            bones_per_second = (
-                bones
-                / average
-            )
+            bones_per_second = 0
+
+            if average > 0:
+                bones_per_second = (
+                    bones
+                    / average
+                )
 
             quick_print(
                 MODE_NAMES[mode],
                 "avg",
                 average,
-                "cycles",
-                SUSTAINED_CYCLES,
                 "bones",
                 bones,
                 "bones/s",
-                bones_per_second,
-                "bones/min",
-                bones_per_second * 60
+                bones_per_second
             )
 
             mode_index += 1
 
     quick_print(
-        "DINOSAUR SUSTAINED DONE"
+        "DINOSAUR ALGORITHM MATRIX DONE"
+    )
+
+
+def run_setup_sweep():
+    quick_print(
+        "DINOSAUR SETUP SWEEP START",
+        "target",
+        SETUP_SWEEP_TARGET_PERCENT
+    )
+
+    for mode in SETUP_SWEEP_MODES:
+        quick_print(
+            "DINOSAUR SETUP MODE",
+            MODE_NAMES[mode]
+        )
+
+        totals = []
+
+        for _ in SETUP_SWEEP_SETUPS:
+            totals.append(
+                0
+            )
+
+        for seed in BENCH_SEEDS:
+            setup_index = 0
+
+            for setup_mode in SETUP_SWEEP_SETUPS:
+                elapsed = run_one(
+                    mode,
+                    setup_mode,
+                    SETUP_SWEEP_TARGET_PERCENT,
+                    seed
+                )
+
+                totals[
+                    setup_index
+                ] += elapsed
+
+                print_result(
+                    "DINOSAUR SETUP RESULT",
+                    mode,
+                    setup_mode,
+                    SETUP_SWEEP_TARGET_PERCENT,
+                    seed,
+                    elapsed
+                )
+
+                setup_index += 1
+
+        quick_print(
+            "DINOSAUR SETUP SUMMARY",
+            MODE_NAMES[mode]
+        )
+
+        setup_index = 0
+
+        for setup_mode in SETUP_SWEEP_SETUPS:
+            average = (
+                totals[
+                    setup_index
+                ]
+                / len(BENCH_SEEDS)
+            )
+
+            quick_print(
+                SETUP_NAMES[
+                    setup_mode
+                ],
+                "avg",
+                average
+            )
+
+            setup_index += 1
+
+    quick_print(
+        "DINOSAUR SETUP SWEEP DONE"
     )
 
 
@@ -411,28 +422,28 @@ def run_benchmarks():
     )
 
     quick_print(
-        "DINOSAUR BENCH START"
+        "DINOSAUR LEADERBOARD TARGET",
+        LEADERBOARD_BONES,
+        "tail",
+        1023,
+        "yield-multiplier",
+        DINO_YIELD_MULTIPLIER,
+        "speedup",
+        BENCH_SPEEDUP
     )
 
-    for world_size in BENCH_WORLD_SIZES:
-        for target_percent in BENCH_TARGET_PERCENTS:
-            benchmark_case(
-                world_size,
-                target_percent
-            )
+    run_algorithm_matrix()
+    run_setup_sweep()
 
     quick_print(
-        "DINOSAUR BENCH DONE"
+        "DINOSAUR BENCHMARKS COMPLETE"
     )
-
-    benchmark_sustained()
 
 
 if __name__ == "__main__":
     run_benchmarks()
 
     quick_print(
-        "DINOSAUR BENCHMARKS COMPLETE",
         "STARTING MAIN LOOP"
     )
 
