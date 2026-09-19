@@ -1669,6 +1669,148 @@ def prep_serial_soil():
             )
 
 
+def prep_current_column(
+    make_soil
+):
+    world_size = get_world_size()
+
+    for y in range(
+        world_size
+    ):
+        prep_tile(
+            make_soil
+        )
+
+        if y < world_size - 1:
+            move(
+                North
+            )
+
+
+def prep_flekay_line(
+    make_soil
+):
+    world_size = get_world_size()
+
+    move_to_origin_normal()
+
+    handles = []
+
+    for column in range(
+        world_size - 1
+    ):
+        handle = spawn_drone(
+            prep_current_column,
+            make_soil
+        )
+
+        if handle != None:
+            handles.append(
+                handle
+            )
+
+        move(
+            East
+        )
+
+    prep_current_column(
+        make_soil
+    )
+
+    for handle in handles:
+        wait_for(
+            handle
+        )
+
+
+def prep_flekay_dual_right(
+    make_soil
+):
+    world_size = get_world_size()
+    half = (
+        world_size
+        // 2
+    )
+
+    handles = []
+
+    for column in range(
+        half + 1,
+        world_size
+    ):
+        handle = spawn_drone(
+            prep_column,
+            column,
+            make_soil
+        )
+
+        if handle != None:
+            handles.append(
+                handle
+            )
+
+    # The second spawner owns the center column.
+    prep_column(
+        half,
+        make_soil
+    )
+
+    for handle in handles:
+        wait_for(
+            handle
+        )
+
+
+def prep_flekay_dual(
+    make_soil
+):
+    world_size = get_world_size()
+    half = (
+        world_size
+        // 2
+    )
+
+    move_to_origin_normal()
+
+    right_spawner = spawn_drone(
+        prep_flekay_dual_right,
+        make_soil
+    )
+
+    handles = []
+
+    for column in range(
+        1,
+        half
+    ):
+        handle = spawn_drone(
+            prep_column,
+            column,
+            make_soil
+        )
+
+        if handle != None:
+            handles.append(
+                handle
+            )
+
+    # The controller owns column zero.
+    prep_column(
+        0,
+        make_soil
+    )
+
+    for handle in handles:
+        wait_for(
+            handle
+        )
+
+    if right_spawner != None:
+        wait_for(
+            right_spawner
+        )
+
+
 def prep_parallel(
     make_soil
 ):
@@ -1742,8 +1884,214 @@ def prepare_field():
             Hats.Sunflower_Hat
         )
 
+        prep_parallel(
+            True
+        )
+        return
+
+    if BENCH_SETUP_MODE == 6:
+        prep_flekay_line(
+            True
+        )
+        return
+
+    if BENCH_SETUP_MODE == 7:
+        prep_flekay_dual(
+            True
+        )
+        return
+
     prep_parallel(
         True
+    )
+
+
+# ==================================================
+# FLEKAY EARLY-PHASE DIAGNOSTICS
+# ==================================================
+#
+# Modes 20 and 21 intentionally benchmark only the early Apple-chasing
+# phase. They are not assumed to survive a near-full board.
+#
+# 20 = plain axis-greedy with cheap failed-move fallbacks
+# 21 = parity-greedy from Flekay's historical/current drone.py phase one
+#
+# The current upstream drone.py no longer has a working phase two.
+# These modes therefore measure the reusable early-phase idea without
+# inventing a Hamiltonian handoff that the source does not provide.
+# ==================================================
+
+
+def refresh_next_apple_on_arrival():
+    global NEXT_APPLE
+
+    if (
+        NEXT_APPLE != None
+        and get_pos_x() == NEXT_APPLE[0]
+        and get_pos_y() == NEXT_APPLE[1]
+    ):
+        NEXT_APPLE = measure()
+
+
+def flekay_try_move(
+    primary,
+    fallback
+):
+    first = baseline_move(
+        primary
+    )
+
+    if first >= 0:
+        refresh_next_apple_on_arrival()
+        return True
+
+    second = baseline_move(
+        fallback
+    )
+
+    if second >= 0:
+        refresh_next_apple_on_arrival()
+        return True
+
+    return False
+
+
+def run_flekay_axis_greedy():
+    loops = 0
+
+    while (
+        CURRENT_TAIL_LENGTH
+        < target_tail_length()
+        and loops < BENCH_MAX_MOVES
+    ):
+        loops += 1
+
+        if NEXT_APPLE == None:
+            return False
+
+        x = get_pos_x()
+        y = get_pos_y()
+
+        moved = False
+
+        if x < NEXT_APPLE[0]:
+            moved = flekay_try_move(
+                East,
+                North
+            )
+
+        elif x > NEXT_APPLE[0]:
+            moved = flekay_try_move(
+                West,
+                South
+            )
+
+        elif y < NEXT_APPLE[1]:
+            moved = flekay_try_move(
+                North,
+                East
+            )
+
+        elif y > NEXT_APPLE[1]:
+            moved = flekay_try_move(
+                South,
+                West
+            )
+
+        else:
+            refresh_next_apple_on_arrival()
+            moved = True
+
+        if not moved:
+            return False
+
+    return (
+        CURRENT_TAIL_LENGTH
+        >= target_tail_length()
+    )
+
+
+def run_flekay_parity_greedy():
+    loops = 0
+
+    while (
+        CURRENT_TAIL_LENGTH
+        < target_tail_length()
+        and loops < BENCH_MAX_MOVES
+    ):
+        loops += 1
+
+        if NEXT_APPLE == None:
+            return False
+
+        x = get_pos_x()
+        y = get_pos_y()
+
+        x_even = (
+            x % 2 == 0
+        )
+        y_even = (
+            y % 2 == 0
+        )
+
+        if x_even:
+            if y_even:
+                if NEXT_APPLE[1] < y:
+                    if not flekay_try_move(
+                        South,
+                        East
+                    ):
+                        return False
+                else:
+                    if not flekay_try_move(
+                        East,
+                        South
+                    ):
+                        return False
+            else:
+                if NEXT_APPLE[0] < x:
+                    if not flekay_try_move(
+                        West,
+                        South
+                    ):
+                        return False
+                else:
+                    if not flekay_try_move(
+                        South,
+                        West
+                    ):
+                        return False
+        else:
+            if y_even:
+                if NEXT_APPLE[0] > x:
+                    if not flekay_try_move(
+                        East,
+                        North
+                    ):
+                        return False
+                else:
+                    if not flekay_try_move(
+                        North,
+                        East
+                    ):
+                        return False
+            else:
+                if NEXT_APPLE[1] > y:
+                    if not flekay_try_move(
+                        North,
+                        West
+                    ):
+                        return False
+                else:
+                    if not flekay_try_move(
+                        West,
+                        North
+                    ):
+                        return False
+
+    return (
+        CURRENT_TAIL_LENGTH
+        >= target_tail_length()
     )
 
 
@@ -2183,6 +2531,8 @@ def setup_cycle(
         and BENCH_MODE != 10
         and BENCH_MODE != 11
         and BENCH_MODE != 12
+        and BENCH_MODE != 20
+        and BENCH_MODE != 21
     ):
         build_path_for_mode()
         tail_reset()
@@ -2236,7 +2586,30 @@ def run_one_cycle():
     ):
         return run_reddit_coil_strike()
 
+    if BENCH_MODE == 20:
+        return run_flekay_axis_greedy()
+
+    if BENCH_MODE == 21:
+        return run_flekay_parity_greedy()
+
     return run_shortcuts()
+
+
+def continue_benchmark(
+    completed_cycles
+):
+    if BENCH_BONE_TARGET > 0:
+        return (
+            num_items(Items.Bone)
+            < BENCH_BONE_TARGET
+            and completed_cycles
+            < BENCH_MAX_CYCLES
+        )
+
+    return (
+        completed_cycles
+        < BENCH_CYCLES
+    )
 
 
 def main():
@@ -2245,16 +2618,16 @@ def main():
 
     completed_cycles = 0
 
-    for cycle in range(
-        BENCH_CYCLES
+    while continue_benchmark(
+        completed_cycles
     ):
         if not setup_cycle(
-            cycle == 0
+            completed_cycles == 0
         ):
             quick_print(
                 "DINOSAUR BENCH INVALID",
                 "setup",
-                cycle
+                completed_cycles
             )
             return
 
@@ -2268,18 +2641,20 @@ def main():
                 BENCH_TARGET_PERCENT,
                 CURRENT_TAIL_LENGTH,
                 "cycle",
-                cycle
+                completed_cycles
             )
 
             harvest_tail()
             return
 
         harvest_tail()
+        completed_cycles += 1
 
-        # A 32x32 target of board-1 with max Dinosaur upgrades is
-        # exactly the real Dinosaur leaderboard success condition.
+        # For the one-cycle board-1 diagnostic, validate the exact
+        # current Dinosaur leaderboard Bone threshold.
         if (
-            BENCH_WORLD_SIZE == 32
+            BENCH_BONE_TARGET == 0
+            and BENCH_WORLD_SIZE == 32
             and BENCH_TARGET_PERCENT == 100
             and num_items(Items.Bone) < 33488928
         ):
@@ -2297,7 +2672,26 @@ def main():
 
             return
 
-        completed_cycles += 1
+    if (
+        BENCH_BONE_TARGET > 0
+        and num_items(Items.Bone)
+        < BENCH_BONE_TARGET
+    ):
+        quick_print(
+            "DINOSAUR BENCH INVALID",
+            "bone-target-watchdog",
+            BENCH_MODE,
+            "setup",
+            BENCH_SETUP_MODE,
+            "cycles",
+            completed_cycles,
+            "bones",
+            num_items(Items.Bone),
+            "required",
+            BENCH_BONE_TARGET
+        )
+
+        return
 
     elapsed_ticks = (
         get_tick_count()
@@ -2318,6 +2712,10 @@ def main():
         BENCH_TARGET_PERCENT,
         "tail",
         CURRENT_TAIL_LENGTH,
+        "cycles",
+        completed_cycles,
+        "bone_target",
+        BENCH_BONE_TARGET,
         "bones",
         num_items(Items.Bone),
         "ticks",
