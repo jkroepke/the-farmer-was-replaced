@@ -367,6 +367,21 @@ All Maze-specific mechanics, production invariants, benchmark results, sources, 
 
 Read that document before modifying `maze.py`, Maze-related Gold production, or Maze benchmarks. Do not duplicate Maze strategy details in this file.
 
+## Benchmark output version
+
+Every benchmark runner must define a manually bumped `BENCH_VERSION` and print it as the first benchmark output line:
+
+```text
+BENCHMARK VERSION <suite>-v<N>
+```
+
+Rules:
+
+- bump the version whenever benchmark modes, setup, targets, seeds, simulation inputs, stopping conditions, or measured implementation behavior changes
+- documentation supplied with benchmark output must record both the printed benchmark version and the benchmark commit SHA when available
+- never reuse a version identifier for materially different benchmark code
+- historical output without a version must be explicitly labeled unversioned and tied to its benchmark commit before drawing conclusions
+
 ## Benchmark result provenance
 
 Every documented benchmark result must include the full Git commit SHA of the benchmark state that produced it.
@@ -412,6 +427,19 @@ All Dinosaur-specific mechanics, production invariants, external strategy resear
 `docs/DINOSAUR.md`
 
 Read that document before modifying `dinosaur.py`, Bone production, or Dinosaur benchmarks.
+
+## Spawn locality
+
+`spawn_drone(task, *args)` creates the child at the caller's current tile. Successful `move()` and successful `spawn_drone()` are both expensive physical actions, so worker placement is part of parallel setup cost.
+
+Do not assume spawning every worker from `(0,0)` is neutral. For spatial jobs, benchmark these alternatives when setup movement is material:
+
+- child self-positioning after all workers are spawned
+- controller/parent moving to each worker start and spawning there
+- spawning workers while the parent traverses an efficient route through worker starts
+- hierarchical/distributed spawning when workers can safely spawn descendants
+
+Because normal farm movement wraps at the edges, the geometric center is not inherently closer to uniformly distributed farm coordinates than any other fixed tile. Optimize against the actual worker-start set, not against visual distance from a corner.
 
 ## Concurrency safety
 
