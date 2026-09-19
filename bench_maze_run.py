@@ -14,6 +14,11 @@
 #
 # Short 200k / 1M screens are recorded in docs/MAZE.md and are no longer
 # used to select the final leaderboard algorithm.
+#
+# Modes 32/33 test the spawn_drone same-position optimization: the parent
+# walks one snake route and spawns each child directly on its final Maze
+# origin, removing all child positioning movement and the second readiness
+# verification walk.
 
 
 BENCH_VERSION = "maze-v1"
@@ -34,6 +39,8 @@ LEADERBOARD_SEEDS = [
 
 
 LEADERBOARD_MODE_IDS = [
+    33,
+    32,
     30,
     15,
     28,
@@ -42,6 +49,8 @@ LEADERBOARD_MODE_IDS = [
 ]
 
 LEADERBOARD_MODE_NAMES = [
+    "lb-uniform4-map-bfs-route-spawn",
+    "lb-uniform5-map-bfs-route-spawn",
     "lb-uniform4-map-bfs-reuse300",
     "lb-uniform5-map-bfs-reuse300",
     "lb-packed-map-bfs-reuse300",
