@@ -23,7 +23,10 @@ MODE_NAMES = [
     "equal7-tree-water-fertilizer",
     "dumb-tree-water",
     "dumb-tree-water-fertilizer",
-    "tier-linear-water"
+    "tier-linear-water",
+    "scan-tree-leave7",
+    "scan-tree-counted",
+    "scan-linear-counted"
 ]
 
 MIN_PETALS = 7
@@ -33,6 +36,7 @@ MIN_REMAINING = 9
 TARGET_POWER = 100000
 WORLD_SIZE = 0
 PETALS = []
+COUNTS = []
 
 USE_WATER = False
 USE_FERTILIZER = False
@@ -1039,6 +1043,534 @@ def dumb_tree(
     )
 
 
+
+def scan_prepare_column(
+    column,
+    replace_existing
+):
+    move_to(
+        column,
+        0
+    )
+
+    counts = []
+
+    for _ in range(
+        MAX_PETALS
+        - MIN_PETALS
+        + 1
+    ):
+        counts.append(
+            0
+        )
+
+    row = 0
+
+    while row < WORLD_SIZE:
+        entity = get_entity_type()
+
+        if replace_existing:
+            if entity != None:
+                harvest()
+
+            entity = None
+
+        if entity != Entities.Sunflower:
+            if entity != None:
+                harvest()
+
+            if get_ground_type() != Grounds.Soil:
+                till()
+
+            if not plant(
+                Entities.Sunflower
+            ):
+                return None
+
+            water_if_useful()
+
+        petals = measure()
+
+        if (
+            petals < MIN_PETALS
+            or petals > MAX_PETALS
+        ):
+            return None
+
+        counts[
+            petals
+            - MIN_PETALS
+        ] += 1
+
+        move(
+            North
+        )
+
+        row += 1
+
+    return counts
+
+
+def scan_collect_tree(
+    start,
+    count,
+    replace_existing
+):
+    if count == 1:
+        column_counts = scan_prepare_column(
+            start,
+            replace_existing
+        )
+
+        if column_counts == None:
+            return None
+
+        return [
+            [
+                start,
+                column_counts
+            ]
+        ]
+
+    second_count = count // 2
+    first_count = (
+        count
+        - second_count
+    )
+
+    drone = spawn_drone(
+        scan_collect_tree,
+        start + first_count,
+        second_count,
+        replace_existing
+    )
+
+    if drone == None:
+        return None
+
+    own = scan_collect_tree(
+        start,
+        first_count,
+        replace_existing
+    )
+
+    child = wait_for(
+        drone
+    )
+
+    if (
+        own == None
+        or child == None
+    ):
+        return None
+
+    for item in child:
+        own.append(
+            item
+        )
+
+    return own
+
+
+def scan_collect_linear(
+    replace_existing
+):
+    handles = []
+    column = 1
+
+    while column < WORLD_SIZE:
+        drone = spawn_drone(
+            scan_prepare_column,
+            column,
+            replace_existing
+        )
+
+        if drone == None:
+            return None
+
+        handles.append(
+            [
+                column,
+                drone
+            ]
+        )
+
+        column += 1
+
+    own = scan_prepare_column(
+        0,
+        replace_existing
+    )
+
+    if own == None:
+        return None
+
+    records = [
+        [
+            0,
+            own
+        ]
+    ]
+
+    for item in handles:
+        value = wait_for(
+            item[1]
+        )
+
+        if value == None:
+            return None
+
+        records.append(
+            [
+                item[0],
+                value
+            ]
+        )
+
+    return records
+
+
+def scan_install_counts(records):
+    global COUNTS
+
+    COUNTS = []
+
+    for _ in range(
+        WORLD_SIZE
+    ):
+        COUNTS.append(
+            None
+        )
+
+    for record in records:
+        COUNTS[
+            record[0]
+        ] = record[1]
+
+    for column in COUNTS:
+        if column == None:
+            return False
+
+    return True
+
+
+def scan_collect_field(
+    replace_existing
+):
+    if USE_TREE:
+        records = scan_collect_tree(
+            0,
+            WORLD_SIZE,
+            replace_existing
+        )
+    else:
+        records = scan_collect_linear(
+            replace_existing
+        )
+
+    if records == None:
+        return False
+
+    return scan_install_counts(
+        records
+    )
+
+
+def scan_total_for_petals(
+    petals
+):
+    total = 0
+    index = (
+        petals
+        - MIN_PETALS
+    )
+
+    for column in COUNTS:
+        total += column[
+            index
+        ]
+
+    return total
+
+
+def scan_choose_floor():
+    lower_count = 0
+    petals = MIN_PETALS
+
+    while petals <= MAX_PETALS:
+        count = scan_total_for_petals(
+            petals
+        )
+
+        if (
+            lower_count
+            + count
+            >= MIN_REMAINING
+        ):
+            return (
+                petals,
+                MIN_REMAINING
+                - lower_count
+            )
+
+        lower_count += count
+        petals += 1
+
+    return (
+        MAX_PETALS,
+        0
+    )
+
+
+def scan_keep_quotas(
+    floor,
+    keep_count
+):
+    quotas = []
+    index = (
+        floor
+        - MIN_PETALS
+    )
+
+    column = 0
+
+    while column < WORLD_SIZE:
+        available = COUNTS[
+            column
+        ][
+            index
+        ]
+
+        keep_here = available
+
+        if keep_here > keep_count:
+            keep_here = keep_count
+
+        quotas.append(
+            keep_here
+        )
+
+        keep_count -= keep_here
+        column += 1
+
+    return quotas
+
+
+def scan_zero_quotas():
+    quotas = []
+
+    for _ in range(
+        WORLD_SIZE
+    ):
+        quotas.append(
+            0
+        )
+
+    return quotas
+
+
+def scan_harvest_column(
+    column,
+    tier,
+    keep_count
+):
+    move_to(
+        column,
+        0
+    )
+
+    row = 0
+
+    while row < WORLD_SIZE:
+        if get_entity_type() == Entities.Sunflower:
+            petals = measure()
+
+            if petals == tier:
+                if keep_count > 0:
+                    keep_count -= 1
+                else:
+                    if not wait_until_ready():
+                        return False
+
+                    harvest()
+
+        move(
+            North
+        )
+
+        row += 1
+
+    return True
+
+
+def scan_harvest_tree(
+    start,
+    count,
+    tier,
+    quotas
+):
+    if count == 1:
+        return scan_harvest_column(
+            start,
+            tier,
+            quotas[
+                start
+            ]
+        )
+
+    second_count = count // 2
+    first_count = (
+        count
+        - second_count
+    )
+
+    drone = spawn_drone(
+        scan_harvest_tree,
+        start + first_count,
+        second_count,
+        tier,
+        quotas
+    )
+
+    if drone == None:
+        return False
+
+    own = scan_harvest_tree(
+        start,
+        first_count,
+        tier,
+        quotas
+    )
+
+    child = wait_for(
+        drone
+    )
+
+    return (
+        own
+        and child
+    )
+
+
+def scan_harvest_linear(
+    tier,
+    quotas
+):
+    handles = []
+    column = 1
+
+    while column < WORLD_SIZE:
+        drone = spawn_drone(
+            scan_harvest_column,
+            column,
+            tier,
+            quotas[
+                column
+            ]
+        )
+
+        if drone == None:
+            return False
+
+        handles.append(
+            drone
+        )
+
+        column += 1
+
+    own = scan_harvest_column(
+        0,
+        tier,
+        quotas[
+            0
+        ]
+    )
+
+    for drone in handles:
+        if not wait_for(
+            drone
+        ):
+            own = False
+
+    return own
+
+
+def scan_harvest_tier(
+    tier,
+    quotas
+):
+    if USE_TREE:
+        return scan_harvest_tree(
+            0,
+            WORLD_SIZE,
+            tier,
+            quotas
+        )
+
+    return scan_harvest_linear(
+        tier,
+        quotas
+    )
+
+
+def run_scan(
+    prefer_leave7
+):
+    if not scan_collect_field(
+        True
+    ):
+        return False
+
+    while num_items(
+        Items.Power
+    ) < TARGET_POWER:
+        use_leave7 = (
+            prefer_leave7
+            and scan_total_for_petals(
+                MIN_PETALS
+            ) >= MIN_REMAINING
+        )
+
+        if use_leave7:
+            floor = MIN_PETALS + 1
+            floor_quotas = scan_zero_quotas()
+        else:
+            floor, keep_count = scan_choose_floor()
+            floor_quotas = scan_keep_quotas(
+                floor,
+                keep_count
+            )
+
+        zero_quotas = scan_zero_quotas()
+        tier = MAX_PETALS
+
+        while tier >= floor:
+            if tier == floor:
+                quotas = floor_quotas
+            else:
+                quotas = zero_quotas
+
+            if not scan_harvest_tier(
+                tier,
+                quotas
+            ):
+                return False
+
+            if num_items(
+                Items.Power
+            ) >= TARGET_POWER:
+                return True
+
+            tier -= 1
+
+        if not scan_collect_field(
+            False
+        ):
+            return False
+
+    return True
+
+
 def configure_mode(mode):
     global USE_WATER
     global USE_FERTILIZER
@@ -1083,6 +1615,16 @@ def configure_mode(mode):
         USE_TREE = False
         return True
 
+    if mode == 8:
+        return True
+
+    if mode == 9:
+        return True
+
+    if mode == 10:
+        USE_TREE = False
+        return True
+
     return False
 
 
@@ -1093,10 +1635,12 @@ def run(
     global TARGET_POWER
     global WORLD_SIZE
     global PETALS
+    global COUNTS
 
     TARGET_POWER = target
     WORLD_SIZE = get_world_size()
     PETALS = []
+    COUNTS = []
 
     if WORLD_SIZE * WORLD_SIZE < 10:
         return False
@@ -1115,6 +1659,16 @@ def run(
         return dumb_tree(
             0,
             WORLD_SIZE
+        )
+
+    if mode == 8:
+        return run_scan(
+            True
+        )
+
+    if mode == 9 or mode == 10:
+        return run_scan(
+            False
         )
 
     return run_ordered(
