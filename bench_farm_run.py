@@ -1,6 +1,8 @@
 import main
 
 
+BENCH_VERSION = "farm-v1"
+
 # Normal-farm benchmark suite.
 #
 # This runner intentionally uses two levels:
@@ -385,6 +387,11 @@ def benchmark_power():
 
 
 def run_benchmarks():
+    quick_print(
+        "BENCHMARK VERSION",
+        BENCH_VERSION
+    )
+
     quick_print(
         "FARM BENCH SUITE START"
     )
