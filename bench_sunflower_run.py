@@ -21,7 +21,8 @@ MODE_NAMES = [
     "scan-tree-counted",
     "scan-linear-counted",
     "dumb-tree-no-care",
-    "equal7-tree-no-care"
+    "equal7-tree-no-care",
+    "tier-linear-no-care"
 ]
 
 # Leaderboard-focused modes. The actual resource leaderboard is expected to
@@ -32,7 +33,7 @@ SCREEN_MODES = [
     0,
     12,
     11,
-    7,
+    13,
     8,
     9,
     10
