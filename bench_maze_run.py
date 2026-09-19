@@ -1,16 +1,19 @@
-# Finalist Maze benchmark controller for a real 32x32 farm.
+# Maze leaderboard finalist benchmark.
 #
-# The extended 22-mode screen is recorded in docs/MAZE.md and is no longer
-# rerun here.
+# Decisive workload:
 #
-# This runner answers the remaining production/leaderboard questions:
+#     num_items(Items.Gold) >= 9863168
 #
-# 1. Which finalist wins at 1,000,000 Gold over three seeds?
-# 2. Which finalist wins the real Maze leaderboard workload:
-#    9,863,168 Gold, end-to-end including setup and termination?
+# Every run starts cold through simulate():
+# - empty farm state for the strategy
+# - worker spawn and positioning
+# - initial Bush/Maze creation
+# - all Treasure solves and relocations
+# - any 300-reuse Maze rebuilds
+# - termination after the exact leaderboard threshold
 #
-# The world stays 32x32. Small Mazes are created only by changing the amount
-# passed to use_item(Items.Weird_Substance, amount).
+# Short 200k / 1M screens are recorded in docs/MAZE.md and are no longer
+# used to select the final leaderboard algorithm.
 
 
 BENCH_SPEEDUP = 64
@@ -20,46 +23,15 @@ BENCH_REBALANCE_UNTIL = 140
 BENCH_SOLVES = 300
 BENCH_WORLD_SIZE = 32
 
-FINALIST_TARGET = 1000000
 LEADERBOARD_TARGET = 9863168
 
-FINALIST_SEEDS = [
+LEADERBOARD_SEEDS = [
     1,
     2,
     3
 ]
 
-LEADERBOARD_SEEDS = [
-    1,
-    2
-]
 
-
-# Includes the current production/reference path plus every family that was
-# still competitive after the extended screen.
-FINALIST_MODE_IDS = [
-    30,
-    15,
-    28,
-    17,
-    10,
-    26,
-    31
-]
-
-FINALIST_MODE_NAMES = [
-    "final-uniform4-map-bfs-reuse300",
-    "final-uniform5-map-bfs-reuse300",
-    "final-packed-map-bfs-reuse300",
-    "final-packed-reddit-visited-reuse300",
-    "control-uniform4-zapakh-reuse300",
-    "final-uniform5-zapakh-reuse300",
-    "control-uniform4-zapakh-reuse8"
-]
-
-
-# The real leaderboard run is intentionally narrower. These are the strongest
-# distinct architectures after the short and sustained screens.
 LEADERBOARD_MODE_IDS = [
     30,
     15,
@@ -95,14 +67,13 @@ def simulation_items():
 
 def run_one(
     mode,
-    seed,
-    gold_target
+    seed
 ):
     globals = {
         "BENCH_MODE": mode,
         "BENCH_SOLVES": BENCH_SOLVES,
         "BENCH_WORLD_SIZE": BENCH_WORLD_SIZE,
-        "BENCH_GOLD_TARGET": gold_target,
+        "BENCH_GOLD_TARGET": LEADERBOARD_TARGET,
         "BENCH_GREEDY_AFTER": BENCH_GREEDY_AFTER,
         "BENCH_REBALANCE_UNTIL": BENCH_REBALANCE_UNTIL,
         "BENCH_VERBOSE": BENCH_VERBOSE
@@ -115,104 +86,6 @@ def run_one(
         globals,
         seed,
         BENCH_SPEEDUP
-    )
-
-
-def benchmark_group(
-    label,
-    mode_ids,
-    mode_names,
-    seeds,
-    gold_target
-):
-    quick_print(
-        label,
-        "START",
-        "gold target",
-        gold_target,
-        "modes",
-        len(mode_ids),
-        "seeds",
-        len(seeds)
-    )
-
-    totals = []
-    minimums = []
-    maximums = []
-
-    for _ in mode_ids:
-        totals.append(0)
-        minimums.append(-1)
-        maximums.append(0)
-
-    for seed in seeds:
-        quick_print(
-            label,
-            "SEED",
-            seed
-        )
-
-        index = 0
-
-        while index < len(mode_ids):
-            quick_print(
-                "RUN",
-                mode_names[index]
-            )
-
-            run_time = run_one(
-                mode_ids[index],
-                seed,
-                gold_target
-            )
-
-            totals[index] += run_time
-
-            if (
-                minimums[index] < 0
-                or run_time < minimums[index]
-            ):
-                minimums[index] = run_time
-
-            if run_time > maximums[index]:
-                maximums[index] = run_time
-
-            quick_print(
-                mode_names[index],
-                run_time
-            )
-
-            index += 1
-
-    quick_print(
-        label,
-        "SUMMARY",
-        "gold target",
-        gold_target
-    )
-
-    seed_count = len(
-        seeds
-    )
-
-    index = 0
-
-    while index < len(mode_ids):
-        quick_print(
-            mode_names[index],
-            "avg",
-            totals[index] / seed_count,
-            "min",
-            minimums[index],
-            "max",
-            maximums[index]
-        )
-
-        index += 1
-
-    quick_print(
-        label,
-        "DONE"
     )
 
 
@@ -232,27 +105,99 @@ def main():
         return
 
     quick_print(
-        "MAZE FINAL BENCH START"
+        "MAZE LEADERBOARD COLD BENCH START",
+        "gold target",
+        LEADERBOARD_TARGET,
+        "modes",
+        len(LEADERBOARD_MODE_IDS),
+        "seeds",
+        len(LEADERBOARD_SEEDS)
     )
 
-    benchmark_group(
-        "MAZE FINALIST",
-        FINALIST_MODE_IDS,
-        FINALIST_MODE_NAMES,
-        FINALIST_SEEDS,
-        FINALIST_TARGET
-    )
+    totals = []
+    minimums = []
+    maximums = []
 
-    benchmark_group(
-        "MAZE LEADERBOARD",
-        LEADERBOARD_MODE_IDS,
-        LEADERBOARD_MODE_NAMES,
-        LEADERBOARD_SEEDS,
+    for _ in LEADERBOARD_MODE_IDS:
+        totals.append(0)
+        minimums.append(-1)
+        maximums.append(0)
+
+    for seed in LEADERBOARD_SEEDS:
+        quick_print(
+            "MAZE LEADERBOARD SEED",
+            seed
+        )
+
+        index = 0
+
+        while index < len(
+            LEADERBOARD_MODE_IDS
+        ):
+            quick_print(
+                "RUN",
+                LEADERBOARD_MODE_NAMES[
+                    index
+                ]
+            )
+
+            run_time = run_one(
+                LEADERBOARD_MODE_IDS[
+                    index
+                ],
+                seed
+            )
+
+            totals[index] += run_time
+
+            if (
+                minimums[index] < 0
+                or run_time < minimums[index]
+            ):
+                minimums[index] = run_time
+
+            if run_time > maximums[index]:
+                maximums[index] = run_time
+
+            quick_print(
+                LEADERBOARD_MODE_NAMES[
+                    index
+                ],
+                run_time
+            )
+
+            index += 1
+
+    quick_print(
+        "MAZE LEADERBOARD SUMMARY",
+        "gold target",
         LEADERBOARD_TARGET
     )
 
+    index = 0
+    seed_count = len(
+        LEADERBOARD_SEEDS
+    )
+
+    while index < len(
+        LEADERBOARD_MODE_IDS
+    ):
+        quick_print(
+            LEADERBOARD_MODE_NAMES[
+                index
+            ],
+            "avg",
+            totals[index] / seed_count,
+            "min",
+            minimums[index],
+            "max",
+            maximums[index]
+        )
+
+        index += 1
+
     quick_print(
-        "MAZE FINAL BENCH DONE"
+        "MAZE LEADERBOARD COLD BENCH DONE"
     )
 
 
