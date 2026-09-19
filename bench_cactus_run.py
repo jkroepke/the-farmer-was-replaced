@@ -1,6 +1,8 @@
 import main
 
 
+BENCH_VERSION = "cactus-v1"
+
 BENCH_WORLD_SIZE = 32
 BENCH_CYCLES = 3
 BENCH_SPEEDUP = 64
@@ -217,6 +219,11 @@ def benchmark_modes(
 
 
 def run_benchmarks():
+    quick_print(
+        "BENCHMARK VERSION",
+        BENCH_VERSION
+    )
+
     quick_print(
         "CACTUS BENCH SUITE START"
     )
