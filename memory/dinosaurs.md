@@ -257,3 +257,89 @@ Record at least:
 7. Validate the final candidate with `leaderboard_run(..., 256)`.
 
 Do not replace production `dinosaur.py` based only on external reported times.
+
+
+## 2026-09-19 benchmark v3 update
+
+The two Reddit references were reviewed in detail:
+
+- https://www.reddit.com/r/TheFarmerWasReplaced/comments/1p0ox9z/my_fastest_dinosaur_run/
+- https://www.reddit.com/r/TheFarmerWasReplaced/comments/1omrxi4/some_dinosaur_path_speed_comparisons/
+
+The first Reddit post's Pastebins were successfully retrieved this time:
+
+- https://pastebin.com/xsZL19rH
+- https://pastebin.com/z4Rxj5CE
+
+The durable route model is a four-phase state machine: **coil -> strike -> pre-return -> return**, followed by a deterministic safe sweep once the tail is large. A later commenter reports that real tail tracking plus westward double-backs improves the middlegame; this is not locally verified yet.
+
+Local provenance is stored under:
+
+`external/reddit-dinosaur-coil/`
+
+The second Reddit/skysdottir reference confirms that its preparation phase clears the farm in parallel with multiple drones and converts the field to Soil. The author also states they had never checked whether this cleanup is necessary for Dinosaurs. Since current Wiki behavior says Apples cannot spawn on occupied tiles and Grass grows automatically on Grassland, cleanup is now a measured benchmark dimension rather than an assumption.
+
+### Implemented benchmark
+
+`bench_dinosaur.py` now contains 20 modes:
+
+0. plain skyscraper Hamiltonian
+1. skyscraper annealed shortcuts 50%
+2. skyscraper hard shortcuts 25%
+3. skyscraper hard shortcuts 50%
+4. skysdottir Hilbert source-near reference
+5. skyscraper fast-lane annealed 50%
+6. heartbeat Hamiltonian
+7. heartbeat annealed shortcuts 50%
+8. heartbeat fast-lane annealed 50%
+9. Hilbert Hamiltonian without shortcuts
+10. Reddit coil/strike -> safe route at 33%
+11. Reddit coil/strike -> safe route at 50%
+12. Reddit coil/strike -> safe route at 66%
+13. skyscraper fast-lane annealed 25%
+14. heartbeat fast-lane annealed 25%
+15. skyscraper fast-lane hard 25%
+16. heartbeat fast-lane hard 25%
+17. heartbeat hard shortcuts 50%
+18. skyscraper fast-lane hard 50%
+19. heartbeat fast-lane hard 50%
+
+Setup modes:
+
+0. no cleanup
+1. `clear()`
+2. serial harvest + Soil
+3. parallel harvest
+4. parallel harvest + Soil
+5. source-style Sunflower Hat + parallel harvest + Soil
+
+The main algorithm matrix uses setup mode 4. A separate setup sweep compares all six setup modes with representative route families.
+
+Runner:
+
+- `bench_dinosaur_run.py`
+- version `dinosaur-v3`
+- world 32
+- targets 25/50/75/95/100%, where 100% is clamped to tail 1023
+- seeds 1/2/3
+- speedup 10000
+- exact leaderboard-like starting items: 1e9 Cactus + 1e9 Power, all unlocks
+- exact leaderboard threshold validation at board-1: 33,488,928 Bone
+- 20 algorithms x 5 targets x 3 seeds = 300 main simulations
+- 3 representative algorithms x 6 setup modes x 3 seeds = 54 setup simulations
+- total: 354 simulations
+
+Every successful child emits `DINOSAUR BENCH VALID`; failures emit `DINOSAUR BENCH INVALID`. The runner's summaries are labeled `RAW` because `simulate()` returns elapsed time and cannot directly return the child validity flag. Ignore a fast raw summary if any corresponding seed is invalid.
+
+Implementation commits:
+
+- strategy matrix: `624827d0520ca183353c0102562dfdc253d6fab1`
+- setup/accounting fix: `92e420f70a8c76c498caf0d5beb2e06425456300`
+- valid marker: `1ecfb09d2cdfd8078c182f7b5e7f48d291316e55`
+- runner v3: `1f65a3663e6322d07b80496b71ea5bd84b4c2544`
+- raw-summary marker: `7e51103180c4484ef68e91c974fcca5b05f94af9`
+- canonical docs update: `68d906c195d9d063d100985490cc32343c96124f`
+
+Static consistency was checked: 20 mode names match modes 0 through 19, six setup names exist, all required benchmark globals are referenced, and no duplicate function definitions were found.
+
+Runtime correctness/performance of v3 is **not yet verified in the game**. The next step is to run `bench_dinosaur_run.py`, capture the complete output, reject every mode/seed with an `INVALID` marker, and then narrow the next benchmark around the valid fastest modes.
