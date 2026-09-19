@@ -555,3 +555,67 @@ Carrot -> Hay -> Wood -> Carrot
 The transition workload is essential because an isolated Hay benchmark cannot measure the value of avoiding Soil/Grassland conversions.
 
 Keep source-near external modes unchanged. Add all-Soil and rerolling as separate modes.
+
+
+## Production selection after cold-start benchmark
+
+The legacy Sunflower/Carrot L is no longer the production layout. It is retained through `farm.run_legacy()` only for historical benchmark reproduction.
+
+Measured production strategy:
+
+```text
+max_drones() < world_size
+    reserve one Sunflower column
+    dedicate one worker to current-max-petal harvesting
+    split remaining columns across crop workers
+
+max_drones() == world_size
+    one worker per column
+    reserve the final two columns for simple Sunflower harvest/replant
+    use the remaining columns for the focus crop
+```
+
+Normal production is persistent: `farm.run()` does not clear the field when the focus changes. Special full-field jobs clear the field when required; the adaptive normal layout is then rebuilt lazily on the next normal farm run.
+
+The old L benchmark remains available as `legacy-l`.
+
+## Persistent transition benchmark
+
+Files:
+
+- `bench_transition.py`
+- `bench_transition_run.py`
+
+Workload:
+
+```text
+Carrot -> Hay -> Wood -> Carrot
+```
+
+The same simulated field and Power inventory persist across all four phases. There is no `clear()` and no Power reset between phases.
+
+The runner compares:
+
+```text
+legacy-l
+adaptive-production
+```
+
+for both the partial-Megafarm and maximum-Megafarm profiles across seeds 1, 2, and 3.
+
+Current per-phase gains:
+
+```text
+Carrot: +5,000,000
+Hay:    +5,000,000
+Wood:   +10,000,000
+Carrot: +5,000,000
+```
+
+Run:
+
+```text
+bench_transition_run.py
+```
+
+After the suite it automatically starts `main.main()`.
