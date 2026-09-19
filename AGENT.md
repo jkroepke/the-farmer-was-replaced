@@ -271,7 +271,7 @@ Sunflower harvesting has special rules.
 - After every harvest, recompute the current maximum before harvesting another sunflower.
 - Power speeds drone execution.
 
-Production now uses the benchmark-selected adaptive column layout. With fewer drones than columns it reserves one max-petal Sunflower column; with one drone per column it reserves two simple Sunflower columns. The old L remains only as `farm.run_legacy()` for benchmark reproduction. Read `docs/NORMAL_FARM.md` before changing normal farming or Sunflower placement.
+Production uses two benchmark-selected normal-farm regimes. Below full Megafarm (`max_drones() < world_size`) production currently keeps the legacy L because the persistent transition benchmark did not show an improvement from the production-shaped max-petal column implementation. At full Megafarm (`max_drones() == world_size`) production uses adaptive one-worker-per-column ownership with the final two columns reserved for simple Sunflowers. See `docs/NORMAL_FARM.md` and its benchmark commit references before changing normal farming or Sunflower placement.
 
 Do not assume the current global petal-cache/L design is optimal. Benchmark modes intentionally test integrated Sunflower rows/columns and dedicated workers without shared memory. Production changes must follow measured results from `bench_farm_run.py`.
 
