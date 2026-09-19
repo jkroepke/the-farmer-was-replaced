@@ -1951,7 +1951,7 @@ def flekay_try_move(
         primary
     )
 
-    if first >= 0:
+    if first:
         refresh_next_apple_on_arrival()
         return True
 
@@ -1959,7 +1959,7 @@ def flekay_try_move(
         fallback
     )
 
-    if second >= 0:
+    if second:
         refresh_next_apple_on_arrival()
         return True
 
@@ -2125,6 +2125,30 @@ def coil_refresh_apple():
         NEXT_APPLE = measure()
 
 
+def coil_blocked(
+    direction,
+    target_x,
+    target_y
+):
+    quick_print(
+        "DINOSAUR COIL BLOCKED",
+        "mode",
+        BENCH_MODE,
+        "at",
+        get_pos_x(),
+        get_pos_y(),
+        "direction",
+        direction,
+        "target",
+        target_x,
+        target_y,
+        "tail",
+        CURRENT_TAIL_LENGTH - 1,
+        "apple",
+        NEXT_APPLE
+    )
+
+
 def coil_move_to(
     target_x,
     target_y
@@ -2147,9 +2171,14 @@ def coil_move_to(
         target_y = world_size - 1
 
     while get_pos_x() < target_x:
-        if baseline_move(
+        if not baseline_move(
             East
-        ) < 0:
+        ):
+            coil_blocked(
+                East,
+                target_x,
+                target_y
+            )
             return False
 
         if (
@@ -2159,9 +2188,14 @@ def coil_move_to(
             return True
 
     while get_pos_x() > target_x:
-        if baseline_move(
+        if not baseline_move(
             West
-        ) < 0:
+        ):
+            coil_blocked(
+                West,
+                target_x,
+                target_y
+            )
             return False
 
         if (
@@ -2171,9 +2205,14 @@ def coil_move_to(
             return True
 
     while get_pos_y() < target_y:
-        if baseline_move(
+        if not baseline_move(
             North
-        ) < 0:
+        ):
+            coil_blocked(
+                North,
+                target_x,
+                target_y
+            )
             return False
 
         if (
@@ -2183,9 +2222,14 @@ def coil_move_to(
             return True
 
     while get_pos_y() > target_y:
-        if baseline_move(
+        if not baseline_move(
             South
-        ) < 0:
+        ):
+            coil_blocked(
+                South,
+                target_x,
+                target_y
+            )
             return False
 
         if (
@@ -2239,9 +2283,9 @@ def run_coil_safe_finish():
                 ):
                     return True
 
-        if baseline_move(
+        if not baseline_move(
             South
-        ) < 0:
+        ):
             return False
 
         if (
@@ -2405,9 +2449,9 @@ def run_reddit_coil_strike():
                             get_pos_x()
                             != world_size - 2
                         ):
-                            if baseline_move(
+                            if not baseline_move(
                                 East
-                            ) < 0:
+                            ):
                                 return False
 
                         if not coil_move_to(
