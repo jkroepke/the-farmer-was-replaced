@@ -1,7 +1,7 @@
 import main
 
 
-BENCH_VERSION = "dinosaur-v5"
+BENCH_VERSION = "dinosaur-v6"
 
 # Primary Dinosaur benchmark:
 #
@@ -11,9 +11,14 @@ BENCH_VERSION = "dinosaur-v5"
 # - many route/shortcut variants
 # - fixed-tail diagnostic targets plus the exact board-1 leaderboard target
 #
-# v5 fixes an off-by-one exposed by the first v4 preview: the child tracked
+# v5 fixed an off-by-one exposed by the first v4 preview: the child tracked
 # occupied Dinosaur length (head + tail), while Bone rewards use tail segments
 # only. Every successful cycle now validates its exact expected Bone gain.
+#
+# v6 fixes the Reddit coil/strike translation against the published Pastebin:
+# correct coil progress after same-column Apples and restore the missing
+# coil->strike north-edge alignment/fix flag. It also prints RUN START before
+# simulate() so a visually suspicious run can be identified immediately.
 #
 # IMPORTANT: simulate() returns elapsed time, not the child script's validity.
 # Always correlate summary rows with "DINOSAUR BENCH VALID" / "INVALID" lines.
@@ -225,6 +230,21 @@ def run_one(
     seed,
     bone_target=0
 ):
+    quick_print(
+        "DINOSAUR RUN START",
+        MODE_NAMES[mode],
+        "mode",
+        mode,
+        "setup",
+        SETUP_NAMES[setup_mode],
+        "target",
+        target_percent,
+        "seed",
+        seed,
+        "bone_target",
+        bone_target
+    )
+
     globals = {
         "BENCH_MODE": mode,
         "BENCH_WORLD_SIZE": BENCH_WORLD_SIZE,
