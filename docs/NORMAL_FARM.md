@@ -443,3 +443,115 @@ Therefore:
 - source-near external references remain unchanged and run as smaller smoke tests
 
 This is intentional benchmark pruning, not deletion of inconvenient results.
+
+
+## Polyculture soil research
+
+This question is intentionally deferred to the dedicated Polyculture benchmark rather than mixed into the first Sunflower/layout suite.
+
+### Current mechanics
+
+Current wiki documentation supports an all-Soil candidate:
+
+- Grass can be explicitly planted on Soil.
+- Grass grows automatically on Grassland.
+- Trees, like Bushes, can be planted on either Grassland or Soil.
+- Carrots require Soil.
+- Polyculture companions are Grass, Bush, Tree, or Carrot; companion selection is per individual plant and independent of a fixed crop type layout.
+
+Relevant sources:
+
+- https://thefarmerwasreplaced.wiki.gg/wiki/Grass
+- https://thefarmerwasreplaced.wiki.gg/wiki/Tree
+- https://thefarmerwasreplaced.wiki.gg/wiki/Polyculture
+- https://thefarmerwasreplaced.wiki.gg/wiki/Tooltips
+
+The important trade-off is therefore measurable rather than purely mechanical:
+
+- Grassland Grass avoids an explicit `plant(Entities.Grass)` after each harvest because Grass regrows automatically.
+- All-Soil avoids repeated `till()` transitions when switching among Grass/Carrot/Tree/Bush-heavy production layouts.
+- Both `plant()` and `till()` are expensive physical actions, so short focus windows may favor avoiding ground conversion while long pure-Hay windows may favor automatic Grass regrowth.
+
+### Local external references
+
+The MateusMarochi Polyculture reference is deliberately **not** all-Soil.
+
+Files:
+
+- `external/mateusmarochi-the-farmer-was-replaced-codes/source/polyculture_farm.py`
+- `external/mateusmarochi-the-farmer-was-replaced-codes/source/polyculture_farm_paralel.py`
+- `external/mateusmarochi-the-farmer-was-replaced-codes/source/plantacoes.py`
+
+Its planting helpers force:
+
+```text
+Grass  -> Grassland
+Tree   -> Grassland
+Bush   -> Grassland
+Carrot -> Soil
+Sunflower -> Soil
+```
+
+Preserve this behavior in any source-near benchmark mode. Do not silently convert it to all-Soil.
+
+Its Polyculture algorithm uses a pending-request list:
+
+1. plant a probe crop
+2. call `get_companion()`
+3. store requested coordinate/type
+4. service the request when traversal reaches that coordinate
+
+The parallel variant assigns pairs of columns and reserves the final two columns for Sunflowers.
+
+This is useful as a classic companion-request baseline, but its mutable global request list cannot be assumed to synchronize across drones under current independent-drone memory semantics.
+
+### Community rerolling strategy
+
+Recent Reddit discussion describes a different high-end approach for Hay and suggests adapting it to the other base crops:
+
+1. preplant the field with one chosen companion crop
+2. give workers stable positions/regions with minimal overlap
+3. repeatedly plant/reroll the target crop
+4. call `get_companion()`
+5. accept the target only when its requested companion matches the already-present companion crop
+
+References:
+
+- https://www.reddit.com/r/TheFarmerWasReplaced/comments/1v6mnwx/i_need_help_to_optimize/
+- https://www.reddit.com/r/TheFarmerWasReplaced/comments/1ofhmi8/
+- https://www.reddit.com/r/TheFarmerWasReplaced/comments/1oe5ykd/so_is_polyculture_a_thing/
+
+This avoids cross-drone writes to requested companion coordinates, at the cost of repeated reroll actions.
+
+The community also points out that companion harvesting order matters: removing a companion before harvesting the plant that depends on it loses that plant's bonus. That is another reason to benchmark static companion layouts/rerolling separately from request-following algorithms.
+
+### Planned Polyculture benchmark matrix
+
+After the current normal-farm/Sunflower suite selects a worker geometry, benchmark at least:
+
+```text
+A. classic Grassland companion/request strategy
+B. all-Soil companion/request strategy
+C. all-Soil static companion + rerolling
+D. no-Polyculture control
+```
+
+Run both steady-state and transition workloads.
+
+Steady-state:
+
+```text
+Hay
+Wood
+Carrot
+```
+
+Transition workload:
+
+```text
+Carrot -> Hay -> Wood -> Carrot
+```
+
+The transition workload is essential because an isolated Hay benchmark cannot measure the value of avoiding Soil/Grassland conversions.
+
+Keep source-near external modes unchanged. Add all-Soil and rerolling as separate modes.
