@@ -74,32 +74,6 @@ The root worker is the fixed Maze creator. After the final Treasure is harvested
   - archived as provenance under `external/steam-32x4x4/`
 - Existing local references remain relevant, especially `external/msmith93-thefarmerwasreplaced/source/multidrone/maze_leaderboard.py` and the prior Pastebin tree-rebalancing reference.
 
-## Final 200000-Gold benchmark
-
-Tested against code commit `55734c855dd464dd846deef280d8a65d9f2c3bf7`, seeds 1/2/3, speedup 64. All runs passed the internal Gold assertion.
-
-| Mode | Average runtime | Min | Max |
-| --- | ---: | ---: | ---: |
-| current-reference-32 | 122.63 | 117.42 | 129.17 |
-| cover-3x3 | 33.44 | 31.84 | 35.27 |
-| cover-4x4 | 28.20 | 28.12 | 28.28 |
-| cover-2x4x4 | 21.68 | 21.09 | 22.54 |
-| zapakh-32x4x4 | 13.51 | 13.27 | 13.87 |
-| steam-32x4x4 | 22.07 | 22.03 | 22.11 |
-
-Raw runtime-to-target: zapakh is 9.08x faster than current-reference-32.
-
-Because Gold overshoot differs by mode, also compare normalized runtime per exactly 200000 Gold:
-
-- current-reference-32: 106.92
-- cover-3x3: 33.41
-- cover-4x4: 28.17
-- cover-2x4x4: 21.66
-- zapakh-32x4x4: 12.76
-- steam-32x4x4: 21.48
-
-Gold-normalized result: zapakh is 8.38x faster than the current reference and is the current production candidate for 32x32 / 32-drone Gold farming.
-
 ## 32x4x4 launcher barrier
 
 A screenshot from the in-game benchmark showed mode 10 stalled with drones distributed but no 4x4 Mazes created. This proved the hang occurred before the zapakh DFS.
@@ -143,79 +117,6 @@ Current production rules:
 - if Gold cannot start, print `MAZE WAIT bushes ...` or `MAZE WAIT substance ...` to expose the blocker
 
 Production integration commits begin at `b07d95a870252df2f093c250137b909557183f4c`; benchmark provenance remains `55734c855dd464dd846deef280d8a65d9f2c3bf7`.
-
-## Extended Maze benchmark
-
-Measured benchmark code state:
-`c045c3da2a015b77491532199fc3f0735cc2a640`.
-
-The rebuild smoke test for packed Zapakh reuse=1 passed after the local-return
-fix: 100000 Gold target, 126368 Gold gained, 27392 Weird Substance, 93546
-ticks, runtime 15.98.
-
-200000-Gold / 3-seed highlights:
-
-- uniform4 map+BFS reuse300: 13.29 avg (13.24..13.32) — fastest raw runtime
-- ref zapakh uniform4 reuse300: 13.92 avg
-- uniform4 zapakh reuse8: 13.98 avg
-- uniform5 zapakh reuse300: 15.92 avg
-- Reddit5 map+BFS reuse300: 16.09 avg
-- packed Reddit visited reuse300: 16.19 avg
-- packed unranked reuse300: 18.62 avg
-- packed Zapakh reuse-cap sweep:
-  - reuse1 19.78
-  - reuse2 19.35
-  - reuse4 19.09
-  - reuse8 19.56
-  - reuse16 19.84
-  - reuse300 19.59
-- fresh variants are materially slower.
-
-1000000-Gold / 2-seed sustained highlights:
-
-- Reddit5 map+BFS reuse300: 31.72 avg — fastest measured sustained mode
-- packed map+BFS reuse300: 33.65
-- packed Reddit visited reuse300: 34.20
-- ref zapakh uniform4 reuse300: 38.40
-- packed unranked reuse300: 43.12
-- packed Zapakh reuse300: 43.20
-- packed Zapakh reuse8: 44.68
-- described Reddit packed fresh: 48.69
-
-Sustained normalized throughput/resource findings:
-
-- Reddit5 map+BFS is about 21% faster than uniform4 Zapakh at 1M after
-  normalizing Gold overshoot.
-- approximate Weird Substance / Gold:
-  - uniform4 Zapakh reuse300: 0.254
-  - uniform5 map+BFS reuse300: 0.205
-  - packed map+BFS reuse300: 0.197
-- packed map+BFS is slightly slower than uniform5 map+BFS at 1M but more
-  substance-efficient.
-- ranking toward the Treasure is not universally helpful: packed unranked
-  reuse300 beat packed ranked Zapakh reuse300.
-- the full-field 4..7 packing is not automatically faster than uniform layouts.
-
-Cold-start vs sustained behavior:
-
-- short 200k strongly favors low setup cost
-- map+BFS amortizes its initial mapping cost and improves sharply at 1M
-- rough two-point estimate:
-  - uniform4 Zapakh ~30.8 s per additional 1M Gold after setup
-  - uniform5 map+BFS ~19.6 s per additional 1M
-  - packed map+BFS ~18.8 s per additional 1M
-- this is only an interpolation; the real leaderboard workload must decide.
-
-Legacy source-near msmith93 full32 fresh completed all three seeds:
-40.26 avg, 32.77 min, 51.33 max.
-
-Critical missing comparison:
-
-- uniform4 map+BFS reuse300 won the 200k screen but was omitted from the
-  original 1M sustained set.
-- do not replace production solely from the 200k result.
-- next benchmark must include uniform4 map+BFS at 1M and then use the exact Maze
-  leaderboard target 9863168 Gold, end-to-end including setup and termination.
 
 ## Maze leaderboard decision rule
 
@@ -349,7 +250,6 @@ If stationary coverage does not dominate, next Flekay-derived candidates are:
 - Revisit `MAZE_PARALLEL_RELOCATIONS = 25` after the reuse-cap sweep identifies
   the best lifecycle.
 
-
 ## Spawn locality research
 
 Verified game/API behavior:
@@ -416,105 +316,6 @@ Run:
 
 Do not change `maze_parallel.py` production spawn topology until this microbenchmark is measured and the promising candidate is validated end-to-end in the Maze benchmark.
 
+## Benchmark record
 
-## Spawn locality benchmark results
-
-### spawn-v1
-
-Benchmark version: `spawn-v1`
-
-Benchmark commit: `c15c9f3ea47970cbbc6a4677bf5301a3a831b15e`
-
-Measured 32x32 / 32-drone setup-only results, identical across seeds 1/2/3:
-
-```text
-baseline-origin00-rowmajor                   2.10 s / 12146 ticks
-center-anchor-rowmajor                      2.85 s / 16613 ticks
-band-anchor-rowmajor                        2.10 s / 12140 ticks
-band-anchor-farthest-parent-near            3.39 s / 20011 ticks
-nearest-slots-origin00                      6.91 s / 41374 ticks
-nearest-slots-farthest-parent-near          8.24 s / 49419 ticks
-spawn-at-rowmajor-origins                   5.98 s / 35671 ticks
-```
-
-Durable conclusions:
-
-- moving the parent to the visual farm center before spawning is worse than the current `(0,0)` baseline
-- a simple `(0,8)` band anchor ties the baseline almost exactly, so reducing average child travel alone does not improve wall-clock setup
-- moving the parent to every child origin and spawning in place is decisively worse
-- child travel is heavily overlapped with the serial spawn chain, so the critical path is not the sum of all child distances
-- the v1 nearest/farthest modes are not valid locality comparisons because their O(n²) runtime planning is inside the timed section and dominates their results
-- the identical outputs across all three seeds show this setup benchmark is deterministic
-
-The main architectural hypothesis after v1 is therefore hierarchical spawning: reduce the serial 31-spawn chain itself rather than merely shortening independently parallel child travel.
-
-### spawn-v4 follow-up
-
-Current benchmark version: `spawn-v4`
-
-Structural benchmark commit before the speedup-only bump: `2a217d6b4a42ea403c292fbc2e19428fd561b25b`.
-
-`spawn-v4` keeps the same precomputed locality/binary-tree topology as `spawn-v3` and changes the simulation request to `BENCH_SPEEDUP = 10000`.
-
-Modes:
-
-```text
-baseline-origin00-rowmajor
-origin00-parent-near
-band-anchor-rowmajor
-band-precomputed-farthest-parent-near
-nearest-slots-precomputed-rowmajor
-nearest-slots-precomputed-farthest-parent-near
-binary-tree-rowmajor-origin00
-binary-tree-nearest-origin00
-```
-
-The binary tree recursively splits a fixed worker range. Each branch spawns one child branch while continuing the other branch itself, reducing the dependency depth toward log2(worker_count). Only integer layout/start/count arguments are passed so copied spawn arguments do not include the full origin table.
-
-Run `bench_spawn_run.py` and require the first line to be:
-
-```text
-BENCHMARK VERSION spawn-v4
-```
-
-Do not promote spawn topology directly from the setup microbenchmark. The measured winner is now included in the full cold Maze leaderboard benchmark at 9863168 Gold.
-
-
-Measured `spawn-v4` result, repository code state `7c66b8422554d109e90220705e3841ea49081eca`:
-
-```text
-baseline-origin00-rowmajor                        2.10 s / 11832 ticks
-origin00-parent-near                             2.07 s / 11662 ticks
-band-anchor-rowmajor                             2.10 s / 11836 ticks
-band-precomputed-farthest-parent-near            1.68 s /  9201 ticks
-nearest-slots-precomputed-rowmajor               1.56 s /  8671 ticks
-nearest-slots-precomputed-farthest-parent-near   1.40 s /  7605 ticks
-binary-tree-rowmajor-origin00                    1.29 s /  6892 ticks
-binary-tree-nearest-origin00                     0.90 s /  4498 ticks
-```
-
-All three seeds were identical.
-
-Measured conclusions:
-
-- `binary-tree-nearest-origin00` reduced outer simulation runtime from 2.10 s to 0.90 s: about 57.1% less setup time, or 2.33x faster
-- tick count fell from 11832 to 4498: about 62.0% fewer ticks
-- binary spawning alone, keeping the row-major slot set, reached 1.29 s and therefore accounts for a large part of the gain
-- precomputed nearest-slot selection without the binary tree reached 1.56 s
-- combining both optimizations is materially better than either one alone
-- visual farm-center placement remains disproven as an optimization for this workload
-
-This is sufficient to promote the topology into the exact leaderboard benchmark, but not directly into production.
-
-The exact 9863168-Gold follow-up is now `maze-v3`, code state `7faabfb9bf3593837ac191a7b198c1ba30f41e68`.
-
-New exact-target modes:
-
-```text
-lb-uniform4-map-bfs-tree-spawn
-lb-nearest4-map-bfs-tree-spawn
-```
-
-The persistent tree variant cannot reuse the setup-only `wait_for()` design because Maze workers must remain alive. Instead every branch recursively spawns descendants, every leaf becomes a persistent Maze worker, and the root waits for the globally visible Bush planting cost to be consumed by all 32 Bushes before releasing the Weird-Substance barrier. This avoids a second full readiness walk in the normal case.
-
-Production `maze_parallel.py` remains unchanged until `maze-v3` proves the topology on the real leaderboard target.
+Measured Maze, leaderboard, and spawn-locality results are maintained in `bench/maze.md`.
