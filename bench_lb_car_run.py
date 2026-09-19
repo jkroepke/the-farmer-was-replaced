@@ -1,4 +1,4 @@
-BENCH_VERSION = "lbcar-v1"
+BENCH_VERSION = "lbcar-v2"
 BENCH_SPEEDUP = 10000
 
 SCREEN_GAIN = 50000000
@@ -22,12 +22,10 @@ MODE_NAMES = [
 
 
 def simulation_items():
-    # Carrot LB start inventory has not been measured yet.
-    # Hay/Wood are intentionally oversized synthetic support resources so
-    # this v1 suite measures crop hot-path behavior rather than starvation.
+    # Measured real Carrots leaderboard start inventory (lbprobe-v4).
     return {
-        Items.Hay: 10000000000,
-        Items.Wood: 10000000000,
+        Items.Hay: 1000000000,
+        Items.Wood: 1000000000,
         Items.Carrot: 0,
         Items.Pumpkin: 0,
         Items.Cactus: 0,
@@ -95,7 +93,7 @@ def main():
     )
     quick_print(
         "LBCAR START PROFILE",
-        "synthetic-support"
+        "measured-carrots-lb"
     )
 
     times = []
