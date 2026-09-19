@@ -257,6 +257,15 @@ def run(item):
     if item == Items.Gold:
         return run_gold()
 
+    if item == Items.Weird_Substance:
+        # Fertilizing normal crops generates Weird Substance.
+        # farm.weird_substance_target() uses the first Maze unlock cost
+        # before Mazes exists and the reusable-maze stockpile afterward.
+        farm.run(
+            Items.Hay
+        )
+        return True
+
     if (
         item == Items.Power
         or item == Items.Hay
