@@ -9,7 +9,9 @@ MODE_NAMES = [
     "two-wave-insertion-reuse",
     "two-wave-insertion-reroll-reuse",
     "tstambaugh-reference-32",
-    "nql1314-reference"
+    "nql1314-reference",
+    "tstambaugh-placed-generalized",
+    "adaptive-placed-pool"
 ]
 
 
@@ -613,6 +615,240 @@ def run_tstambaugh_reference():
     return harvest()
 
 
+
+# ==================================================
+# generalized Tstambaugh-style placed worker pool
+# ==================================================
+
+def _batched_row_job(y, size, reroll, wait_ready):
+    values = []
+    redo = []
+
+    utils.move_to(0, y)
+
+    for x in range(size):
+        if get_ground_type() != Grounds.Soil:
+            till()
+
+        if get_entity_type() != Entities.Cactus:
+            if not plant(Entities.Cactus):
+                return False
+
+        level = measure()
+        values.append(level)
+
+        if reroll and _reroll_needed(
+            level,
+            x,
+            y,
+            size
+        ):
+            redo.append(x)
+
+        move(East)
+
+    while len(redo) > 0:
+        index = 0
+        length = len(redo)
+
+        for _ in range(length):
+            if index >= len(redo):
+                break
+
+            x = redo[index]
+
+            utils.move_to(
+                x,
+                y
+            )
+
+            while not can_harvest():
+                pass
+
+            # A mature Cactus must be destroyed before a replant gets a
+            # fresh random size. Two tills remove it and restore Soil.
+            till()
+            till()
+
+            if not plant(Entities.Cactus):
+                return False
+
+            use_item(Items.Water)
+            level = measure()
+            values[x] = level
+
+            if _reroll_needed(
+                level,
+                x,
+                y,
+                size
+            ):
+                index += 1
+            else:
+                redo.pop(index)
+
+    _insertion_row(
+        y,
+        values,
+        size
+    )
+
+    if wait_ready:
+        _wait_row(
+            y,
+            size
+        )
+
+    return True
+
+
+def _batched_row_worker(
+    index,
+    count,
+    size,
+    reroll,
+    wait_ready
+):
+    y = index
+
+    while y < size:
+        if not _batched_row_job(
+            y,
+            size,
+            reroll,
+            wait_ready
+        ):
+            return False
+
+        y += count
+
+    return True
+
+
+def _placed_wave(
+    worker,
+    size,
+    arg1,
+    arg2,
+    column_phase
+):
+    worker_count = min(
+        size,
+        max_drones()
+    )
+
+    if worker_count < 1:
+        return False
+
+    utils.move_to(
+        0,
+        0
+    )
+
+    handles = []
+
+    # Spawn each worker directly on its first owned row/column. This keeps
+    # the source-reference locality instead of spawning every drone at 0,0
+    # and paying a separate move_to() afterward.
+    for index in range(
+        worker_count - 1
+    ):
+        drone = spawn_drone(
+            worker,
+            index,
+            worker_count,
+            size,
+            arg1,
+            arg2
+        )
+
+        if drone == None:
+            for active in handles:
+                wait_for(active)
+
+            return False
+
+        handles.append(drone)
+
+        if column_phase:
+            move(East)
+        else:
+            move(North)
+
+    ok = worker(
+        worker_count - 1,
+        worker_count,
+        size,
+        arg1,
+        arg2
+    )
+
+    for drone in handles:
+        if not wait_for(drone):
+            ok = False
+
+    return ok
+
+
+def _harvest_sorted_top_right(size):
+    utils.move_to(
+        size - 1,
+        size - 1
+    )
+
+    if not can_harvest():
+        return False
+
+    return harvest()
+
+
+def run_placed_batched(
+    reroll,
+    wait_ready,
+    reset_field
+):
+    size = utils.size()
+
+    if reset_field:
+        clear()
+
+    if not _placed_wave(
+        _batched_row_worker,
+        size,
+        reroll,
+        wait_ready,
+        False
+    ):
+        return False
+
+    if not _placed_wave(
+        _column_worker,
+        size,
+        1,
+        False,
+        True
+    ):
+        return False
+
+    return _harvest_sorted_top_right(
+        size
+    )
+
+
+def run_adaptive_placed(cycle):
+    size = utils.size()
+
+    # The 32x32 benchmark is the only measured case where rerolling is
+    # currently proven beneficial. Smaller measured worlds were slower.
+    reroll = size == 32
+    wait_ready = not reroll
+
+    return run_placed_batched(
+        reroll,
+        wait_ready,
+        cycle == 0
+    )
+
 def run_cycle(mode, cycle):
     if mode == 0:
         return cactus.run()
@@ -650,6 +886,18 @@ def run_cycle(mode, cycle):
 
     if mode == 6:
         return run_nql_reference()
+
+    if mode == 7:
+        return run_placed_batched(
+            True,
+            False,
+            True
+        )
+
+    if mode == 8:
+        return run_adaptive_placed(
+            cycle
+        )
 
     return False
 
