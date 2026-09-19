@@ -1348,3 +1348,45 @@ Relative to the Hamiltonian preview:
 The tested skyscraper shortcut / fast-lane variants were ~46% to ~59% slower than the plain Hamiltonian preview.
 
 Do not promote any of these based on v4. Re-run `bench_dinosaur_run.py` with `BENCH_VERSION = "dinosaur-v5"`.
+
+
+## Dinosaur benchmark v6 Reddit coil/strike correction
+
+A live screenshot from the first v4 run showed the next candidate after mode 9 building several vertical lanes on the west side while an Apple remained visible on the east side.
+
+The screenshot was taken before mode 10 emitted a result, so the active candidate was `reddit-coil-strike-safe33`.
+
+Important distinction:
+
+- initially ignoring an east-side Apple while building the **coil** is intended by the published Reddit algorithm
+- the algorithm explicitly has four phases: coil -> strike -> pre-return -> return
+- the coil phase establishes a known safe tail shape before direct east-side Apple strikes
+
+However, direct comparison against the published Pastebin found two real translation errors in the local mode 10/11/12 implementation:
+
+1. after consuming an Apple on the current column, local `path_progress` used the Y coordinate from before reaching that Apple; the source computes progress from the newly reached Apple position toward the newly measured next Apple
+2. the local coil -> strike transition omitted the source's north-edge alignment and persistent `fixFlag1` behavior
+
+These errors can keep the local coil phase mis-sized and leave the head in a different strike-entry geometry from the source.
+
+v6 fixes both issues while preserving the benchmark-specific target termination.
+
+It also prints a line before every `simulate()` call:
+
+```text
+DINOSAUR RUN START <name> mode <n> setup <name> target <percent> seed <n> bone_target <n>
+```
+
+This makes visual hangs attributable to the currently executing candidate rather than the last completed result.
+
+Implementation:
+
+- `1e47c5201207fac0d6cf35b23f8fd56c2483c477` — correct source-near Reddit phase transitions
+- `7081dc129241652273e6793d3352db487faf3fdf` — bump runner to `dinosaur-v6` and print run-start markers
+
+The previous v4 run should not be continued:
+
+- v4 has the head/tail accounting bug fixed in v5
+- modes 10/11/12 additionally have the Reddit translation errors fixed in v6
+
+Re-run from the beginning and require the first line to report `BENCHMARK VERSION dinosaur-v6`.
