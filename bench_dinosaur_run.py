@@ -11,6 +11,10 @@ BENCH_VERSION = "dinosaur-v3"
 # - many route/shortcut variants
 # - fixed-tail diagnostic targets plus the exact board-1 leaderboard target
 #
+# IMPORTANT: simulate() returns elapsed time, not the child script's validity.
+# Always correlate summary rows with "DINOSAUR BENCH VALID" / "INVALID" lines.
+# A fast INVALID run must never be treated as a winner.
+#
 # The primary algorithm matrix uses parallel Soil preparation so every
 # algorithm sees the same permanently empty field. A separate setup sweep
 # measures whether that preparation is actually worth its startup cost.
@@ -287,7 +291,7 @@ def run_algorithm_matrix():
                 mode_index += 1
 
         quick_print(
-            "DINOSAUR SUMMARY",
+            "DINOSAUR SUMMARY RAW",
             "target",
             target_percent,
             "tail",
@@ -386,7 +390,7 @@ def run_setup_sweep():
                 setup_index += 1
 
         quick_print(
-            "DINOSAUR SETUP SUMMARY",
+            "DINOSAUR SETUP SUMMARY RAW",
             MODE_NAMES[mode]
         )
 
