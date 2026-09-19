@@ -53,14 +53,12 @@ Prefer **contiguous chunks** of the map rather than one tiny task per column/til
 
 Normal-farm code must remain dynamic, but current endgame benchmarking focuses on 32x32.
 
-Production no longer uses the permanent Sunflower/Carrot L.
+Production uses two measured normal-farm regimes:
 
-Measured normal-farm regimes:
-
-- `max_drones() < world_size`: one dedicated max-petal Sunflower column plus crop chunks
+- `max_drones() < world_size`: keep the legacy L for now; the persistent transition benchmark did not show an improvement from the production-shaped max-petal-column implementation
 - `max_drones() == world_size`: one worker per column with the final two columns reserved for simple Sunflower harvest/replant
 
-The old L remains in `farm.run_legacy()` only for historical benchmark comparison. See `docs/NORMAL_FARM.md`.
+The partial max-petal implementation remains available as a benchmark candidate. See `docs/NORMAL_FARM.md` for the result tables and benchmark commit SHAs.
 
 Water production is high (~3.2/s) and fertilizer production is high (~0.8/s), so both may be used aggressively.
 
