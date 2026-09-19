@@ -2405,6 +2405,14 @@ def main():
     else:
         valid = success
 
+    pumpkins_per_second = 0
+
+    if elapsed > 0:
+        pumpkins_per_second = (
+            gain
+            / elapsed
+        )
+
     cycle_gain = 0
 
     if len(gains) > 0:
@@ -2432,6 +2440,8 @@ def main():
         ticks,
         "elapsed",
         elapsed,
+        "pumpkins/sec",
+        pumpkins_per_second,
         "carrot used",
         carrot_used,
         "water used",
