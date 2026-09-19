@@ -48,6 +48,34 @@ This distinction matters: the upstream repository was not necessarily wrong when
 
 A local runtime probe is provided in this repository as `drone_mem_probe.py` / `drone_mem_run.py` to verify the current behavior directly. Probe runner commit: `9aa2d72459e692033901e8de7569f54ae4d77af1`.
 
+
+### Current runtime verification
+
+Probe commit: `9aa2d72459e692033901e8de7569f54ae4d77af1`
+
+Observed on 2026-09-19 with `drone_mem_run.py`:
+
+```text
+DRONE MEMORY PROBE initial []
+DRONE MEMORY STEP 1 worker [1] source [] initial-view []
+DRONE MEMORY STEP 2 worker [2] source [] initial-view []
+DRONE MEMORY STEP 3 worker [3] source [] initial-view []
+DRONE MEMORY RESULT isolated
+```
+
+This directly reproduces the historical nql1314 pattern with a source drone returning a mutable list and multiple worker drones calling `wait_for(source)`.
+
+The current runtime result is the opposite of the historical exploit:
+
+- each worker sees only its own mutation
+- the source result remains `[]`
+- mutations from one worker are not visible to later workers
+- the parent-side value obtained from the same source handle remains unchanged
+
+Therefore the historical shared-`wait_for()` behavior is **proven not to work in the current runtime for mutable list return values**.
+
+Do not generalize this probe beyond what it tested: it directly disproves the historical list-sharing mechanism. It does not independently test every possible mutable type or every future game version.
+
 The repository remains useful as an algorithm/data-structure reference, but mechanics assumptions must be checked against the current game version.
 
 A full source mirror is intentionally absent until redistribution permission is established.
