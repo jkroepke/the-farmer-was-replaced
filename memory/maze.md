@@ -306,6 +306,40 @@ Exact-target cold-start runner commit:
 Do not update `lb_maze.py` to route spawning until the exact 9863168-Gold
 cold benchmark confirms the gain.
 
+## Flekay stationary Maze research
+
+Pinned reference:
+`external/flekay-the-farmer-was-replaced/source/Maze/Multi Drone/substance_spam.py`.
+
+Key architecture:
+
+- set world to 5x5
+- stationary full coverage instead of navigation
+- one drone per cell means every relocated Treasure already has a drone on it
+- historical upstream README reports 01:07.107 leaderboard time
+- treat that number as January 2026 upstream evidence, not a local result
+
+5x5 is the largest fully coverable square with 32 drones (25 cells; 6x6 needs
+36).
+
+Current benchmark modes:
+
+- 36 source-near Flekay 5x5 substance spam
+- 37 5x5 one-per-cell spam with barrier and no duplicate parent cell
+- 38 5x5 event-gated one-per-cell; only Treasure cell calls use_item
+- 39 4x4 event-gated geometry control
+- 40 5x5 event-gated with all 32 drones via seven duplicate pollers
+
+Exact leaderboard target remains 9863168 Gold from cold start.
+Runner version: `maze-v5`, speedup 10000.
+Runner commit: `7e6721a2ea93306fc5c4f5fce12d8402677bc621`.
+
+If stationary coverage does not dominate, next Flekay-derived candidates are:
+
+- shared vector flow field / intersection stitching
+- incremental wall-removal flow-field repair
+- integer tile IDs instead of tuple keys in Maze hot maps
+
 ## Open questions
 
 - Run exact-target cold-start runner commit `a9f4a009b9b47e77316c9860605088f0e9bd2142` and select by average time to 9863168 Gold.
