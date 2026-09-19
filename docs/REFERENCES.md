@@ -50,9 +50,10 @@ Reference:
 
 Status:
 
-- registered as a generic optimization reference
-- the current research environment could not fetch the page contents directly
-- do not infer or copy algorithms from the URL alone; inspect the actual source when it is reachable
+- local snapshot supplied by the user and archived under `external/j4lc-the-farmer-was-replaced/source/`
+- archive SHA-256: `6918c9718f9ef2b1d1ef38918e521a33103adb2ea7b16afea46718d44f7da0d0`
+- contains a Fastest Reset / Zero-to-Hero implementation plus generic farming, Cactus, Maze, Pumpkin/replant, movement and farming helpers
+- the upstream README explicitly says the scripts are not claimed to be optimal, so treat them as implementation references rather than a performance oracle
 
 ### Pastebin source references
 
@@ -202,6 +203,8 @@ When reviewing a community implementation, separate:
 Prefer a complex algorithm when it measures faster, but never assume complexity or a performance-oriented filename implies better runtime.
 
 ## Local external archive
+
+- `external/j4lc-the-farmer-was-replaced/` — user-supplied source snapshot archived on 2026-09-19; archive SHA-256 `6918c9718f9ef2b1d1ef38918e521a33103adb2ea7b16afea46718d44f7da0d0`
 
 - `external/mateusmarochi-the-farmer-was-replaced-codes/` — complete MIT-licensed source snapshot at `d303d81d6a3eb59887eff75ed0454a6d8f4ff5ad`
 - `external/juritox-the-farmer-was-replaced/` — MIT-licensed source/text snapshot at `544bb832ffcec00aacf2c8dd5278bdb534ab674b`; large binary media is provenance-manifested
