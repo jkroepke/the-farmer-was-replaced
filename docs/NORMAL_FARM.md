@@ -961,3 +961,37 @@ bench_poly_run.py
 ```
 
 Paste the complete `FARMX ...` output back into the research session. Record measured conclusions only against benchmark commit `d1956d30d2e1aa98da49bbccecf8c087b7b72828`.
+
+
+## FARMX unversioned benchmark results
+
+Benchmark version: `unversioned-legacy`
+
+Benchmark commit: `d1956d30d2e1aa98da49bbccecf8c087b7b72828`
+
+The supplied run completed both profiles and all three sustained seeds.
+
+Sustained summaries:
+
+```text
+partial Megafarm / 8 drones:
+  sync-selected          avg 224.17
+  current-two-sun-pairs  avg  94.96
+  poly-two-sun-pairs     avg 156.49
+
+max Megafarm / 32 drones:
+  sync-selected           avg 47.16
+  current-two-sun-stride  avg 38.18
+  poly-two-sun-stride     avg 52.39
+```
+
+Measured conclusions for this benchmark state:
+
+- persistent current crop logic is much faster than synchronous production in both profiles
+- at 8 drones, `current-two-sun-pairs` reduced average sustained runtime by about 57.6% versus `sync-selected`
+- at 32 drones, `current-two-sun-stride` reduced average sustained runtime by about 19.0% versus `sync-selected`
+- the static all-Soil Bush-checkerboard/rerolling candidate did not beat the best persistent current-crop candidate
+- at 32 drones the rerolling finalist was slower than even synchronous production
+- do not promote a final Farm layout from this run because Sunflower placement is now being challenged independently
+
+This result set predates the benchmark-version header rule. Future runs must include `BENCHMARK VERSION ...` as their first output line.
