@@ -1,7 +1,7 @@
 import main
 
 
-BENCH_VERSION = "farmx-v3"
+BENCH_VERSION = "farmx-v4"
 
 BENCH_WORLD_SIZE = 32
 BENCH_SPEEDUP = 10000
@@ -28,6 +28,33 @@ WOOD_GAINS = [
     200000,
     2000000,
     10000000
+]
+
+MAX_FOCUS_NAMES = [
+    "max-carrot",
+    "max-grass",
+    "max-wood"
+]
+
+# Keep these aligned with the broad bench_farm max-Megafarm targets.
+# Carrot is split across the two Carrot phases in bench_poly, therefore
+# 5M here produces 10M total Carrot gain.
+MAX_FOCUS_CARROT_GAINS = [
+    5000000,
+    0,
+    0
+]
+
+MAX_FOCUS_HAY_GAINS = [
+    0,
+    10000000,
+    0
+]
+
+MAX_FOCUS_WOOD_GAINS = [
+    0,
+    0,
+    20000000
 ]
 
 BENCH_SEEDS = [
@@ -116,6 +143,7 @@ def run_one(profile, mode, horizon, seed):
     globals = {
         "BENCH_MODE": mode,
         "BENCH_HORIZON": horizon,
+        "BENCH_SCENARIO": HORIZON_NAMES[horizon],
         "BENCH_WORLD_SIZE": BENCH_WORLD_SIZE,
         "BENCH_CARROT_GAIN": CARROT_GAINS[horizon],
         "BENCH_HAY_GAIN": HAY_GAINS[horizon],
@@ -125,6 +153,31 @@ def run_one(profile, mode, horizon, seed):
     return simulate(
         "bench_poly",
         simulation_unlocks(profile),
+        simulation_items(),
+        globals,
+        seed,
+        BENCH_SPEEDUP
+    )
+
+
+def run_focus_one(
+    mode,
+    focus,
+    seed
+):
+    globals = {
+        "BENCH_MODE": mode,
+        "BENCH_HORIZON": 3 + focus,
+        "BENCH_SCENARIO": MAX_FOCUS_NAMES[focus],
+        "BENCH_WORLD_SIZE": BENCH_WORLD_SIZE,
+        "BENCH_CARROT_GAIN": MAX_FOCUS_CARROT_GAINS[focus],
+        "BENCH_HAY_GAIN": MAX_FOCUS_HAY_GAINS[focus],
+        "BENCH_WOOD_GAIN": MAX_FOCUS_WOOD_GAINS[focus]
+    }
+
+    return simulate(
+        "bench_poly",
+        simulation_unlocks(1),
         simulation_items(),
         globals,
         seed,
@@ -300,6 +353,121 @@ def benchmark_profile(profile):
     )
 
 
+def benchmark_max_focus(focus):
+    times = []
+
+    quick_print(
+        "FARMX MAX SCREEN START",
+        MAX_FOCUS_NAMES[focus]
+    )
+
+    for mode in range(len(MODE_NAMES)):
+        run_time = run_focus_one(
+            mode,
+            focus,
+            1
+        )
+
+        times.append(run_time)
+
+        quick_print(
+            "FARMX MAX SCREEN",
+            MAX_FOCUS_NAMES[focus],
+            MODE_NAMES[mode],
+            run_time
+        )
+
+    current_mode = best_in_modes(
+        times,
+        CURRENT_MODE_IDS
+    )
+    poly_mode = best_in_modes(
+        times,
+        POLY_MODE_IDS
+    )
+
+    modes = [
+        0,
+        current_mode,
+        poly_mode
+    ]
+
+    quick_print(
+        "FARMX MAX FINALISTS",
+        MAX_FOCUS_NAMES[focus],
+        "current",
+        MODE_NAMES[current_mode],
+        times[current_mode],
+        "poly",
+        MODE_NAMES[poly_mode],
+        times[poly_mode]
+    )
+
+    totals = [0, 0, 0]
+    minimums = [-1, -1, -1]
+    maximums = [0, 0, 0]
+
+    for seed in BENCH_SEEDS:
+        result_index = 0
+
+        for mode in modes:
+            run_time = run_focus_one(
+                mode,
+                focus,
+                seed
+            )
+
+            totals[result_index] += run_time
+
+            if (
+                minimums[result_index] < 0
+                or run_time < minimums[result_index]
+            ):
+                minimums[result_index] = run_time
+
+            if run_time > maximums[result_index]:
+                maximums[result_index] = run_time
+
+            quick_print(
+                "FARMX MAX FINAL",
+                MAX_FOCUS_NAMES[focus],
+                "seed",
+                seed,
+                MODE_NAMES[mode],
+                run_time
+            )
+
+            result_index += 1
+
+    quick_print(
+        "FARMX MAX FINAL SUMMARY",
+        MAX_FOCUS_NAMES[focus]
+    )
+
+    result_index = 0
+    count = len(BENCH_SEEDS)
+
+    for mode in modes:
+        quick_print(
+            MODE_NAMES[mode],
+            "avg",
+            totals[result_index] / count,
+            "min",
+            minimums[result_index],
+            "max",
+            maximums[result_index]
+        )
+
+        result_index += 1
+
+
+def benchmark_max_focuses():
+    for focus in range(len(MAX_FOCUS_NAMES)):
+        benchmark_max_focus(
+            focus
+        )
+
+
 def run_benchmarks():
     quick_print(
         "BENCHMARK VERSION",
@@ -312,6 +480,8 @@ def run_benchmarks():
 
     for profile in range(len(PROFILE_NAMES)):
         benchmark_profile(profile)
+
+    benchmark_max_focuses()
 
     quick_print(
         "FARMX BENCH SUITE DONE"
