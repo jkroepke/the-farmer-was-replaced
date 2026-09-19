@@ -183,3 +183,103 @@ The current decision rule is therefore:
 2. use `PUMPKIN AMORTIZED` for the production architecture decision
 3. reject any mode with `valid False`
 4. do not promote production until the in-game results are measured
+
+
+## Sparse benchmark bug found from in-game run 2026-09-19
+
+Measured user run on 32x32 / 32 drones exposed a correctness failure in every sparse-region candidate.
+
+Valid controls:
+
+- `current-production`: 3,145,728 Pumpkin per cycle on seeds 1, 2, and 3
+- `legacy-patch-wait`: 3,145,728 Pumpkin on the smoke run
+
+Invalid sparse modes:
+
+- `sparse-1x32-tail`
+- `sparse-4x8-tail`
+- `sparse-8x4-tail`
+- all three corresponding tree-spawn modes
+- all non-tail shape-smoke sparse modes
+
+Every invalid sparse mode reached roughly 10-12 simulated seconds but produced zero Pumpkin and reported `valid False`.
+
+### Root cause
+
+The sparse worker treated this state as permanently finished:
+
+`get_entity_type() == Entities.Pumpkin and can_harvest()`
+
+That predicate is valid for a single mature Pumpkin, but it is also true for an already merged smaller Giant Pumpkin.
+
+Sparse local repair makes some spatial regions complete much earlier than others. Those regions merge into smaller Giant Pumpkins. Once that happens, the worker removes the covered coordinates from its unresolved list.
+
+The field can therefore end as a mosaic of harvestable partial Giant Pumpkins. There may be no dead, missing, or immature Pumpkin left for `collect_problem_positions()` to report, while opposite-corner Pumpkin IDs still differ.
+
+This explains the observed combination:
+
+- local workers report completion
+- `collect_problem_positions()` eventually returns no useful repair work
+- full-map ID check never succeeds
+- gain remains zero
+
+The supplied screenshot visually confirms the partial-Giant mosaic state.
+
+### Consequence
+
+Sparse coordinate elimination is not a safe Pumpkin optimization when it allows spatial regions to finish independently.
+
+Modes 13..17, the first persistent-sparse experiment, are now explicitly rejected by the benchmark runner so they cannot enter the previous unbounded full-map merge wait.
+
+The invalid sparse modes remain in the file as research history but are no longer part of the active candidate matrix.
+
+## Replacement benchmark axis
+
+The active benchmark now preserves the known-good North-only column-ring repair semantics and isolates only lifecycle/setup changes.
+
+New modes:
+
+- `ring-reuse`
+  - fresh worker wave per cycle
+  - clear only before cycle 1
+  - preserves post-harvest Soil on later cycles
+  - isolates field-reset/till cost from worker persistence
+
+- `persistent-ring`
+  - one column worker per column
+  - same worker wave remains alive for all benchmark cycles
+  - same North-only ring semantics as current production
+
+- `persistent-tree-ring`
+  - same persistent ring algorithm
+  - distributed binary-tree worker spawning
+  - tests spawn topology without changing Pumpkin repair semantics
+
+The new matrices are:
+
+Cold / one cycle:
+
+- `current-production`
+- `persistent-ring`
+- `persistent-tree-ring`
+
+Amortized / three cycles:
+
+- `current-production`
+- `ring-reuse`
+- `persistent-ring`
+- `persistent-tree-ring`
+
+`legacy-patch-wait` remains a one-seed control.
+
+## Stronger validity invariant
+
+The supplied valid current-production logs produced exactly 3,145,728 Pumpkin on every full 32x32 harvest.
+
+The benchmark now requires every cycle to equal exactly:
+
+`3_145_728`
+
+A merely positive Pumpkin gain is no longer sufficient for `valid True`.
+
+This prevents partial Giant harvests or other accidental positive-gain states from being selected as benchmark winners.
