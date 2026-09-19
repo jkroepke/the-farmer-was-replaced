@@ -1863,11 +1863,51 @@ def spec_neighbor(coord, direction):
 
 
 def spec_move_to(x, y):
+    size = get_world_size()
+
     while get_pos_x() != x:
-        move(East)
+        current = get_pos_x()
+
+        east_distance = (
+            x - current
+        ) % size
+
+        west_distance = (
+            current - x
+        ) % size
+
+        if east_distance <= west_distance:
+            direction = East
+        else:
+            direction = West
+
+        if not move(
+            direction
+        ):
+            return False
 
     while get_pos_y() != y:
-        move(North)
+        current = get_pos_y()
+
+        north_distance = (
+            y - current
+        ) % size
+
+        south_distance = (
+            current - y
+        ) % size
+
+        if north_distance <= south_distance:
+            direction = North
+        else:
+            direction = South
+
+        if not move(
+            direction
+        ):
+            return False
+
+    return True
 
 
 def spec_substance(maze_size):
