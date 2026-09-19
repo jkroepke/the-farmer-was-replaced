@@ -333,7 +333,7 @@ Relevant mechanics:
 - A grown pumpkin can die and become `Entities.Dead_Pumpkin`.
 - Planting a new pumpkin on a dead pumpkin replaces it; harvesting the dead pumpkin first is unnecessary.
 - `can_harvest()` is false on dead pumpkins.
-- Giant pumpkin yield improves with size, with the full multiplier reached at size 6 and above.
+- Current `builtins.py` states that mega-Pumpkin harvest yield grows cubically with mega-Pumpkin size. Do not assume a 6x6 yield cap; compare patch sizes with measured throughput.
 
 The current implementation scans and patches the field until every required tile is ready, then harvests.
 
