@@ -16,7 +16,7 @@
 | Run / version | Source commit | Profile | Status |
 | --- | --- | --- | --- |
 | `sunflower-v1` | `6a34d906f5ee5cb2902fa891fe268cbff0e1b151` | 32x32 / seed 1 partial output | Interrupted; historical |
-| `sunflower-v2-bounded7` | `689c8e20a44f6d24a46521ba1130360c5b5acbc5` | 32x32 / seeds 1-3 | Partial: seeds 1-2 complete; seed 3 controls complete |
+| `sunflower-v2-bounded7` | `689c8e20a44f6d24a46521ba1130360c5b5acbc5` | 32x32 / seeds 1-3 | Complete; measured winner `scan-tree-counted` |
 
 ## Results
 
@@ -111,7 +111,7 @@ summary without marking their provenance.
 | Benchmark/version | `sunflower-v2-bounded7` |
 | Requested speedup | 10000 |
 | Seeds | 1, 2, 3 |
-| Canonical status | Partial run; retain until seed 3 scan modes complete |
+| Canonical status | Complete three-seed benchmark |
 
 #### Measurements and observations
 
@@ -120,14 +120,13 @@ summary without marking their provenance.
 | Fix commit | `f962b8615880d92b573beaa3c30389b817e32dc0` |
 | Version bump commit | `689c8e20a44f6d24a46521ba1130360c5b5acbc5` |
 | Benchmark/version | `sunflower-v2-bounded7` |
-| Status | Partial preview available; full three-seed run still in progress. |
+| Status | Complete. All seven modes valid across seeds 1, 2, and 3. |
 
 
-#### Preview results
+#### Complete results
 
-Status: **partial**. Seeds 1 and 2 completed all seven modes. Seed 3 has
-completed the four non-scan controls and is currently executing
-`scan-tree-bounded7`.
+Status: **complete**. All seven modes completed and reported `valid True` for
+all three seeds.
 
 ##### Seed 1
 
@@ -202,10 +201,11 @@ The non-scan controls are now complete for all three seeds. Their low spread con
 
 | Kind | Statement | Evidence |
 | --- | --- | --- |
-| Measured | The four non-scan controls are complete across all three seeds; `tier-tree-no-care` averages 504.73 s. | `sunflower-v2-bounded7` partial run |
-| Measured | `scan-tree-counted` averages 372.29 s across seeds 1-2 with only 0.27 s min/max spread. | `sunflower-v2-bounded7` partial run |
-| Measured | Binary-tree fan-out is faster than linear fan-out for the counted scan: 372.29 s vs 425.76 s across seeds 1-2. | `sunflower-v2-bounded7` partial run |
-| Open question | Seed 3 scan results are still required before selecting the leaderboard implementation. | Current partial run |
+| Measured | `scan-tree-counted` is the fastest valid mode at 371.54 s average across seeds 1-3. | `sunflower-v2-bounded7` complete run |
+| Measured | `scan-tree-counted` is 26.39% faster than `tier-tree-no-care`. | 371.54 s vs 504.73 s |
+| Measured | The counted binary-tree scan is 12.77% faster than its linear equivalent. | 371.54 s vs 425.91 s |
+| Measured | Bounded-seven retention is valid but slightly slower than exact counted retention. | 377.12 s vs 371.54 s |
+| Decision | Use `scan-tree-counted` (mode 9) for the multi-drone Sunflower leaderboard. | Complete three-seed benchmark |
 
 ## Reproduction
 
