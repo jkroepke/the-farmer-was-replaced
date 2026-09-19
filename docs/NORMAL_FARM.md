@@ -1083,3 +1083,38 @@ Relevant commits:
 - `25ec285ed0736a17db73e7d94a10d265ec7a235f` source-near reroll correction: do not water rejected rolls
 
 Do not change production `farm.py` from this benchmark alone. First compare the seven-petal modes against the existing one-max and two-dumb Sunflower layouts in both partial and max Megafarm profiles.
+
+
+## FarmX max-crop focus modes
+
+`farmx-v4` adds three pure max-Megafarm throughput scenarios in addition to the mixed Carrot -> Hay -> Wood -> Carrot sequence:
+
+```text
+max-carrot
+max-grass
+max-wood
+```
+
+Targets are aligned with the broad `bench_farm` max-Megafarm baseline:
+
+```text
+max-carrot 10M total Carrot gain
+max-grass  10M Hay gain
+max-wood   20M Wood gain
+```
+
+Carrot is internally split into the two existing Carrot phases, so `BENCH_CARROT_GAIN=5M` produces 10M total Carrot.
+
+Each max-crop scenario:
+
+1. runs only with the fully unlocked/max-Megafarm profile
+2. screens all FarmX modes with seed 1
+3. selects the best current mode and best poly mode for that crop
+4. compares `sync-selected`, best current, and best poly across seeds 1/2/3
+
+This isolates pure crop throughput from transition performance and allows the winning architecture/layout to differ for Grass, Wood, and Carrot.
+
+Relevant commits:
+
+- `ab4f1fb8e47edee8e567632bc7aacea7e0f8e887` scenario labels in `bench_poly.py`
+- `b38fd2bd47c58a1211be8e59209c584f8cc96207` `farmx-v4` max-crop focus runner
