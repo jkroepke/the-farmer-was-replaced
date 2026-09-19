@@ -9,9 +9,9 @@ Read this file before changing:
 - `bench_farm.py`
 - `bench_farm_run.py`
 
-## Why the current layout is under review
+## Legacy layout and why it was replaced
 
-The current production design reserves:
+The legacy production design reserved:
 
 - a permanent Sunflower L on the left/top edge
 - a permanent Carrot support L directly inside it
@@ -36,7 +36,7 @@ More importantly, it cuts across the natural row/column ownership model for Mega
 
 The benchmark exists to determine whether that complexity still pays for itself.
 
-Do not remove the current layout until the benchmark data supports a replacement.
+The cold-start benchmark supported replacing this layout; it remains only as a reproducible legacy benchmark path.
 
 ## Current mechanics relevant to the benchmark
 
@@ -243,7 +243,7 @@ The benchmark therefore contains both dumb and ordered Sunflower strategies.
 
 | Mode | Purpose |
 | --- | --- |
-| `current-l-production` | exact current production baseline |
+| `current-l-production` | legacy L production baseline |
 | `current-l-no-polyculture` | isolates current L without Polyculture benefit/overhead |
 | `columns-pure-current-crop` | no Sunflowers; current crop logic in column ownership |
 | `columns-one-sunflower-row-dumb` | 32 integrated Sunflower tiles spread across columns |
@@ -384,7 +384,7 @@ Execute:
 bench_farm_run.py
 ```
 
-The runner performs all crop profiles, then the dedicated Power suite.
+The runner performs all crop profiles. The dedicated Power suite is optional and disabled by default.
 
 After:
 
