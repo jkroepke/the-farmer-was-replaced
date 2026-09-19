@@ -1,10 +1,10 @@
+import bench_ticks
 import main
 
 
-BENCH_VERSION = "ticks-v2"
+BENCH_VERSION = "ticks-v3"
 
 BENCH_ITERATIONS = 512
-BENCH_SPEEDUP = 10000
 PRIMARY_SIZE = 128
 
 MODE_NAMES = [
@@ -31,19 +31,19 @@ def run_one(
     mode,
     size
 ):
-    globals = {
-        "BENCH_MODE": mode,
-        "BENCH_ITERATIONS": BENCH_ITERATIONS,
-        "BENCH_COLLECTION_SIZE": size
-    }
+    quick_print(
+        "TICK CASE START",
+        MODE_NAMES[mode],
+        "iterations",
+        BENCH_ITERATIONS,
+        "size",
+        size
+    )
 
-    return simulate(
-        "bench_ticks",
-        Unlocks,
-        {},
-        globals,
-        1,
-        BENCH_SPEEDUP
+    return bench_ticks.run_mode(
+        mode,
+        BENCH_ITERATIONS,
+        size
     )
 
 
@@ -59,15 +59,9 @@ def run_primary():
     for mode in range(
         len(MODE_NAMES)
     ):
-        elapsed = run_one(
+        run_one(
             mode,
             PRIMARY_SIZE
-        )
-
-        quick_print(
-            "TICK SIM TIME",
-            MODE_NAMES[mode],
-            elapsed
         )
 
 
@@ -82,17 +76,9 @@ def run_membership_scaling():
             4,
             5
         ]:
-            elapsed = run_one(
+            run_one(
                 mode,
                 size
-            )
-
-            quick_print(
-                "TICK SCALE TIME",
-                MODE_NAMES[mode],
-                "size",
-                size,
-                elapsed
             )
 
 

@@ -18,7 +18,8 @@
 | Drone memory semantics | `2fc84603c5566ecf17ea6ee8135ad394d1cfceb0` | Mutable-state isolation | Measured 12/12 PASS |
 | `spawn-v5` | `cba75a7c26fd11da30408c8706deb8d8bf09d66a` | 32-worker topology | Measured |
 | `move-v2` | `f309a1a6ab4423d22f9be26e41539ee8eed3aa21` | 32x32 movement | Measured |
-| `ticks-v1` | Unknown / not recorded | Interpreter hot-path microbenchmarks | Pending |
+| `ticks-v2` | Unknown / not recorded | Interpreter hot-path microbenchmarks via `simulate()` | Invalid: every run returned `None` and produced no internal result |
+| `ticks-v3` | Pending commit | Direct current-runtime interpreter hot-path microbenchmarks | Pending |
 
 ## Results
 
@@ -370,3 +371,28 @@ Benchmark code state: `f309a1a6ab4423d22f9be26e41539ee8eed3aa21`.
 The cross-worker tests are intentionally sequential. That removes scheduler races and makes any cumulative mutable state evidence much stronger.
 
 The parent/worker repeated-wait tests accept and report either `copy-per-wait` or `same-drone-alias` for calls made by the same drone. The critical invariant is cross-drone isolation.
+
+
+-----
+
+
+#### ticks-v2 invalid harness
+
+The first supplied `ticks-v2` run on 2026-09-19 produced `None` from every
+`simulate("bench_ticks", ...)` call and no simulation-internal
+`TICK RESULT` line.
+
+That output is invalid and contains no performance measurement.
+
+Because this benchmark only mutates local collection objects, `ticks-v3`
+removes `simulate()` entirely. `bench_ticks_run.py` now imports
+`bench_ticks.py` and measures operations directly with `get_tick_count()`.
+
+This is also methodologically cleaner:
+
+- Power and execution speed do not affect tick counts
+- no farm state is mutated
+- no simulation setup/loader behavior can hide the microbenchmark result
+- each case reports its own tick delta directly
+
+Benchmark version: `ticks-v3`.

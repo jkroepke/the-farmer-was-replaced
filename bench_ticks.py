@@ -3,8 +3,9 @@
 # Source reference:
 # external/flekay-the-farmer-was-replaced/
 #
-# The purpose is to re-measure hot-path claims on the current game build,
-# not to assume the January 2026 numbers are still exact.
+# These tests intentionally run directly in the current interpreter instead
+# of through simulate(). They mutate only local collections, so no farm-state
+# isolation is required. get_tick_count() is the metric.
 
 
 MODE_NAMES = [
@@ -23,6 +24,8 @@ MODE_NAMES = [
 
 def report(
     name,
+    iterations,
+    size,
     start_ticks,
     checksum
 ):
@@ -35,80 +38,99 @@ def report(
         "TICK RESULT",
         name,
         "iterations",
-        BENCH_ITERATIONS,
+        iterations,
         "size",
-        BENCH_COLLECTION_SIZE,
+        size,
         "ticks",
         ticks,
         "ticks-per-op",
-        ticks / BENCH_ITERATIONS,
+        ticks / iterations,
         "checksum",
         checksum
     )
 
+    return ticks
 
-def run_loop_add():
+
+def run_loop_add(
+    iterations,
+    size
+):
     checksum = 0
     start_ticks = get_tick_count()
 
     for _ in range(
-        BENCH_ITERATIONS
+        iterations
     ):
         checksum += 1
 
-    report(
+    return report(
         MODE_NAMES[0],
+        iterations,
+        size,
         start_ticks,
         checksum
     )
 
 
-def run_dict_int():
+def run_dict_int(
+    iterations,
+    size
+):
     data = {}
-    key = BENCH_COLLECTION_SIZE - 1
+    key = size - 1
     data[key] = 1
     checksum = 0
     start_ticks = get_tick_count()
 
     for _ in range(
-        BENCH_ITERATIONS
+        iterations
     ):
         checksum += data[key]
 
-    report(
+    return report(
         MODE_NAMES[1],
+        iterations,
+        size,
         start_ticks,
         checksum
     )
 
 
-def run_dict_tuple():
+def run_dict_tuple(
+    iterations,
+    size
+):
     data = {}
     key = (
-        BENCH_COLLECTION_SIZE - 1,
-        BENCH_COLLECTION_SIZE - 2
+        size - 1,
+        size - 2
     )
     data[key] = 1
     checksum = 0
     start_ticks = get_tick_count()
 
     for _ in range(
-        BENCH_ITERATIONS
+        iterations
     ):
         checksum += data[key]
 
-    report(
+    return report(
         MODE_NAMES[2],
+        iterations,
+        size,
         start_ticks,
         checksum
     )
 
 
-def make_values():
+def make_values(
+    size
+):
     values = []
 
     for value in range(
-        BENCH_COLLECTION_SIZE
+        size
     ):
         values.append(
             value
@@ -117,82 +139,101 @@ def make_values():
     return values
 
 
-def run_list_membership():
-    values = make_values()
-    target = BENCH_COLLECTION_SIZE - 1
+def run_list_membership(
+    iterations,
+    size
+):
+    values = make_values(
+        size
+    )
+    target = size - 1
     checksum = 0
     start_ticks = get_tick_count()
 
     for _ in range(
-        BENCH_ITERATIONS
+        iterations
     ):
         if target in values:
             checksum += 1
 
-    report(
+    return report(
         MODE_NAMES[3],
+        iterations,
+        size,
         start_ticks,
         checksum
     )
 
 
-def run_set_membership():
+def run_set_membership(
+    iterations,
+    size
+):
     values = set()
 
     for value in range(
-        BENCH_COLLECTION_SIZE
+        size
     ):
         values.add(
             value
         )
 
-    target = BENCH_COLLECTION_SIZE - 1
+    target = size - 1
     checksum = 0
     start_ticks = get_tick_count()
 
     for _ in range(
-        BENCH_ITERATIONS
+        iterations
     ):
         if target in values:
             checksum += 1
 
-    report(
+    return report(
         MODE_NAMES[4],
+        iterations,
+        size,
         start_ticks,
         checksum
     )
 
 
-def run_dict_membership():
+def run_dict_membership(
+    iterations,
+    size
+):
     values = {}
 
     for value in range(
-        BENCH_COLLECTION_SIZE
+        size
     ):
         values[value] = True
 
-    target = BENCH_COLLECTION_SIZE - 1
+    target = size - 1
     checksum = 0
     start_ticks = get_tick_count()
 
     for _ in range(
-        BENCH_ITERATIONS
+        iterations
     ):
         if target in values:
             checksum += 1
 
-    report(
+    return report(
         MODE_NAMES[5],
+        iterations,
+        size,
         start_ticks,
         checksum
     )
 
 
-def make_queue():
+def make_queue(
+    iterations
+):
     queue = []
 
     for value in range(
-        BENCH_ITERATIONS
+        iterations
     ):
         queue.append(
             value
@@ -201,102 +242,164 @@ def make_queue():
     return queue
 
 
-def run_queue_cursor():
-    queue = make_queue()
+def run_queue_cursor(
+    iterations,
+    size
+):
+    queue = make_queue(
+        iterations
+    )
     index = 0
     checksum = 0
     start_ticks = get_tick_count()
 
-    while index < BENCH_ITERATIONS:
+    while index < iterations:
         checksum += queue[
             index
         ]
         index += 1
 
-    report(
+    return report(
         MODE_NAMES[6],
+        iterations,
+        size,
         start_ticks,
         checksum
     )
 
 
-def run_queue_pop_zero():
-    queue = make_queue()
+def run_queue_pop_zero(
+    iterations,
+    size
+):
+    queue = make_queue(
+        iterations
+    )
     checksum = 0
     start_ticks = get_tick_count()
 
     for _ in range(
-        BENCH_ITERATIONS
+        iterations
     ):
         checksum += queue.pop(
             0
         )
 
-    report(
+    return report(
         MODE_NAMES[7],
+        iterations,
+        size,
         start_ticks,
         checksum
     )
 
 
-def run_list_append():
+def run_list_append(
+    iterations,
+    size
+):
     values = []
     start_ticks = get_tick_count()
 
     for value in range(
-        BENCH_ITERATIONS
+        iterations
     ):
         values.append(
             value
         )
 
-    report(
+    return report(
         MODE_NAMES[8],
+        iterations,
+        size,
         start_ticks,
         len(values)
     )
 
 
-def run_list_concat():
+def run_list_concat(
+    iterations,
+    size
+):
     values = []
     start_ticks = get_tick_count()
 
     for value in range(
-        BENCH_ITERATIONS
+        iterations
     ):
         values = values + [
             value
         ]
 
-    report(
+    return report(
         MODE_NAMES[9],
+        iterations,
+        size,
         start_ticks,
         len(values)
     )
 
 
-def main():
-    if BENCH_MODE == 0:
-        run_loop_add()
-    elif BENCH_MODE == 1:
-        run_dict_int()
-    elif BENCH_MODE == 2:
-        run_dict_tuple()
-    elif BENCH_MODE == 3:
-        run_list_membership()
-    elif BENCH_MODE == 4:
-        run_set_membership()
-    elif BENCH_MODE == 5:
-        run_dict_membership()
-    elif BENCH_MODE == 6:
-        run_queue_cursor()
-    elif BENCH_MODE == 7:
-        run_queue_pop_zero()
-    elif BENCH_MODE == 8:
-        run_list_append()
-    else:
-        run_list_concat()
+def run_mode(
+    mode,
+    iterations,
+    size
+):
+    if mode == 0:
+        return run_loop_add(
+            iterations,
+            size
+        )
 
+    if mode == 1:
+        return run_dict_int(
+            iterations,
+            size
+        )
 
-if __name__ == "__main__":
-    main()
+    if mode == 2:
+        return run_dict_tuple(
+            iterations,
+            size
+        )
+
+    if mode == 3:
+        return run_list_membership(
+            iterations,
+            size
+        )
+
+    if mode == 4:
+        return run_set_membership(
+            iterations,
+            size
+        )
+
+    if mode == 5:
+        return run_dict_membership(
+            iterations,
+            size
+        )
+
+    if mode == 6:
+        return run_queue_cursor(
+            iterations,
+            size
+        )
+
+    if mode == 7:
+        return run_queue_pop_zero(
+            iterations,
+            size
+        )
+
+    if mode == 8:
+        return run_list_append(
+            iterations,
+            size
+        )
+
+    return run_list_concat(
+        iterations,
+        size
+    )
