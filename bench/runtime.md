@@ -74,3 +74,66 @@ simulation starts from a fresh file execution.
 Benchmark version: `move-v2`
 Requested speedup: `10000`
 Benchmark code state: `f309a1a6ab4423d22f9be26e41539ee8eed3aa21`.
+
+-----
+
+## Run: drone memory semantics 2026-09-19
+
+### Provenance
+
+| Field | Value |
+| --- | --- |
+| Source commit | `2fc84603c5566ecf17ea6ee8135ad394d1cfceb0` |
+| Probe | `drone_mem_probe.py` |
+| Runner | `drone_mem_run.py` |
+| Purpose | Verify mutable state and `wait_for()` isolation semantics across drones. |
+| Validity | 12/12 checks passed in the recorded in-game run. |
+
+## Expanded probe suite
+
+`drone_mem_probe.py` now tests the semantics independently:
+
+- global mutation isolation
+- mutable list arguments passed to spawned drones
+- nested mutable argument copying
+- closure-captured list isolation
+- normal worker return-value communication
+- repeated `wait_for(source)` calls in the parent
+- repeated `wait_for(source)` calls inside one worker
+- parent mutation -> worker visibility
+- worker mutation -> parent visibility
+- worker mutation -> later worker visibility
+- nested source-return isolation
+- the historical producer/consumer queue pattern
+
+The cross-worker tests are intentionally sequential. That removes scheduler races and makes any cumulative mutable state evidence much stronger.
+
+The parent/worker repeated-wait tests accept and report either `copy-per-wait` or `same-drone-alias` for calls made by the same drone. The critical invariant is cross-drone isolation.
+
+## Verified current-runtime result
+
+Executed in-game on 2026-09-19 via `drone_mem_run.py`.
+
+Simulation runtime reported: `1.5` seconds.
+
+Complete result:
+
+```text
+DRONE_MEMORY RUN START
+DRONE_MEMORY SUITE START
+DRONE_MEMORY global PASS worker-mutates-parent-stays-zero
+DRONE_MEMORY spawn-arg-list PASS copied
+DRONE_MEMORY spawn-arg-nested PASS deep-copied
+DRONE_MEMORY closure-list PASS isolated
+DRONE_MEMORY return-value PASS worker-to-caller
+DRONE_MEMORY source-parent-repeat PASS copy-per-wait
+DRONE_MEMORY source-worker-repeat PASS copy-per-wait
+DRONE_MEMORY source-parent-worker PASS parent-mutation-not-visible
+DRONE_MEMORY source-worker-parent PASS worker-mutation-not-visible
+DRONE_MEMORY source-worker-worker PASS historical-exploit-isolated
+DRONE_MEMORY source-nested PASS deep-isolation
+DRONE_MEMORY source-queue PASS historical-producer-consumer-isolated
+DRONE_MEMORY SUMMARY 12 12
+DRONE_MEMORY RESULT PASS
+DRONE_MEMORY RUN DONE 1.5
+```
