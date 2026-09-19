@@ -34,6 +34,48 @@ A run is not finished merely because the target inventory/unlock condition becom
 
 This makes termination latency part of every leaderboard implementation. Production loops written for normal endless farming are not valid leaderboard submissions unless wrapped with an explicit target check and exit path.
 
+## Main-run / leaderboard split
+
+Repository runtime policy:
+
+- `main.py` is the adaptive normal-production entry point
+- normal mechanic modules keep progression/resource safety
+- `lb_<mechanic>.py` is a finite challenge-specific implementation
+- `lb_<mechanic>_run.py` is the small `leaderboard_run(...)` launcher
+
+Leaderboard code should specialize aggressively for the exact measured start
+state. Main-run checks are not automatically copied into LB code.
+
+Safe-to-remove LB checks, once verified for that exact leaderboard, include:
+
+- affordability checks for guaranteed-free/covered actions
+- repeated inventory guards for challenge inputs supplied in enormous amounts
+- prerequisite/resource-planner logic
+- world-size/drone-count fallback branches when the mode fixes them
+- production stockpile/reserve policy
+- restore-normal-farm logic
+
+Checks that remain:
+
+- exact target and prompt program termination
+- mechanic-boundary checks whose return value carries meaning
+- entity/state checks needed for legal actions
+- synchronization/race-prevention checks
+
+Maze is the clearest example:
+
+- Main Maze must check Weird Substance reserve, Bush affordability, available
+  drones/world size, and return to production planning when inputs are missing
+- Maze LB starts with `1_000_000_000` Weird Substance and
+  `1_000_000_000` Power, so repeated resource-availability checks are hot-path
+  overhead
+- Maze LB must still retain any `use_item()` result used to detect the
+  300-reuse boundary and must terminate at exactly
+  `num_items(Items.Gold) >= 9863168`
+
+Do not generalize the Maze resource guarantee to other leaderboards. Use each
+mode's probe evidence before deleting checks.
+
 ## Fastest Reset
 
 Leaderboard:
