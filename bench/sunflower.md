@@ -16,7 +16,7 @@
 | Run / version | Source commit | Profile | Status |
 | --- | --- | --- | --- |
 | `sunflower-v1` | `6a34d906f5ee5cb2902fa891fe268cbff0e1b151` | 32x32 / seed 1 partial output | Interrupted; historical |
-| `sunflower-v2-bounded7` | `689c8e20a44f6d24a46521ba1130360c5b5acbc5` | Bounded seven-petal scan | Pending full run |
+| `sunflower-v2-bounded7` | `689c8e20a44f6d24a46521ba1130360c5b5acbc5` | 32x32 / seeds 1-3 | Partial: seeds 1-2 complete; seed 3 controls complete |
 
 ## Results
 
@@ -110,11 +110,11 @@ summary without marking their provenance.
 
 | Field | Value |
 | --- | --- |
-| Source commit | **Unknown / not recorded** |
+| Source commit | `689c8e20a44f6d24a46521ba1130360c5b5acbc5` |
 | Benchmark/version | `sunflower-v2-bounded7` |
-| Requested speedup | Not recorded |
-| Seeds | 1 |
-| Canonical status | Historical/non-canonical until rerun from a committed state |
+| Requested speedup | 10000 |
+| Seeds | 1, 2, 3 |
+| Canonical status | Partial run; retain until seed 3 scan modes complete |
 
 #### Measurements and observations
 
@@ -128,8 +128,8 @@ summary without marking their provenance.
 
 #### Preview results
 
-Status: **partial**. Seed 1 completed all seven modes. Seed 2 is currently
-complete through `tier-linear-no-care`; the run is still executing
+Status: **partial**. Seeds 1 and 2 completed all seven modes. Seed 3 has
+completed the four non-scan controls and is currently executing
 `scan-tree-bounded7`.
 
 ##### Seed 1
@@ -157,7 +157,7 @@ The scan family therefore has a strong first-seed lead, and the binary-tree
 spawn topology also remains beneficial inside the scan algorithm. This is only
 a preview; no winner should be promoted until all three seeds finish.
 
-##### Seed 2 partial
+##### Seed 2
 
 | Mode | Time | Ticks | Final Power | Valid |
 | --- | ---: | ---: | ---: | --- |
@@ -165,16 +165,52 @@ a preview; no winner should be promoted until all three seeds finish.
 | `equal7-tree-no-care` | 654.84 s | 3,699,816 | 103,174.14 | yes |
 | `dumb-tree-no-care` | 503.16 s | 3,034,224 | 100,004.88 | yes |
 | `tier-linear-no-care` | 561.72 s | 3,362,057 | 100,409.31 | yes |
+| `scan-tree-bounded7` | 376.60 s | 2,254,714 | 100,630.53 | yes |
+| `scan-tree-counted` | **372.42 s** | **2,229,249** | 100,592.43 | yes |
+| `scan-linear-counted` | 426.60 s | 2,555,771 | 100,268.47 | yes |
 
-The non-scan controls are very stable between seeds 1 and 2, which makes the
-large seed-1 scan improvement especially worth validating across the remaining
-results.
+##### Two-seed scan preview
+
+| Mode | Avg time | Min | Max |
+| --- | ---: | ---: | ---: |
+| `scan-tree-counted` | **372.29 s** | 372.15 s | 372.42 s |
+| `scan-tree-bounded7` | 377.25 s | 376.60 s | 377.89 s |
+| `scan-linear-counted` | 425.76 s | 424.92 s | 426.60 s |
+
+Across the same first two seeds, `scan-tree-counted` is 26.33% faster than
+`tier-tree-no-care`, 1.31% faster than `scan-tree-bounded7`, and 12.56%
+faster than `scan-linear-counted`.
+
+##### Seed 3 partial
+
+| Mode | Time | Ticks | Final Power | Valid |
+| --- | ---: | ---: | ---: | --- |
+| `tier-tree-no-care` | 503.52 s | 3,010,220 | 100,482.18 | yes |
+| `equal7-tree-no-care` | 671.29 s | 3,784,208 | 103,045.48 | yes |
+| `dumb-tree-no-care` | 509.10 s | 3,071,864 | 100,005.46 | yes |
+| `tier-linear-no-care` | 561.17 s | 3,357,896 | 100,284.81 | yes |
+
+##### Complete control averages
+
+| Mode | Avg time | Min | Max |
+| --- | ---: | ---: | ---: |
+| `tier-tree-no-care` | **504.73 s** | 503.52 s | 505.90 s |
+| `dumb-tree-no-care` | 506.53 s | 503.16 s | 509.10 s |
+| `tier-linear-no-care` | 561.35 s | 561.17 s | 561.72 s |
+| `equal7-tree-no-care` | 663.30 s | 654.84 s | 671.29 s |
+
+The non-scan controls are now complete for all three seeds. Their low spread
+confirms that the ~372 s scan result is not being compared against an unstable
+control. The final decision still waits for the three seed-3 scan results.
 
 ## Interpretation
 
 | Kind | Statement | Evidence |
 | --- | --- | --- |
-| Open question | No separate interpretation section was present in the migrated record. | Review result groups and Notes. |
+| Measured | The four non-scan controls are complete across all three seeds; `tier-tree-no-care` averages 504.73 s. | `sunflower-v2-bounded7` partial run |
+| Measured | `scan-tree-counted` averages 372.29 s across seeds 1-2 with only 0.27 s min/max spread. | `sunflower-v2-bounded7` partial run |
+| Measured | Binary-tree fan-out is faster than linear fan-out for the counted scan: 372.29 s vs 425.76 s across seeds 1-2. | `sunflower-v2-bounded7` partial run |
+| Open question | Seed 3 scan results are still required before selecting the leaderboard implementation. | Current partial run |
 
 ## Reproduction
 
