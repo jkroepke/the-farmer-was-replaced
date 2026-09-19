@@ -333,6 +333,216 @@ def run_two_wave(sort_mode, reroll, reset_field):
 
 
 # ==================================================
+# POSITIONED TWO-WAVE CANDIDATE
+# ==================================================
+#
+# When one drone is available per line, move the caller while spawning so
+# each child starts directly on its assigned row/column. This removes the
+# initial move_to() fan-out cost without changing the row/column barrier.
+# ==================================================
+def _wave_positioned(worker, size, arg1, arg2, direction):
+    if max_drones() < size:
+        return _wave(
+            worker,
+            size,
+            arg1,
+            arg2
+        )
+
+    utils.move_to(0, 0)
+    handles = []
+
+    for index in range(
+        1,
+        size
+    ):
+        move(direction)
+
+        drone = spawn_drone(
+            worker,
+            index,
+            size,
+            size,
+            arg1,
+            arg2
+        )
+
+        if drone == None:
+            return False
+
+        handles.append(drone)
+
+    if size > 1:
+        move(direction)
+
+    ok = worker(
+        0,
+        size,
+        size,
+        arg1,
+        arg2
+    )
+
+    for drone in handles:
+        if not wait_for(drone):
+            ok = False
+
+    return ok
+
+
+def run_two_wave_positioned(
+    sort_mode,
+    reroll,
+    reset_field
+):
+    size = utils.size()
+
+    if reset_field:
+        clear()
+
+    if not _wave_positioned(
+        _row_worker,
+        size,
+        sort_mode,
+        reroll,
+        North
+    ):
+        return False
+
+    if not _wave_positioned(
+        _column_worker,
+        size,
+        sort_mode,
+        False,
+        East
+    ):
+        return False
+
+    return _harvest_sorted()
+
+
+# ==================================================
+# MATEUS-STYLE PERSISTENT SINGLE-WAVE CANDIDATE
+# ==================================================
+#
+# Source idea:
+# external/mateusmarochi-the-farmer-was-replaced-codes/source/cactus_farm.py
+#
+# One worker lifetime spans planting, vertical relaxation, horizontal
+# relaxation and readiness. This removes the row/column respawn barrier,
+# but also means vertical and horizontal mutations can overlap between
+# workers. Keep benchmark-only until measurements prove it reliable.
+# ==================================================
+def _mateus_vertical_pass(x, size):
+    utils.move_to(x, 0)
+
+    for y in range(size):
+        _ensure_cactus()
+        utils.water()
+
+        current = measure()
+
+        if y < size - 1:
+            north = measure(North)
+
+            if current > north:
+                swap(North)
+                current = measure()
+
+        if y > 0:
+            south = measure(South)
+
+            if current < south:
+                swap(South)
+
+        if y < size - 1:
+            move(North)
+
+
+def _mateus_horizontal_pass(y, size):
+    utils.move_to(0, y)
+
+    for x in range(size):
+        _ensure_cactus()
+        utils.water()
+
+        current = measure()
+
+        if x < size - 1:
+            east = measure(East)
+
+            if current > east:
+                swap(East)
+                current = measure()
+
+        if x > 0:
+            west = measure(West)
+
+            if current < west:
+                swap(West)
+
+        if x < size - 1:
+            move(East)
+
+
+def _mateus_worker(
+    index,
+    count,
+    size,
+    unused1,
+    unused2
+):
+    passes = size // 2
+
+    if passes < 1:
+        passes = 1
+
+    x = index
+
+    while x < size:
+        for _ in range(passes):
+            _mateus_vertical_pass(
+                x,
+                size
+            )
+
+        x += count
+
+    y = index
+
+    while y < size:
+        for _ in range(passes):
+            _mateus_horizontal_pass(
+                y,
+                size
+            )
+
+        _wait_row(
+            y,
+            size
+        )
+
+        y += count
+
+    return True
+
+
+def run_mateus_persistent():
+    clear()
+    size = utils.size()
+
+    if not _wave(
+        _mateus_worker,
+        size,
+        False,
+        False
+    ):
+        return False
+
+    return _harvest_sorted()
+
+
+# ==================================================
 # nql1314 source-near reference
 # ==================================================
 
