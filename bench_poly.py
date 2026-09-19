@@ -549,6 +549,8 @@ def main():
     quick_print(
         "FARMX MODE START",
         MODE_NAMES[BENCH_MODE],
+        "scenario",
+        BENCH_SCENARIO,
         "horizon",
         BENCH_HORIZON,
         "world",
@@ -588,6 +590,8 @@ def main():
     quick_print(
         "FARMX RESULT",
         MODE_NAMES[BENCH_MODE],
+        "scenario",
+        BENCH_SCENARIO,
         "horizon",
         BENCH_HORIZON,
         "elapsed",
