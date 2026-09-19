@@ -650,6 +650,35 @@ target grows.
 
 It is both slower and much more seed-sensitive than the small-Maze strategies.
 
+#### Leaderboard decision rule
+
+For `Leaderboards.Maze`, the production/leaderboard algorithm is selected only
+by end-to-end cold-start time until:
+
+```python
+num_items(Items.Gold) >= 9863168
+```
+
+The measurement starts before strategy setup. Therefore the result includes:
+
+- clearing/preparing the field
+- spawning and positioning drones
+- planting initial Bushes
+- initial Maze creation
+- any solver mapping/index construction
+- Treasure movement/harvesting
+- all Maze reuse cycles
+- all rebuilds after reuse exhaustion
+- final termination latency
+
+The 200000-Gold and 1000000-Gold benchmarks are diagnostic only. They may be
+used to explain setup cost, steady-state throughput, solver behavior, or
+resource efficiency, but they must not be used to choose the Maze leaderboard
+winner.
+
+The decisive comparison uses the exact 9863168-Gold target from a fresh
+simulation for every candidate and seed.
+
 #### Finalist follow-up runner
 
 After recording the extended matrix, `bench_maze_run.py` was narrowed to the
@@ -658,31 +687,18 @@ remaining decision set.
 Current runner commit:
 `c685de023206a55784a8fdfd671abeb830b5f482`.
 
-It runs:
+It now runs only the decisive `MAZE LEADERBOARD COLD BENCH`:
 
-1. `MAZE FINALIST`
-   - target: 1000000 Gold
-   - seeds: 1, 2, 3
-   - uniform4 map+BFS reuse300
-   - uniform5 map+BFS reuse300
-   - packed map+BFS reuse300
-   - packed Reddit visited reuse300
-   - uniform4 Zapakh reuse300 control
-   - uniform5 Zapakh reuse300
-   - uniform4 Zapakh reuse8 control
+- exact target: 9863168 Gold
+- seeds: 1, 2, 3
+- uniform4 map+BFS reuse300
+- uniform5 map+BFS reuse300
+- packed map+BFS reuse300
+- packed Reddit visited reuse300
+- uniform4 Zapakh reuse300 control
 
-2. `MAZE LEADERBOARD`
-   - exact target: 9863168 Gold
-   - seeds: 1, 2
-   - uniform4 map+BFS reuse300
-   - uniform5 map+BFS reuse300
-   - packed map+BFS reuse300
-   - packed Reddit visited reuse300
-   - uniform4 Zapakh reuse300 control
-
-The exact-target group is the decisive leaderboard comparison because it
-includes cold setup, repeated 300-reuse lifecycle rebuilds, and termination
-latency rather than extrapolating from a short Gold target.
+Each candidate starts from a fresh simulation. No warm-up result is reused
+between candidates or seeds.
 
 #### Durable conclusions from the extended matrix
 
