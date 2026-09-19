@@ -2331,12 +2331,13 @@ def spec_zapakh_find(
 
 def spec_zapakh_solve_current(
     start_gold,
-    maze_size
+    maze_size,
+    reuse_limit
 ):
     solved = 0
 
     while (
-        solved < 300
+        solved < reuse_limit
         and not spec_gold_done(
             start_gold
         )
@@ -2416,7 +2417,8 @@ def spec_zapakh_run(
 
         if not spec_zapakh_solve_current(
             start_gold,
-            maze_size
+            maze_size,
+            300
         ):
             return
 
@@ -2593,7 +2595,8 @@ def spec_packed_run(
         if reuse:
             if not spec_zapakh_solve_current(
                 start_gold,
-                maze_size
+                maze_size,
+                300
             ):
                 return
 
