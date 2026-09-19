@@ -2481,10 +2481,16 @@ def spec_zapakh_run(
         ):
             return
 
-        spec_move_to(
+        if not spec_move_to(
             origin_x,
             origin_y
-        )
+        ):
+            quick_print(
+                "MAZE RETURN BLOCKED",
+                origin_x,
+                origin_y
+            )
+            return
 
 
 def spec_zapakh_worker(
@@ -2665,10 +2671,16 @@ def spec_packed_run(
         ):
             return
 
-        spec_move_to(
+        if not spec_move_to(
             origin_x,
             origin_y
-        )
+        ):
+            quick_print(
+                "MAZE RETURN BLOCKED",
+                origin_x,
+                origin_y
+            )
+            return
 
 
 def spec_packed_worker(
@@ -3270,10 +3282,16 @@ def spec_search_run(
         ):
             return
 
-        spec_move_to(
+        if not spec_move_to(
             origin_x,
             origin_y
-        )
+        ):
+            quick_print(
+                "MAZE RETURN BLOCKED",
+                origin_x,
+                origin_y
+            )
+            return
 
 
 def spec_search_worker(
@@ -3796,10 +3814,16 @@ def spec_map_bfs_run(
             ):
                 return
 
-            spec_move_to(
+            if not spec_move_to(
                 origin_x,
                 origin_y
-            )
+            ):
+                quick_print(
+                    "MAZE RETURN BLOCKED",
+                    origin_x,
+                    origin_y
+                )
+                return
 
             continue
 
@@ -3853,10 +3877,16 @@ def spec_map_bfs_run(
         ):
             harvest()
 
-        spec_move_to(
+        if not spec_move_to(
             origin_x,
             origin_y
-        )
+        ):
+            quick_print(
+                "MAZE RETURN BLOCKED",
+                origin_x,
+                origin_y
+            )
+            return
 
 
 def spec_map_bfs_worker(
@@ -4492,10 +4522,16 @@ def spec_steam_run(
         ):
             harvest()
 
-        spec_move_to(
+        if not spec_move_to(
             origin_x,
             origin_y
-        )
+        ):
+            quick_print(
+                "MAZE RETURN BLOCKED",
+                origin_x,
+                origin_y
+            )
+            return
 
 
 def spec_steam_worker(
