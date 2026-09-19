@@ -363,3 +363,73 @@ and directional measurements.
 The benchmark run stopped at the Mateus error, so the 6x6, 16x16, and
 32x32/8-drone smoke sections did not execute. Re-run the suite after the
 fixes before making a production decision.
+
+
+## Final measured decision 2026-09-19
+
+The repaired follow-up benchmark produced valid full-chain results for all
+32x32 finalists across seeds 1..3:
+
+- `two-wave-insertion-reroll-reuse`: 138.91 s average / 3 cycles
+- `tstambaugh-reference-32`: 125.85 s
+- `tstambaugh-placed-generalized`: 123.73 s
+- `adaptive-placed-pool`: 119.69 s
+
+Every finalist produced the exact expected 100,663,296 Cactus and reported
+`valid True`.
+
+Therefore `adaptive-placed-pool` is the measured 32x32 / 32-drone winner:
+
+- about 13.8% faster than the previous generalized reroll candidate
+- about 4.9% faster than the source-near Tstambaugh reference
+
+Smaller-world smoke tests were also valid and favored the adaptive placed
+architecture:
+
+- 6x6: adaptive 3.50 s vs insertion-reset 3.75 s
+- 16x16: adaptive 16.05 s vs insertion-reset 17.19 s
+
+The Mateus persistent single-wave experiment completed with full gain but is
+rejected for production:
+
+- 32x32 / 32 drones: 66.05 s for one cycle
+- materially slower than the placed candidates
+- emits repeated warnings from attempted swaps against non-swappable Cacti
+
+The final benchmark log ended after starting the 32x32 / 8-drone smoke and
+therefore did not provide a fresh result for the repaired adaptive placed
+candidate at lower drone count.
+
+### Production architecture promoted
+
+`cactus.py` now uses a measured hybrid:
+
+- when `max_drones() >= world_size`, use the benchmark-winning placed worker
+  architecture
+- when fewer drones are available than field lines, use the previously
+  validated generalized two-wave insertion fallback
+- use quadrant rerolling only at world size 32
+- use ordinary insertion sorting without rerolling on smaller measured worlds
+
+The fewer-drone fallback is intentional: a previous benchmark already proved
+the generalized 32x32 / 8-drone reroll path valid and faster than its
+non-reroll control, while the latest adaptive lower-drone smoke did not finish
+in the supplied log.
+
+### Consecutive Cactus production
+
+The benchmark winner's best result reused the post-harvest field after the
+first cycle. Production previously discarded that benefit because
+`production.run_cactus()` immediately called `restore_normal_farm()` after
+every successful Cactus run.
+
+Production now tracks `_cactus_active` similarly to the existing Pumpkin and
+Gold state:
+
+- first Cactus-focused run clears/prepares the field
+- consecutive Cactus-focused runs reuse the post-harvest Soil field
+- switching to another production focus restores the normal farm exactly once
+- expansion/reset clears the Cactus-active state
+
+This lets the measured consecutive-cycle reuse optimization affect the real
+main loop rather than only the benchmark.
