@@ -247,6 +247,36 @@ The strongest source-near candidates for this project are:
 
 Compare them against the current phase-separated multi-drone row/column strategy under the same field size, seed set, and planting phase.
 
+## Maze: stationary multi-drone substance spam
+
+`Maze/Multi Drone/substance_spam.py` is a particularly important leaderboard
+reference that was not covered by the earlier flow-field review.
+
+Architecture:
+
+1. `set_world_size(5)`
+2. place/spawn a drone on every 5x5 cell
+3. create one Maze covering the whole world
+4. keep every drone stationary
+5. repeatedly apply Weird Substance
+6. because every cell is occupied, the relocated Treasure always lands under
+   some drone
+7. on reuse exhaustion, harvest/rebuild from the Treasure cell
+
+The upstream Multi Drone README records leaderboard time `01:07.107`.
+
+This timing is historical and revision-specific. The local project now
+benchmarks both a source-near reconstruction and current-runtime mutations at
+the exact 9863168-Gold target.
+
+High-value mutations:
+
+- remove the redundant 26th participant by using 24 children + parent
+- wait for the initial Maze creation before workers start attempting use_item
+- poll `get_entity_type()` and only call `use_item()` on the Treasure cell
+- compare using only the required 25 drones with using all 32 via duplicates
+- compare 5x5 with 4x4 to validate the full-coverage geometry tradeoff
+
 ## Maze: shared vector flow field
 
 `Maze/Single Drone/Shared_Vector_Flow_Field.py` is especially relevant.
