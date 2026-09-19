@@ -600,7 +600,7 @@ For production selection, the runner now focuses on:
 world size: 32
 target tail occupancy: 95%, 97%, 99%, 100% (clamped to board - 1)
 seeds: 1, 2, 3
-speedup: 64
+speedup: 10000
 strategies:
 - hamiltonian-skyscraper
 - skysdottir-tfwr-reference
