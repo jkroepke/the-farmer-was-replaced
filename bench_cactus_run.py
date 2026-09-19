@@ -1,7 +1,7 @@
 import main
 
 
-BENCH_VERSION = "cactus-v2"
+BENCH_VERSION = "cactus-v3"
 
 BENCH_WORLD_SIZE = 32
 BENCH_CYCLES = 3
@@ -23,16 +23,30 @@ MODE_NAMES = [
     "nql1314-reference",
     "tstambaugh-placed-generalized",
     "adaptive-placed-pool",
-    "persistent-mateus"
+    "persistent-mateus",
+    "adaptive-binary-spawn",
+    "adaptive-flekay-powers",
+    "current-production-fresh"
 ]
 
 # Follow-up finalists. The source-near Tstambaugh mode proved competitive,
 # so it now runs the full three-seed / three-cycle matrix as a control.
 CANDIDATE_MODES = [
-    4,
+    8,
+    10,
+    11
+]
+
+# One cold 32x32 cycle is decisive for Leaderboards.Cactus because one valid
+# full-chain harvest produces the exact 33,554,432-Cactus target.
+TARGET_MODES = [
+    0,
     5,
     7,
-    8
+    8,
+    10,
+    11,
+    12
 ]
 
 REFERENCE_MODES = [
@@ -41,13 +55,13 @@ REFERENCE_MODES = [
 ]
 
 
-def simulation_items():
+def simulation_items(cactus_amount):
     return {
         Items.Hay: 1000000000,
         Items.Wood: 1000000000,
         Items.Carrot: 1000000000,
         Items.Pumpkin: 1000000000,
-        Items.Cactus: 1000000000,
+        Items.Cactus: cactus_amount,
         Items.Bone: 1000000000,
         Items.Gold: 1000000000,
         Items.Power: 1000000000,
@@ -80,7 +94,8 @@ def run_one(
     seed,
     world_size,
     cycles,
-    megafarm_level
+    megafarm_level,
+    cactus_amount
 ):
     globals = {
         "BENCH_MODE": mode,
@@ -93,7 +108,9 @@ def run_one(
         simulation_unlocks(
             megafarm_level
         ),
-        simulation_items(),
+        simulation_items(
+            cactus_amount
+        ),
         globals,
         seed,
         BENCH_SPEEDUP
@@ -106,7 +123,8 @@ def benchmark_modes(
     seeds,
     world_size,
     cycles,
-    megafarm_level
+    megafarm_level,
+    cactus_amount
 ):
     totals = []
     minimums = []
@@ -146,7 +164,8 @@ def benchmark_modes(
                 seed,
                 world_size,
                 cycles,
-                megafarm_level
+                megafarm_level,
+                cactus_amount
             )
 
             totals[
@@ -229,12 +248,23 @@ def run_benchmarks():
     )
 
     benchmark_modes(
+        "CACTUS TARGET COLD",
+        TARGET_MODES,
+        BENCH_SEEDS,
+        BENCH_WORLD_SIZE,
+        1,
+        -1,
+        0
+    )
+
+    benchmark_modes(
         "CACTUS FINALISTS",
         CANDIDATE_MODES,
         BENCH_SEEDS,
         BENCH_WORLD_SIZE,
         BENCH_CYCLES,
-        -1
+        -1,
+        1000000000
     )
 
     benchmark_modes(
@@ -243,7 +273,8 @@ def run_benchmarks():
         [1],
         BENCH_WORLD_SIZE,
         1,
-        -1
+        -1,
+        1000000000
     )
 
     # Generalization smoke tests:
@@ -263,7 +294,8 @@ def run_benchmarks():
             [1],
             world_size,
             1,
-            -1
+            -1,
+            1000000000
         )
 
     benchmark_modes(
@@ -276,7 +308,8 @@ def run_benchmarks():
         [1],
         BENCH_WORLD_SIZE,
         1,
-        3
+        3,
+        1000000000
     )
 
     quick_print(

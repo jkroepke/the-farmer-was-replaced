@@ -458,3 +458,84 @@ reroll two-wave fallback. The adaptive placed result is about 19.2% faster.
 
 The remaining `_run_fallback()` code is currently retained only as historical
 implementation context; it is no longer selected by the production entrypoint.
+
+
+## Cactus leaderboard / Flekay follow-up 2026-09-19
+
+Verified current leaderboard condition:
+
+```python
+num_items(Items.Cactus) >= 33554432
+```
+
+The current 32x32 fully upgraded benchmark already validates exactly
+33,554,432 Cactus for one full-chain harvest. Therefore the multi-drone
+Cactus leaderboard is fundamentally a **single cold full-field cycle**:
+setup, planting, sorting, readiness, one chain harvest, then program exit.
+Three-cycle reuse remains relevant for normal production throughput, but it
+must not decide the leaderboard winner.
+
+### Flekay Cactus findings
+
+Pinned upstream Flekay revision remains:
+
+`567e0ab6f96305cd6c9a05fd5eea2917449c2407`
+
+Its published 10x10 single-drone table reports gradient bubble sort slightly
+ahead of plain insertion sort. The reusable idea is local repair after an
+inversion rather than repeated blind full-field bubble passes.
+
+This does **not** currently justify replacing the local parallel sorter:
+
+- the Flekay table is 10x10 and single-drone
+- the local 32x32 winner already caches values and uses insertion-style local
+  repair independently in rows, then independently in columns
+- Flekay's `plant_and_sort.py` also performs North/South repairs during
+  planting, which would cross row ownership and create races if copied into
+  the current multi-drone row phase
+
+A future safe derivative could test row-only incremental repair while
+planting, but it should be isolated as a benchmark before production use.
+
+### Spawn-topology candidates
+
+The current production `_placed_wave()` serially calls `spawn_drone()`
+from one controller. Recent spawn research makes distributed fan-out worth
+testing directly in the Cactus workload.
+
+`bench_cactus.py` now adds:
+
+- `adaptive-binary-spawn`
+  - balanced binary recursive fan-out
+  - same batched reroll and row/column work as the adaptive candidate
+- `adaptive-flekay-powers`
+  - generic powers-of-two fan-out reproducing the Flekay/Jarvan topology
+  - same Cactus work; only worker creation topology changes
+- `current-production-fresh`
+  - calls production Cactus with `reuse_field=True` in a simulation that
+    was already cleared by `set_world_size()`
+  - isolates the cost of the otherwise redundant extra `clear()`
+
+Runner version is now `cactus-v3`.
+
+The new `CACTUS TARGET COLD` matrix runs one 32x32 cycle from
+`Items.Cactus: 0` on seeds 1, 2, and 3. Other resources remain oversized so
+this matrix measures Cactus execution rather than resource starvation. This
+is an exact target/gain workload, but it is **not claimed to reproduce every
+hidden starting inventory value of `leaderboard_run()`**.
+
+Do not promote binary/powers fan-out or skip-clear behavior into normal
+production until `cactus-v3` is measured in-game. Normal main production can
+enter Cactus from a non-empty farm, so the fresh-field skip-clear candidate is
+leaderboard-specific unless a clean-field precondition is proven.
+
+### Dedicated leaderboard entrypoint
+
+Added:
+
+- `lb_cactus.py` — finite one-run Cactus program using the current production
+  algorithm
+- `lb_cactus_run.py` — starts `Leaderboards.Cactus` at speedup 256
+
+The dedicated program terminates after the one Cactus run instead of entering
+the normal endless planner loop.

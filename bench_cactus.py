@@ -12,7 +12,10 @@ MODE_NAMES = [
     "nql1314-reference",
     "tstambaugh-placed-generalized",
     "adaptive-placed-pool",
-    "persistent-mateus"
+    "persistent-mateus",
+    "adaptive-binary-spawn",
+    "adaptive-flekay-powers",
+    "current-production-fresh"
 ]
 
 
@@ -1072,6 +1075,225 @@ def run_adaptive_placed(cycle):
         cycle == 0
     )
 
+
+
+# ==================================================
+# DISTRIBUTED SPAWN TOPOLOGY CANDIDATES
+# ==================================================
+#
+# The current placed wave serially creates every worker from the caller.
+# bench_spawn showed that spawn topology itself can materially affect setup
+# time, so these modes keep the same Cactus work and only change fan-out.
+#
+# topology 0: balanced binary split
+# topology 1: Flekay/Jarvan powers-of-two fan-out
+# ==================================================
+def _binary_wave_worker(
+    phase,
+    start,
+    count,
+    worker_count,
+    size,
+    arg1,
+    arg2
+):
+    if count > 1:
+        second_count = count // 2
+        first_count = count - second_count
+
+        drone = spawn_drone(
+            _binary_wave_worker,
+            phase,
+            start + first_count,
+            second_count,
+            worker_count,
+            size,
+            arg1,
+            arg2
+        )
+
+        if drone == None:
+            return False
+
+        own_success = _binary_wave_worker(
+            phase,
+            start,
+            first_count,
+            worker_count,
+            size,
+            arg1,
+            arg2
+        )
+
+        child_success = wait_for(
+            drone
+        )
+
+        return (
+            own_success
+            and child_success
+        )
+
+    if phase == 0:
+        return _batched_row_worker(
+            start,
+            worker_count,
+            size,
+            arg1,
+            arg2
+        )
+
+    return _column_worker(
+        start,
+        worker_count,
+        size,
+        arg1,
+        arg2
+    )
+
+
+def _power_wave_worker(
+    phase,
+    index,
+    worker_count,
+    size,
+    arg1,
+    arg2
+):
+    handles = []
+    power = 1
+
+    # This reproduces the powers-of-two parent/child topology used by the
+    # Flekay/Jarvan spawn references without hard-coding a 32-worker table.
+    while (
+        index + power
+        < worker_count
+    ):
+        if power > index:
+            drone = spawn_drone(
+                _power_wave_worker,
+                phase,
+                index + power,
+                worker_count,
+                size,
+                arg1,
+                arg2
+            )
+
+            if drone == None:
+                for active in handles:
+                    wait_for(
+                        active
+                    )
+
+                return False
+
+            handles.append(
+                drone
+            )
+
+        power = power * 2
+
+    if phase == 0:
+        success = _batched_row_worker(
+            index,
+            worker_count,
+            size,
+            arg1,
+            arg2
+        )
+    else:
+        success = _column_worker(
+            index,
+            worker_count,
+            size,
+            arg1,
+            arg2
+        )
+
+    for drone in handles:
+        if not wait_for(
+            drone
+        ):
+            success = False
+
+    return success
+
+
+def _distributed_wave(
+    topology,
+    phase,
+    size,
+    arg1,
+    arg2
+):
+    worker_count = min(
+        size,
+        max_drones()
+    )
+
+    if worker_count < 1:
+        return False
+
+    utils.move_to(
+        0,
+        0
+    )
+
+    if topology == 0:
+        return _binary_wave_worker(
+            phase,
+            0,
+            worker_count,
+            worker_count,
+            size,
+            arg1,
+            arg2
+        )
+
+    return _power_wave_worker(
+        phase,
+        0,
+        worker_count,
+        size,
+        arg1,
+        arg2
+    )
+
+
+def run_adaptive_distributed(
+    cycle,
+    topology
+):
+    size = utils.size()
+    reroll = size == 32
+    wait_ready = not reroll
+
+    if cycle == 0:
+        clear()
+
+    if not _distributed_wave(
+        topology,
+        0,
+        size,
+        reroll,
+        wait_ready
+    ):
+        return False
+
+    if not _distributed_wave(
+        topology,
+        1,
+        size,
+        1,
+        False
+    ):
+        return False
+
+    return _harvest_sorted_top_right(
+        size
+    )
+
 def run_cycle(mode, cycle):
     if mode == 0:
         return cactus.run()
@@ -1124,6 +1346,25 @@ def run_cycle(mode, cycle):
 
     if mode == 9:
         return run_mateus_persistent()
+
+    if mode == 10:
+        return run_adaptive_distributed(
+            cycle,
+            0
+        )
+
+    if mode == 11:
+        return run_adaptive_distributed(
+            cycle,
+            1
+        )
+
+    if mode == 12:
+        # simulate()/set_world_size() already starts from a cleared field.
+        # This isolates the cost of cactus.run() doing another clear().
+        return cactus.run(
+            True
+        )
 
     return False
 
