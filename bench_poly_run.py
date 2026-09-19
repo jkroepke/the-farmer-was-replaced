@@ -1,7 +1,7 @@
 import main
 
 
-BENCH_VERSION = "farmx-v2"
+BENCH_VERSION = "farmx-v3"
 
 BENCH_WORLD_SIZE = 32
 BENCH_SPEEDUP = 10000
@@ -54,7 +54,31 @@ MODE_NAMES = [
     "poly-one-max-pairs",
     "poly-two-sun-stride",
     "poly-two-sun-chunks",
-    "poly-two-sun-pairs"
+    "poly-two-sun-pairs",
+    "current-one-seven-stride",
+    "current-one-seven-chunks",
+    "current-one-seven-pairs"
+]
+
+CURRENT_MODE_IDS = [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    13,
+    14,
+    15
+]
+
+POLY_MODE_IDS = [
+    7,
+    8,
+    9,
+    10,
+    11,
+    12
 ]
 
 
@@ -138,18 +162,20 @@ def screen_horizon(profile, horizon):
     return times
 
 
-def best_in_range(times, start_mode, end_mode):
-    best_mode = start_mode
-    best_time = times[start_mode]
+def best_in_modes(times, modes):
+    best_mode = modes[0]
+    best_time = times[best_mode]
 
-    mode = start_mode + 1
+    index = 1
 
-    while mode <= end_mode:
+    while index < len(modes):
+        mode = modes[index]
+
         if times[mode] < best_time:
             best_time = times[mode]
             best_mode = mode
 
-        mode += 1
+        index += 1
 
     return best_mode
 
@@ -247,15 +273,13 @@ def benchmark_profile(profile):
         1
     )
 
-    current_mode = best_in_range(
+    current_mode = best_in_modes(
         medium_times,
-        1,
-        6
+        CURRENT_MODE_IDS
     )
-    poly_mode = best_in_range(
+    poly_mode = best_in_modes(
         medium_times,
-        7,
-        12
+        POLY_MODE_IDS
     )
 
     quick_print(
