@@ -45,6 +45,15 @@ The root worker is the fixed Maze creator. After the final Treasure is harvested
 
 ## External references
 
+- September 2026 Reddit 32-square packing:
+  https://www.reddit.com/r/TheFarmerWasReplaced/comments/1wjxxhx/my_best_attempt_at_mazes_524_leaderboard_as_of/
+  - one square Maze per drone
+  - comment identifies a complete 32x32 tiling with 32 squares sized 4..7
+  - OP reports the alternative layout improved leaderboard position #524 -> #514
+  - repository independently reconstructed a valid exact cover: 12x4, 4x5, 4x6, 12x7
+  - exact layout is `bench_maze.py::SPEC_PACKED_32`
+  - loop-handling comment matches the zapakh per-solve `visited` behavior
+  - provenance in `external/reddit-32-square-maze/README.md`
 - zapakh Gist: https://gist.github.com/zapakh/9a9b39a07964bbd27ab8cbd05ca35501
   - created 2024-05-22
   - iterative in-situ DFS with target-directed direction ranking
@@ -128,5 +137,6 @@ Production integration commits begin at `b07d95a870252df2f093c250137b909557183f4
 
 ## Open questions
 
+- Benchmark `packed-4to7-fresh` and `packed-4to7-reuse` against `zapakh-32x4x4` using code state `e6e1d5b16120ca56329463fcc65d8ffc55fb5650`.
 - Benchmark adaptive 3x3 zapakh production and reduced-drone layouts separately.
 - Revisit `MAZE_PARALLEL_RELOCATIONS = 25` if Weird-Substance production becomes the dominant bottleneck.
