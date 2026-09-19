@@ -192,9 +192,9 @@ Interpretation:
 The previously measured `binary-tree-nearest-origin00` result remains the
 strongest complete spawn+locality setup:
 
-```text
-0.90 s / 4498 ticks
-```
+| Mode | Time (s) | Ticks |
+| --- | ---: | ---: |
+| `binary-tree-nearest-origin00` | 0.90 | 4,498 |
 
 That improvement comes mainly from combining hierarchical spawning with better
 target locality, not from choosing a particular hierarchical dependency graph.
