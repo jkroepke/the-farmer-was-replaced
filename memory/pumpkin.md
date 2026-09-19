@@ -485,32 +485,35 @@ The safe transferable part is only the final-straggler acceleration.
 
 Resource usage remains part of the result and must be considered before production promotion.
 
-### Bigger finding: full-map Giant is not necessarily throughput-optimal
+### Corrected yield model and patch hypothesis
 
-Current Pumpkin mechanics cap the Giant-Pumpkin multiplier at size 6.
+The earlier statement that Giant-Pumpkin yield caps at size 6 was wrong and came from an outdated/community assumption.
 
-For `n >= 6`, an `n x n` giant yields:
+The current repository `builtins.py` says:
 
-`n * n * 6`
+- Pumpkins merge with adjacent fully grown Pumpkins
+- harvesting a mega Pumpkin yields an amount that grows cubically with mega-Pumpkin size
 
-before the normal Pumpkin upgrade multiplier.
+There is no documented 6x6 yield cap in the current built-in reference.
 
-Therefore a 32x32 giant has the same per-tile Giant multiplier as an isolated 6x6 or 7x7 giant.
+The measured max-upgrade 32x32 full-map harvest remains exactly:
 
-The full-map architecture has a latency disadvantage: one late dead Pumpkin blocks the harvest value of all 1024 planted tiles.
+`3_145_728 Pumpkin`
 
-Independent patches can harvest as soon as their local stragglers are repaired.
+Therefore larger Giants retain a yield advantage. Small independent patches are still worth benchmarking, but only as an empirical latency/throughput tradeoff:
 
-This reclassifies the earlier "partial giant" observation:
+- smaller patches sacrifice yield per harvest
+- they finish independently
+- one late Dead Pumpkin blocks only one patch instead of the entire 32x32 field
+- the correct decision metric is measured Pumpkin/second to one common inventory target
 
-- accidental partial giants are a correctness failure for a full-map benchmark
-- intentionally isolated >=6x6 giants are a valid and potentially superior throughput architecture
+The v6 measurements show that this tradeoff can still be favorable even without a theoretical per-tile yield tie.
 
-Relevant external evidence:
+Relevant external evidence remains useful as strategy evidence, not as mechanics authority:
 
-- Flekay contains multi-drone 6x6/chunk Pumpkin architectures
+- Flekay contains small-patch/chunk Pumpkin architectures
 - Flekay's README reports `mega_line.py` at 08:54.836 for the 200M leaderboard
-- a current external leaderboard reference reports 16 isolated 6x6 patches with two drones each
+- other external references use separated 6x6/8x8 Pumpkin regions
 
 ### New patch throughput candidates
 
@@ -556,3 +559,124 @@ Benchmark version:
 `pumpkin-v6-patch-throughput`
 
 Production remains unchanged until this matrix has measured results.
+
+
+## Measured pumpkin-v6 results and bugs
+
+User-supplied in-game run on 2026-09-19, 32x32, 32 drones, speedup request 10000.
+
+### Valid cold one-cycle averages
+
+- `current-production`: 12.89 s
+- `persistent-ring`: 13.51 s
+- `persistent-tree-ring`: 14.62 s
+- `persistent-placed-ring`: 15.20 s
+- `persistent-spatial-tree-ring`: 14.61 s
+- `persistent-power-ring`: 14.82 s
+
+Cold-start remains best with current production.
+
+### Valid three-cycle averages
+
+- `current-production`: 39.45 s
+- `ring-reuse`: 34.74 s
+- `persistent-ring`: 31.17 s
+- `persistent-tree-ring`: 35.09 s
+- `persistent-placed-ring`: 32.86 s
+- `persistent-spatial-tree-ring`: 33.24 s
+- `persistent-power-ring`: 32.98 s
+
+The measured v6 amortized winner is `persistent-ring`.
+
+This is important: spawn-only microbenchmark wins do not automatically transfer to the full Pumpkin workload. Once workers persist for multiple cycles, the one-time spawn topology is a smaller fraction of total runtime.
+
+### Tail3 full-map correctness failure
+
+`persistent-power-ring-tail3` looked extremely fast but was invalid on every seed.
+
+One-cycle gains:
+
+- seed 1: 3,111,936
+- seed 2: 3,108,864
+- seed 3: 3,108,864
+
+Expected:
+
+`3,145,728`
+
+The problem is not Fertilizer itself. The current API says Fertilizer removes 2 seconds of remaining grow time.
+
+The real bug is harvest synchronization:
+
+- every column worker independently finishes its own ready list
+- worker 0 can finish earlier after aggressive tail acceleration
+- worker 0 then uses the opposite-corner ID check
+- that check is only a fast merge indication, not proof that all 1024 coordinates are complete
+- worker 0 can therefore harvest while other columns still contain unfinished Pumpkins
+
+The non-tail modes happened to stay synchronized enough that the heuristic was safe in measured runs. Tail acceleration exposes the race reliably.
+
+Do not use persistent tail acceleration without a real all-column barrier.
+
+### Safe tail replacement
+
+v7 adds `power-wave-ring-tail3`.
+
+For every full-map cycle:
+
+1. spawn the 32 column jobs with power-of-two fan-out
+2. each worker repairs one column with tail3 acceleration
+3. recursive `wait_for()` joins the complete worker tree
+4. only after all 32 column jobs returned may the root harvest
+5. repeat until the common Pumpkin target is reached
+
+This intentionally gives up cross-cycle worker persistence to regain a handle-based correctness barrier.
+
+### Patch result validity bug
+
+The v6 patch modes all exceeded the common target but printed `success False / valid False`.
+
+Measured averages:
+
+- `patch16-6x6-power`: 56.30 s, about 340,335 Pumpkin/s
+- `patch16-6x6-power-tail3`: 53.12 s, about 359,601 Pumpkin/s
+- `patch16-7x7-power-tail3`: 58.48 s, about 326,875 Pumpkin/s
+- valid `persistent-power-ring` control: 57.54 s, about 328,622 Pumpkin/s
+- valid `persistent-tree-ring` control: 59.22 s, about 319,873 Pumpkin/s
+
+The patch runs had already reached or exceeded the inventory target. A recursive worker returned False during shutdown/cleanup, and the benchmark incorrectly made that internal return part of the throughput validity condition.
+
+For a finite throughput workload the externally observable success condition is:
+
+`Pumpkin gain >= target and simulation terminates`
+
+v7 therefore:
+
+- derives throughput `success` / `valid` from the actual Pumpkin target
+- reports recursive `worker success` separately as a diagnostic
+- preserves actual gain, elapsed time, ticks, and Pumpkin/second
+
+### Patch-size sweet-spot matrix
+
+Because current mechanics are cubic rather than capped at 6x6, v7 expands the patch-size search.
+
+Toroidal isolation requires a separator at the wrap edge too.
+
+New candidates:
+
+- 16 x 7x7 patches, 2 workers per patch
+- 9 x 9x9 patches, 3-4 workers per patch
+- 4 x 15x15 patches, 8 workers per patch
+- full 32x32 ring controls
+
+The layouts obey:
+
+`grid_size * (patch_size + 1) <= 32`
+
+so every patch has a separator row/column even across world wrap.
+
+Benchmark version:
+
+`pumpkin-v7-patch-sizes`
+
+The active v7 suite is pruned to previously competitive controls plus these new candidates; known dominated and invalid modes remain in code/history but are not rerun in the primary matrices.
