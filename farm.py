@@ -1123,10 +1123,15 @@ def run(focus_item = None):
         )
 
     else:
-        _run_partial_megafarm(
-            focus_item,
-            world_size,
-            worker_count
+        # Persistent transition benchmark @
+        # a359f8b3fbbad02a26ebe10a9450b7296405e8c3 showed that the
+        # production-shaped partial max-petal implementation did not
+        # beat the legacy L across Carrot -> Hay -> Wood -> Carrot.
+        #
+        # Keep the dedicated max-petal implementation available for
+        # benchmarks, but use the proven persistent L below full Megafarm.
+        run_legacy(
+            focus_item
         )
 
     utils.move_to(
