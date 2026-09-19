@@ -600,26 +600,65 @@ Measure:
 5. cross-worker Pumpkin flags/lists
 6. cross-worker statistics through mutable Python objects
 
-## Current runtime proof against shared mutable lists
+## Current runtime proof against shared mutable state
 
-This project's probe intentionally mirrors the upstream mechanism.
+This project's expanded probe suite intentionally reproduces and decomposes the upstream memory experiments.
 
-Observed result:
+Executed in-game on 2026-09-19 via `drone_mem_run.py`.
+
+Result:
 
 ```text
-DRONE MEMORY RESULT isolated
+DRONE_MEMORY global PASS worker-mutates-parent-stays-zero
+DRONE_MEMORY spawn-arg-list PASS copied
+DRONE_MEMORY spawn-arg-nested PASS deep-copied
+DRONE_MEMORY closure-list PASS isolated
+DRONE_MEMORY return-value PASS worker-to-caller
+DRONE_MEMORY source-parent-repeat PASS copy-per-wait
+DRONE_MEMORY source-worker-repeat PASS copy-per-wait
+DRONE_MEMORY source-parent-worker PASS parent-mutation-not-visible
+DRONE_MEMORY source-worker-parent PASS worker-mutation-not-visible
+DRONE_MEMORY source-worker-worker PASS historical-exploit-isolated
+DRONE_MEMORY source-nested PASS deep-isolation
+DRONE_MEMORY source-queue PASS historical-producer-consumer-isolated
+DRONE_MEMORY SUMMARY 12 12
+DRONE_MEMORY RESULT PASS
 ```
 
-Specifically:
+The important result is stronger than the earlier minimal probe.
 
-- each worker sees only its own mutation
-- later workers do not inherit previous worker mutations
-- the source result remains unchanged
-- the parent view remains unchanged
+### `wait_for(source)` is copy-per-call for the tested mutable structures
 
-That is enough to invalidate the upstream list-sharing mechanism for the current runtime tested.
+Even when the **same drone** calls `wait_for(source)` twice:
 
-It does not prove behavior for every future version or every imaginable type, so keep the probe available for regression testing.
+1. mutate the first returned list
+2. call `wait_for(source)` again
+3. receive the original unmodified value
+
+So the current runtime does not merely isolate one worker's memory from another worker. For the tested lists/dicts, every `wait_for()` retrieval of the completed source result behaves as an independent copy.
+
+The verified data flow is therefore:
+
+```text
+spawn arguments -> copied
+globals/closures -> isolated per drone
+worker return value -> transferable via wait_for()
+repeated wait_for(source) -> fresh mutable copy per call
+```
+
+This invalidates all nql1314 patterns that require one mutable source result to act as shared state, including:
+
+- producer/consumer task queues
+- shared companion maps
+- dynamic shared priorities
+- stop flags
+- cross-worker progress dictionaries
+- shared Pumpkin ready/help flags
+- shared Sunflower petal queues
+
+The worker-lifetime and spatial-layout ideas remain independently useful.
+
+This proves the tested list/dict/nested mutable semantics on the current runtime. Keep the suite for regression testing after future game updates rather than assuming the behavior can never change.
 
 ## Snapshot contents
 
