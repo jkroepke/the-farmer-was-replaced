@@ -1272,3 +1272,79 @@ total:                                      465 simulations
 ```
 
 As with v3, runtime correctness and performance are not verified until the in-game simulation output is collected. Reject any candidate/seed that emits `DINOSAUR BENCH INVALID`.
+
+
+## Dinosaur benchmark v5 accounting correction
+
+The first live `dinosaur-v4` preview exposed a benchmark accounting bug.
+
+Observed at the nominal 25% target:
+
+```text
+reported tail: 256
+actual harvested Bones: 2,080,800
+runner expected Bones:  2,097,152
+```
+
+The observed reward is exactly:
+
+```text
+255 * 255 * 32 = 2,080,800
+```
+
+This proved that the child benchmark's `CURRENT_TAIL_LENGTH` / `REF_ACTUAL_TAIL_LENGTH` counters represented **occupied Dinosaur length = head + tail segments**, while the Bone reward formula uses **tail segments only**.
+
+Consequences for v4:
+
+- every nominal target stopped one Apple too early
+- a nominal 25% / 256-tail run actually harvested a 255-segment tail
+- a nominal board-1 / 1023-tail run would actually harvest 1022 segments
+- `1022 * 1022 * 32 = 33,423,488`, below the real leaderboard target
+- therefore v4 results must be treated as preview/diagnostic only and not as final benchmark data
+
+v5 fixes this by separating:
+
+- reward tail target: `target_tail_length()`
+- occupied/head+tail termination target: `target_snake_length() = target_tail_length() + 1`
+
+The 32x32 board-1 case now targets:
+
+```text
+tail segments: 1023
+occupied cells: 1024
+expected Bones: 1023 * 1023 * 32 = 33,488,928
+```
+
+Every successful cycle additionally validates its exact observed Bone gain against:
+
+```text
+target_tail_length() ** 2 * 32
+```
+
+A mismatch emits `DINOSAUR BENCH INVALID bone-gain ...`.
+
+Implementation:
+
+- `7febc4bd1238a54e9ae4456ab3621d9d0625241d` — fix head/tail accounting and per-cycle Bone validation
+- `cd3070188dce3da68a5c065fb16caafa5917c7f1` — bump runner to `dinosaur-v5`
+
+### v4 preview signal
+
+The incomplete v4 Seed 1 / 25% preview is not valid final benchmark data because of the one-Apple-short target, but its relative route signal is useful:
+
+```text
+hamiltonian-skyscraper             1176.76 s
+skysdottir-hilbert-reference        677.80 s
+heartbeat-shortcuts-annealed50      999.26 s
+heartbeat-fastlane-annealed50      1133.28 s
+```
+
+Relative to the Hamiltonian preview:
+
+- skysdottir reference: ~42.4% faster
+- heartbeat annealed shortcuts: ~15.1% faster
+- heartbeat fast-lane annealed: ~3.7% faster
+
+The tested skyscraper shortcut / fast-lane variants were ~46% to ~59% slower than the plain Hamiltonian preview.
+
+Do not promote any of these based on v4. Re-run `bench_dinosaur_run.py` with `BENCH_VERSION = "dinosaur-v5"`.
