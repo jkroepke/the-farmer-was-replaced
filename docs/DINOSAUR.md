@@ -866,20 +866,43 @@ For this sweep, compare only:
 
 A natural collision/end-of-run harvest is also worth measuring because production currently behaves closer to that than to an arbitrary 95% cutoff.
 
-## Sustained-throughput preview
+## Sustained-throughput results
 
-The three-cycle benchmark confirms that repeated setup/restart does not change the broad early-run picture.
+The three-cycle benchmark confirms that repeated harvest/restart does not change the broad strategy ranking.
 
-Completed sustained 25% result:
+### Sustained 25%
 
-| Strategy | Bones/s | Bones/min |
-| --- | ---: | ---: |
-| Hamiltonian skyscraper | 48.79 | 2,927.11 |
-| **skysdottir reference** | **93.25** | **5,594.72** |
+| Strategy | Average runtime | Bones/s | Bones/min |
+| --- | ---: | ---: | ---: |
+| Hamiltonian skyscraper | 4030.07 | 48.79 | 2,927.11 |
+| **skysdottir reference** | **2108.50** | **93.25** | **5,594.72** |
 
-At 25%, the reference remains roughly twice as productive.
+At 25%, the reference provides about **91% more sustained Bone throughput** than Hamiltonian.
 
-The 50% sustained case is still incomplete in the supplied output, but the shown seeds are again close between Hamiltonian and reference. Finish the sustained 50/75/95 cases before using sustained results for production.
+### Sustained 50%
+
+| Strategy | Average runtime | Bones/s | Bones/min |
+| --- | ---: | ---: | ---: |
+| **Hamiltonian skyscraper** | **5559.11** | **141.47** | **8,488.03** |
+| skysdottir reference | 5596.54 | 140.52 | 8,431.27 |
+
+At 50%, the two strategies are effectively tied. Hamiltonian is only about **0.7% higher throughput**.
+
+This mirrors the single-run result and shows that restart/setup overhead is not responsible for the crossover.
+
+### Sustained 75% — partial
+
+The supplied output currently contains Hamiltonian seed 1:
+
+```text
+6403.10 s
+276.35 Bones/s
+16,580.77 Bones/min
+```
+
+That is very close to the single-run 75% Hamiltonian result of 279.48 Bones/s, suggesting restart overhead becomes negligible for long-tail runs.
+
+Finish the remaining sustained 75% and 95% cases before making the final production choice.
 
 ## Current benchmark conclusion
 
