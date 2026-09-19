@@ -5117,7 +5117,8 @@ def spec_stationary_worker(
 
 def spec_stationary_spawn_grid(
     world_size,
-    event_gated
+    event_gated,
+    extra_workers
 ):
     clear()
 
@@ -5160,6 +5161,17 @@ def spec_stationary_spawn_grid(
                     start_substance,
                     event_gated
                 )
+
+            if extra_workers > 0:
+                spawn_drone(
+                    spec_stationary_worker,
+                    substance,
+                    start_gold,
+                    start_substance,
+                    event_gated
+                )
+
+                extra_workers -= 1
 
             index += 1
 
@@ -5617,19 +5629,35 @@ def run_special():
     elif BENCH_MODE == 37:
         spec_stationary_spawn_grid(
             5,
-            False
+            False,
+            0
         )
 
     elif BENCH_MODE == 38:
         spec_stationary_spawn_grid(
             5,
-            True
+            True,
+            0
+        )
+
+    elif BENCH_MODE == 39:
+        spec_stationary_spawn_grid(
+            4,
+            True,
+            0
+        )
+
+    elif BENCH_MODE == 40:
+        spec_stationary_spawn_grid(
+            5,
+            True,
+            7
         )
 
     else:
-        spec_stationary_spawn_grid(
-            4,
-            True
+        quick_print(
+            "UNKNOWN MAZE BENCH MODE",
+            BENCH_MODE
         )
 
     spec_report_result(
