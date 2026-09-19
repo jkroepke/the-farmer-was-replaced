@@ -337,7 +337,9 @@ The benchmark keeps that architecture while adding the repository's fixed-Gold s
 
 Results are intentionally pending until this amount-based suite is run in-game. Do not infer a winner from the historical full-world benchmarks or community throughput claims.
 
-Benchmark implementation commit: `bb9a2749443bcd4e9dd0bfe0ecfc5f327b66bd62`
+The suite runs through `simulate()`. Gold earned inside a simulation is isolated from the real farm inventory; only the runtime is returned to the caller. Every special mode therefore prints an internal `MAZE SPECIAL RESULT` line with Gold gained, target, and PASS/FAIL before the simulation exits.
+
+Benchmark implementation commit: `600b4e061deaa6b2b64a7282289a07337330b5a3`
 
 ---
 
