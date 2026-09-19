@@ -2309,6 +2309,23 @@ def main():
         - start_time
     )
 
+    quick_print(
+        "DINOSAUR BENCH VALID",
+        BENCH_MODE,
+        "setup",
+        BENCH_SETUP_MODE,
+        "target",
+        BENCH_TARGET_PERCENT,
+        "tail",
+        CURRENT_TAIL_LENGTH,
+        "bones",
+        num_items(Items.Bone),
+        "ticks",
+        elapsed_ticks,
+        "time",
+        elapsed_time
+    )
+
     if BENCH_VERBOSE:
         quick_print(
             "DINOSAUR BENCH",
