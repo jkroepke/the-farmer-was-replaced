@@ -29,6 +29,16 @@ FERTILIZER_RESERVE = 10
 # jetzt standardmäßig aktiv genutzt wird.
 MAZE_STOCKPILE = 5
 
+# Adaptive parallel small-Maze production.
+#
+# At 32x32 / 32 drones, the benchmarked winner is 32 independent
+# 4x4 Mazes using the zapakh-style ranked iterative DFS.
+#
+# Production waits until it can fund one complete burst up front:
+# one Maze creation plus this many Treasure relocations per worker.
+MAZE_PARALLEL_RELOCATIONS = 25
+MAZE_PARALLEL_MIN_WORKERS = 2
+
 # Reference tree-rebalancing Maze strategy.
 #
 # Source:
