@@ -165,14 +165,14 @@ from the actual field.
 
 ## Benchmark modes
 
-`sunflower-v1` screens the following leaderboard-relevant modes:
+`sunflower-v2-bounded7` screens the following leaderboard-relevant modes:
 
 ```text
 tier-tree-no-care
 equal7-tree-no-care
 dumb-tree-no-care
 tier-linear-no-care
-scan-tree-leave7
+scan-tree-bounded7
 scan-tree-counted
 scan-linear-counted
 ```
@@ -185,8 +185,10 @@ Meaning:
   is exactly seven petals;
 - `dumb-*`: intentionally ignores global petal ordering and acts as the simple
   multi-drone community control;
-- `scan-tree-leave7`: msmith93-inspired repeated per-tier scans and normally
-  leaves the complete seven-petal tier;
+- `scan-tree-bounded7`: repeated per-tier scans with a bounded seven-petal
+  reserve of at most one world width (32 on the leaderboard); excess seven-petal
+  flowers are harvested after higher tiers so random replants cannot accumulate
+  an ever-growing permanent tier;
 - `scan-tree-counted`: scans tiers but keeps only nine counts per column and
   leaves exactly nine flowers;
 - `linear` versus `tree`: isolates worker-spawn topology.
@@ -210,7 +212,7 @@ items = {
 }
 ```
 
-`sunflower-v1` uses that as a benchmark proxy. Treat it as a community-derived
+`sunflower-v2-bounded7` uses that as a benchmark proxy. Treat it as a community-derived
 proxy until the actual leaderboard start state is independently confirmed.
 
 ## Next benchmark
@@ -256,3 +258,42 @@ The normal farm already has its own Power/Sunflower placement research in
 `memory/farm.md`. A leaderboard winner may spend the entire 32x32 map on
 Sunflowers and repeatedly synchronize 32 drones; that is acceptable for this
 finite leaderboard and may be bad for normal mixed-resource throughput.
+
+
+## Interrupted sunflower-v1 result and root cause
+
+The first supplied `sunflower-v1` run reached these seed-1 results before
+stalling in the old `scan-tree-leave7` mode:
+
+```text
+tier-tree-no-care    504.77
+equal7-tree-no-care  663.78
+dumb-tree-no-care    507.34
+tier-linear-no-care  561.17
+```
+
+The first three completed modes were valid at the 100000-Power target; the
+linear ordered control was also valid.
+
+The old scan mode had a deterministic algorithmic failure mode:
+
+1. it left every seven-petal Sunflower standing;
+2. every replant of harvested 8..15 tiles had another chance to roll seven;
+3. those new sevens were also retained forever;
+4. the permanent seven-petal population therefore grew monotonically;
+5. the harvestable 8..15 population shrank every cycle;
+6. the mode could converge toward a field with no productive higher tier and
+   loop below the Power target.
+
+This was not a drone-memory or binary-tree-spawn failure.
+
+Fix commit: `f962b8615880d92b573beaa3c30389b817e32dc0`.
+
+`scan-tree-bounded7` now keeps at most `WORLD_SIZE` seven-petal flowers
+(32 for the leaderboard). When more sevens exist, tier 7 is harvested down to
+that quota after higher tiers. A scan-cycle progress guard also aborts visibly
+with `SUNFLOWER SCAN NO PROGRESS` if a full harvest phase produces no Power.
+
+Because the candidate semantics changed, the runner version was bumped to
+`sunflower-v2-bounded7`. Do not merge the interrupted v1 timings into a v2
+summary without marking their provenance.
