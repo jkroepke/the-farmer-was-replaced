@@ -1,11 +1,11 @@
 import main
 
 
-BENCH_VERSION = "cactus-v1"
+BENCH_VERSION = "cactus-v2"
 
 BENCH_WORLD_SIZE = 32
 BENCH_CYCLES = 3
-BENCH_SPEEDUP = 64
+BENCH_SPEEDUP = 10000
 
 BENCH_SEEDS = [
     1,
