@@ -1975,8 +1975,12 @@ def spec_run_reference_target():
 def spec_cover_worker(
     maze_size,
     start_gold,
-    creator
+    creator,
+    ready_drones
 ):
+    while num_drones() < ready_drones:
+        pass
+
     while not spec_gold_done(
         start_gold
     ):
@@ -2004,7 +2008,8 @@ def spec_cover_dfs(
     maze_size,
     start_gold,
     visited,
-    root
+    root,
+    ready_drones
 ):
     coord = (
         get_pos_x(),
@@ -2020,7 +2025,8 @@ def spec_cover_dfs(
             spec_cover_worker,
             maze_size,
             start_gold,
-            False
+            False,
+            ready_drones
         )
 
     for direction in SPEC_DIRECTIONS:
@@ -2045,7 +2051,8 @@ def spec_cover_dfs(
             maze_size,
             start_gold,
             visited,
-            root
+            root,
+            ready_drones
         )
 
         move(
@@ -2055,7 +2062,8 @@ def spec_cover_dfs(
 
 def spec_cover_maze(
     maze_size,
-    start_gold
+    start_gold,
+    ready_drones
 ):
     root = (
         get_pos_x(),
@@ -2072,13 +2080,15 @@ def spec_cover_maze(
         maze_size,
         start_gold,
         visited,
-        root
+        root,
+        ready_drones
     )
 
     spec_cover_worker(
         maze_size,
         start_gold,
-        True
+        True,
+        ready_drones
     )
 
 
@@ -2098,7 +2108,8 @@ def spec_run_single_cover(
 
     spec_cover_maze(
         maze_size,
-        start_gold
+        start_gold,
+        maze_size * maze_size
     )
 
 
@@ -2153,7 +2164,8 @@ def spec_run_double_cover():
 
     spec_cover_maze(
         4,
-        start_gold
+        start_gold,
+        32
     )
 
 
