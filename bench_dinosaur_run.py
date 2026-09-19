@@ -1,7 +1,7 @@
 import main
 
 
-BENCH_VERSION = "dinosaur-v6"
+BENCH_VERSION = "dinosaur-v7"
 
 # Primary Dinosaur benchmark:
 #
@@ -15,10 +15,16 @@ BENCH_VERSION = "dinosaur-v6"
 # occupied Dinosaur length (head + tail), while Bone rewards use tail segments
 # only. Every successful cycle now validates its exact expected Bone gain.
 #
-# v6 fixes the Reddit coil/strike translation against the published Pastebin:
+# v6 fixed the Reddit coil/strike translation against the published Pastebin:
 # correct coil progress after same-column Apples and restore the missing
 # coil->strike north-edge alignment/fix flag. It also prints RUN START before
 # simulate() so a visually suspicious run can be identified immediately.
+#
+# v7 fixes a boolean-result bug in the translated helpers. baseline_move()
+# returns True/False, but some Reddit/Flekay call sites checked <0 / >=0 as if
+# they were using an integer-returning helper. A blocked move therefore became
+# an infinite no-progress loop. v7 uses boolean checks consistently and emits
+# DINOSAUR COIL BLOCKED before rejecting a blocked source-near route.
 #
 # IMPORTANT: simulate() returns elapsed time, not the child script's validity.
 # Always correlate summary rows with "DINOSAUR BENCH VALID" / "INVALID" lines.
