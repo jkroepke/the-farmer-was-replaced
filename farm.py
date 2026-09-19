@@ -1,6 +1,7 @@
 import config
 import utils
 import workers
+import maze
 
 
 # Petal metadata for the permanent sunflower L.
@@ -44,15 +45,10 @@ def weird_substance_target():
 
         return 0
 
-    one_maze = (
-        utils.size()
-        * 2**(maze_level - 1)
-    )
-
-    return (
-        one_maze
-        * config.MAZE_STOCKPILE
-    )
+    # Gold production owns the stockpile policy. This is adaptive:
+    # parallel small-Maze bursts reserve their complete Weird Substance
+    # budget up front; the single-Maze fallback keeps MAZE_STOCKPILE.
+    return maze.stockpile_required()
 
 
 def fertilize():
