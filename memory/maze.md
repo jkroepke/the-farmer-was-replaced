@@ -147,7 +147,7 @@ Production integration commits begin at `b07d95a870252df2f093c250137b909557183f4
 ## Extended Maze benchmark
 
 Current unmeasured benchmark code state:
-`b51873132eec90ee623e513f5b8479b1e86f0997`.
+`c045c3da2a015b77491532199fc3f0735cc2a640`.
 
 The extended matrix contains 22 modes:
 
@@ -171,12 +171,24 @@ Benchmark groups:
 Every result prints Gold gained, Weird Substance used, tick count, target, and
 PASS/FAIL.
 
+
+Short-reuse lifecycle finding:
+
+- the initial extended run stalled at packed zapakh reuse=1
+- screenshot showed some packed Maze slots already harvested/open while others remained active
+- root cause in the benchmark harness: `spec_move_to()` always moved East then North after harvest
+- if the local origin was West/South of the Treasure, the worker could wrap around the world and hit a neighboring active Maze boundary forever
+- `spec_move_to()` now chooses the shortest toroidal direction and returns `False` on a blocked move
+- lifecycle callers abort that worker path on failure instead of rebuilding at the wrong coordinate
+- runner now executes a 100k reuse1 rebuild smoke test before the full matrix
+- partial extended timings from the pre-fix run are diagnostic only
+
 Keep the old measured result separate: `zapakh-32x4x4` at 13.51 average
 belongs to benchmark commit `55734c855dd464dd846deef280d8a65d9f2c3bf7`.
 
 ## Open questions
 
-- Run the extended matrix and record only results from code state `b51873132eec90ee623e513f5b8479b1e86f0997`.
+- Run the extended matrix and record only results from code state `c045c3da2a015b77491532199fc3f0735cc2a640`.
 - Promote a new production geometry/solver only after both 200k and sustained
   results are known.
 - Benchmark adaptive 3x3 zapakh production and reduced-drone layouts separately.
