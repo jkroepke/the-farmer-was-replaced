@@ -3700,7 +3700,8 @@ def spec_map_bfs_run(
     origin_y,
     maze_size,
     start_gold,
-    maze_ready
+    maze_ready,
+    reuse_limit
 ):
     while not spec_gold_done(
         start_gold
@@ -3716,10 +3717,42 @@ def spec_map_bfs_run(
             maze_size
         )
 
+        if reuse_limit <= 0:
+            target = measure()
+
+            if (
+                target == None
+                or not spec_graph_move_bfs(
+                    graph,
+                    target
+                )
+            ):
+                return
+
+            if (
+                get_entity_type()
+                != Entities.Treasure
+            ):
+                return
+
+            harvest()
+
+            if spec_gold_done(
+                start_gold
+            ):
+                return
+
+            spec_move_to(
+                origin_x,
+                origin_y
+            )
+
+            continue
+
         solved = 0
 
         while (
-            solved < 300
+            solved < reuse_limit
             and not spec_gold_done(
                 start_gold
             )
@@ -3777,7 +3810,8 @@ def spec_map_bfs_worker(
     origin_y,
     maze_size,
     start_gold,
-    start_substance
+    start_substance,
+    reuse_limit
 ):
     spec_move_to(
         origin_x,
@@ -3806,11 +3840,16 @@ def spec_map_bfs_worker(
         origin_y,
         maze_size,
         start_gold,
-        True
+        True,
+        reuse_limit
     )
 
 
-def spec_run_map_bfs_5x5():
+def spec_run_map_bfs_layout(
+    layout_mode,
+    reuse_limit,
+    label
+):
     clear()
 
     start_gold = num_items(
@@ -3827,7 +3866,7 @@ def spec_run_map_bfs_5x5():
 
     while index < 31:
         square = spec_layout_square(
-            2,
+            layout_mode,
             index
         )
 
@@ -3843,9 +3882,10 @@ def spec_run_map_bfs_5x5():
             spec_map_bfs_worker,
             origin[0],
             origin[1],
-            5,
+            square[2],
             start_gold,
-            start_substance
+            start_substance,
+            reuse_limit
         )
 
         index += 1
@@ -3857,12 +3897,13 @@ def spec_run_map_bfs_5x5():
         )
 
     quick_print(
-        "REDDIT BFS5 READY",
+        label,
+        "READY",
         len(origins)
     )
 
     square = spec_layout_square(
-        2,
+        layout_mode,
         31
     )
 
@@ -3880,16 +3921,17 @@ def spec_run_map_bfs_5x5():
     )
 
     if not spec_relocate(
-        5
+        square[2]
     ):
         return
 
     spec_map_bfs_run(
         origin[0],
         origin[1],
-        5,
+        square[2],
         start_gold,
-        True
+        True,
+        reuse_limit
     )
 
 
