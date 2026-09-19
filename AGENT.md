@@ -371,6 +371,30 @@ All Maze-specific mechanics, production invariants, benchmark results, sources, 
 
 Read that document before modifying `maze.py`, Maze-related Gold production, or Maze benchmarks. Do not duplicate Maze strategy details in this file.
 
+## Benchmark execution speed
+
+Use the highest standard acceleration for benchmark and leaderboard runners unless the benchmark explicitly studies speedup behavior itself.
+
+Repository defaults:
+
+- `simulate(..., speedup)` benchmarks: use `10000`
+- `leaderboard_run(..., speedup)`: use `256`
+
+Rationale:
+
+- `simulate()` may internally fail to reach the requested acceleration when the workload is CPU-heavy, uses many drones, or contains tight wait loops, but a higher requested value minimizes unnecessary wall-clock waiting.
+- `leaderboard_run()` uses the documented leaderboard-run maximum of `256`.
+- Speedup is an execution/measurement input, not a strategy parameter. Do not reduce it to make an implementation look faster or slower relative to another candidate.
+
+Rules:
+
+- all candidates within one benchmark comparison must use the same requested speedup
+- changing benchmark speedup is a material benchmark-input change and requires a `BENCH_VERSION` bump
+- record the requested speedup alongside benchmark provenance when documenting results
+- historical benchmark results keep the speedup they were actually measured with; never rewrite old results as if they had used the new default
+- external reference snapshots keep their upstream speedup values unchanged
+- only use a different speedup when there is a specific benchmark reason, and document that exception explicitly
+
 ## Benchmark output version
 
 Every benchmark runner must define a manually bumped `BENCH_VERSION` and print it as the first benchmark output line:
