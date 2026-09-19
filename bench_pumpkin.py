@@ -32,6 +32,8 @@ MODE_NAMES = [
 TAIL_LIMIT = 3
 FALLBACK_ROUNDS = 200
 PERSISTENT_MERGE_TIMEOUT = 30
+SPATIAL_DEPLOY_TIMEOUT = 5
+SPATIAL_DEPLOY_SETTLE = 0.05
 
 
 def _repair_current():
@@ -982,6 +984,36 @@ def _run_persistent_placed_ring(
     return []
 
 
+def _wait_for_spatial_deployment(
+    expected_drones
+):
+    deadline = (
+        get_time()
+        + SPATIAL_DEPLOY_TIMEOUT
+    )
+
+    while (
+        num_drones()
+        < expected_drones
+    ):
+        if get_time() >= deadline:
+            return False
+
+    # spawn_drone() places the child immediately at the parent's current
+    # position, but the newly created task may not have executed yet.
+    # Give the final generation a tiny scheduling window before any
+    # Pumpkin worker starts growing/merging the field.
+    end_time = (
+        get_time()
+        + SPATIAL_DEPLOY_SETTLE
+    )
+
+    while get_time() < end_time:
+        pass
+
+    return True
+
+
 def _persistent_spatial_subtree(
     start_column,
     end_column,
@@ -996,9 +1028,10 @@ def _persistent_spatial_subtree(
         + end_column
     ) // 2
 
-    # This is the key locality experiment: a child starts at its parent's
-    # current location, moves only to the midpoint of its own interval,
-    # then spawns the next generation from that new position.
+    # Every task owns exactly the midpoint of its interval.
+    # The parent now moves to a child's midpoint BEFORE spawn_drone().
+    # Because children inherit the parent's current position, every new
+    # drone is born directly on its owned column.
     utils.move_to(
         column,
         0
@@ -1007,10 +1040,22 @@ def _persistent_spatial_subtree(
     handles = []
 
     if start_column < column:
+        left_start = start_column
+        left_end = column - 1
+        left_column = (
+            left_start
+            + left_end
+        ) // 2
+
+        utils.move_to(
+            left_column,
+            0
+        )
+
         handle = spawn_drone(
             _persistent_spatial_subtree,
-            start_column,
-            column - 1,
+            left_start,
+            left_end,
             size,
             cycles
         )
@@ -1019,12 +1064,29 @@ def _persistent_spatial_subtree(
             return False
 
         handles.append(handle)
+
+        utils.move_to(
+            column,
+            0
+        )
 
     if column < end_column:
+        right_start = column + 1
+        right_end = end_column
+        right_column = (
+            right_start
+            + right_end
+        ) // 2
+
+        utils.move_to(
+            right_column,
+            0
+        )
+
         handle = spawn_drone(
             _persistent_spatial_subtree,
-            column + 1,
-            end_column,
+            right_start,
+            right_end,
             size,
             cycles
         )
@@ -1033,6 +1095,20 @@ def _persistent_spatial_subtree(
             return False
 
         handles.append(handle)
+
+        utils.move_to(
+            column,
+            0
+        )
+
+    # Critical correctness barrier:
+    # do not allow early columns to mature into partial Giant Pumpkins
+    # while deeper tree nodes are still being deployed. At full capacity
+    # every column 0..size-1 has exactly one live owner.
+    if not _wait_for_spatial_deployment(
+        size
+    ):
+        return False
 
     success = _persistent_ring_worker(
         column,
@@ -1069,10 +1145,22 @@ def _run_persistent_spatial_tree_ring(
     # to their interval midpoints (8 and 24 for size 32).
     split = size // 2
 
+    left_start = 1
+    left_end = split
+    left_column = (
+        left_start
+        + left_end
+    ) // 2
+
+    utils.move_to(
+        left_column,
+        0
+    )
+
     handle = spawn_drone(
         _persistent_spatial_subtree,
-        1,
-        split,
+        left_start,
+        left_end,
         size,
         cycles
     )
@@ -1082,11 +1170,28 @@ def _run_persistent_spatial_tree_ring(
 
     handles.append(handle)
 
+    utils.move_to(
+        0,
+        0
+    )
+
     if split + 1 <= size - 1:
+        right_start = split + 1
+        right_end = size - 1
+        right_column = (
+            right_start
+            + right_end
+        ) // 2
+
+        utils.move_to(
+            right_column,
+            0
+        )
+
         handle = spawn_drone(
             _persistent_spatial_subtree,
-            split + 1,
-            size - 1,
+            right_start,
+            right_end,
             size,
             cycles
         )
@@ -1095,6 +1200,24 @@ def _run_persistent_spatial_tree_ring(
             return []
 
         handles.append(handle)
+
+        utils.move_to(
+            0,
+            0
+        )
+
+    if not _wait_for_spatial_deployment(
+        size
+    ):
+        quick_print(
+            "PUMPKIN SPATIAL DEPLOY INVALID",
+            "drones",
+            num_drones(),
+            "expected",
+            size
+        )
+
+        return []
 
     gains = _persistent_ring_worker(
         0,
