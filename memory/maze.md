@@ -219,6 +219,11 @@ Critical missing comparison:
 
 ## Open questions
 
+- Run finalist runner commit `c685de023206a55784a8fdfd671abeb830b5f482`.
+  - 1M / seeds 1,2,3: compare uniform4 map+BFS against the sustained winners.
+  - exact Maze leaderboard target 9863168 / seeds 1,2: decide final leaderboard architecture.
+- Do not replace production with the 200k uniform4 map+BFS winner before the
+  sustained/exact-target result is known.
 - Promote a new production geometry/solver only after both 200k and sustained
   results are known.
 - Benchmark adaptive 3x3 zapakh production and reduced-drone layouts separately.
