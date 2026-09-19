@@ -1,7 +1,7 @@
 import main
 
 
-BENCH_VERSION = "pumpkin-v5-spatial-barrier"
+BENCH_VERSION = "pumpkin-v6-patch-throughput"
 BENCH_WORLD_SIZE = 32
 BENCH_SPEEDUP = 10000
 
@@ -34,7 +34,12 @@ MODE_NAMES = [
     "persistent-ring",
     "persistent-tree-ring",
     "persistent-placed-ring",
-    "persistent-spatial-tree-ring"
+    "persistent-spatial-tree-ring",
+    "persistent-power-ring",
+    "persistent-power-ring-tail3",
+    "patch16-6x6-power",
+    "patch16-6x6-power-tail3",
+    "patch16-7x7-power-tail3"
 ]
 
 PRIMARY_MODES = [
@@ -42,7 +47,9 @@ PRIMARY_MODES = [
     19,
     20,
     21,
-    22
+    22,
+    23,
+    24
 ]
 
 CONTROL_MODES = [
@@ -55,7 +62,9 @@ AMORTIZED_MODES = [
     19,
     20,
     21,
-    22
+    22,
+    23,
+    24
 ]
 
 AMORTIZED_CYCLES = 3
@@ -63,6 +72,24 @@ AMORTIZED_CYCLES = 3
 # Verified from the supplied in-game current-production runs for the fully
 # upgraded 32x32 simulation: every valid full-map harvest yielded 3,145,728.
 EXPECTED_CYCLE_GAIN = 3145728
+
+# Six full-map harvests. Patch modes run until the same Pumpkin target,
+# so the benchmark compares sustained throughput rather than cycle shape.
+THROUGHPUT_TARGET = (
+    EXPECTED_CYCLE_GAIN
+    * 6
+)
+
+THROUGHPUT_MODES = [
+    20,
+    23,
+    24,
+    25,
+    26,
+    27
+]
+
+THROUGHPUT_CONTROL_CYCLES = 6
 
 
 def simulation_items():
@@ -90,7 +117,8 @@ def run_one(
         "BENCH_MODE": mode,
         "BENCH_WORLD_SIZE": BENCH_WORLD_SIZE,
         "BENCH_CYCLES": cycles,
-        "BENCH_EXPECTED_CYCLE_GAIN": EXPECTED_CYCLE_GAIN
+        "BENCH_EXPECTED_CYCLE_GAIN": EXPECTED_CYCLE_GAIN,
+        "BENCH_TARGET_PUMPKIN": THROUGHPUT_TARGET
     }
 
     return simulate(
@@ -248,6 +276,13 @@ def run_benchmarks():
         AMORTIZED_MODES,
         BENCH_SEEDS,
         AMORTIZED_CYCLES
+    )
+
+    benchmark_modes(
+        "PUMPKIN THROUGHPUT",
+        THROUGHPUT_MODES,
+        BENCH_SEEDS,
+        THROUGHPUT_CONTROL_CYCLES
     )
 
     quick_print(
