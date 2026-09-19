@@ -447,9 +447,12 @@ def run_setup(mode):
             0
         )
 
-    return jarvan_power_worker(
-        0
-    )
+    if mode == 10:
+        return jarvan_power_worker(
+            0
+        )
+
+    return False
 
 
 def main():
