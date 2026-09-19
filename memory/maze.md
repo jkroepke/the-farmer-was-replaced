@@ -100,8 +100,31 @@ Current design:
 
 This avoids both the failed-Water deadlock and the earlier risk of creating Mazes while other workers are still moving through the open field.
 
+## Production integration
+
+The winning `zapakh-32x4x4` strategy is now integrated into the main production path through `maze_parallel.py`.
+
+Current production rules:
+
+- use adaptive parallel small Mazes when at least two independent small-Maze workers fit
+- evaluate 4x4 and 3x3 layouts by `workers * maze_size * maze_size`; prefer 4x4 on ties
+- 32x32 / 32 drones selects 32 independent 4x4 Mazes
+- fewer drones reduce worker count automatically
+- smaller farms reduce spatial capacity automatically
+- if only one small-Maze worker is usable, fall back to the existing reference full-Maze solver
+- 3x3 adaptive selection is functional but not yet separately benchmarked
+- each parallel worker performs 25 relocations per production burst
+- stock the full Weird-Substance budget before starting any worker
+- at full 32x32 / 32-drone / x32 Maze multiplier, required stockpile is 106496 Weird Substance
+- that burst yields approximately 425984 Gold
+- production also requires one affordable Bush per planned worker
+- the tested Bush/Weird-Substance barrier is reused; never use Water as the launch signal
+- parent waits for every spawned worker before returning to the main loop
+- production prints `MAZE PARALLEL <size> workers <count> relocations <count> substance <amount>`
+
+Production integration commits begin at `b07d95a870252df2f093c250137b909557183f4c`; benchmark provenance remains `55734c855dd464dd846deef280d8a65d9f2c3bf7`.
+
 ## Open questions
 
-- Measure the new suite before changing production `maze.py`.
-- If a small-Maze mode wins, measure Weird Substance efficiency as a second axis; the first suite intentionally measures runtime to a fixed Gold target with oversized resources.
-- Only promote finalists to broader target sizes/seeds after the first 200000-Gold comparison.
+- Benchmark adaptive 3x3 zapakh production and reduced-drone layouts separately.
+- Revisit `MAZE_PARALLEL_RELOCATIONS = 25` if Weird-Substance production becomes the dominant bottleneck.
