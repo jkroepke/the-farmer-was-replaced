@@ -74,7 +74,7 @@ Rules:
 - Keep the number of memory files small. Group related findings under the same stable topic.
 - Persist conclusions that are useful for future work: confirmed mechanics, design decisions, rejected approaches and why they failed, important assumptions, and open research questions. Benchmark measurements themselves belong in `bench/<item>.md`.
 - Do not use memory files as raw chat transcripts. Summarize the durable knowledge needed to continue the work later.
-- Clearly distinguish verified facts, measured benchmark results, hypotheses, and unresolved questions.
+- Clearly distinguish verified facts, benchmark-derived conclusions, hypotheses, and unresolved questions. Keep the measurements that support those conclusions in `bench/<item>.md`.
 - When a benchmark changes a durable decision, summarize the takeaway in memory and link to the canonical `bench/<item>.md`; do not copy the result table into memory.
 - When a conclusion belongs in a canonical mechanic document such as `docs/MAZE.md` or `docs/NORMAL_FARM.md`, update that document as well. Memory is a compact continuation aid, not a replacement for canonical documentation.
 - Update the relevant memory topic during substantial research/optimization work whenever new durable knowledge appears, especially before a long conversation is likely to lose context.
@@ -112,11 +112,18 @@ Keep the existing modular design.
 - `bench_move_run.py`: cold/warm 32x32 movement benchmark orchestration.
 - `bench_dinosaur.py`: Dinosaur benchmark implementations/modes.
 - `bench_dinosaur_run.py`: Dinosaur simulation matrix and benchmark orchestration.
-- `docs/NORMAL_FARM.md`: canonical Hay/Wood/Carrot, Sunflower/Power, worker-layout, and benchmark notes.
+- `bench/example.md`: required benchmark documentation template.
+- `bench/farm.md`: canonical Farm/Sunflower measured results.
+- `bench/pumpkin.md`: canonical Pumpkin measured results.
+- `bench/cactus.md`: canonical Cactus measured results.
+- `bench/maze.md`: canonical Maze measured results.
+- `bench/dinosaurs.md`: canonical Dinosaur measured results.
+- `bench/runtime.md`: canonical runtime, drone-memory, spawn, and movement probe results.
+- `docs/NORMAL_FARM.md`: canonical Hay/Wood/Carrot, Sunflower/Power, worker-layout, references, and benchmark methodology.
 - `docs/UNLOCKS.md`: canonical automatic unlock frontier, priorities, endgame goals, and reset-strategy references.
 - `docs/PUMPKIN.md`: canonical Pumpkin mechanics, multi-drone strategy, references, and optimization notes.
-- `docs/MAZE.md`: canonical Maze mechanics, production design, benchmark data, and optimization notes.
-- `docs/DINOSAUR.md`: canonical Dinosaur mechanics, external strategy research, and optimization/benchmark plan.
+- `docs/MAZE.md`: canonical Maze mechanics, production design, sources, and optimization notes.
+- `docs/DINOSAUR.md`: canonical Dinosaur mechanics, external strategy research, and optimization notes.
 
 Prefer extending an existing module over adding logic to `main.py`.
 
@@ -376,11 +383,11 @@ The current code sorts rows and columns separately using adjacent swaps. Keep so
 
 ## Mazes
 
-All Maze-specific mechanics, production invariants, benchmark results, sources, and optimization notes live in:
+Maze mechanics, production invariants, sources, and durable optimization notes live in `docs/MAZE.md` and `memory/maze.md`.
 
-`docs/MAZE.md`
+Measured Maze and spawn-locality results live in `bench/maze.md`.
 
-Read that document before modifying `maze.py`, Maze-related Gold production, or Maze benchmarks. Do not duplicate Maze strategy details in this file.
+Read those files before modifying `maze.py`, Maze-related Gold production, or Maze benchmarks. Do not duplicate Maze result tables in this file.
 
 ## Benchmark execution speed
 
@@ -421,16 +428,6 @@ Rules:
 - never reuse a version identifier for materially different benchmark code
 - historical output without a version must be explicitly labeled unversioned and tied to its benchmark commit before drawing conclusions
 
-## Simulation speed policy
-
-Use these repository-wide defaults:
-
-- benchmark and probe runners that use `simulate()`: request `speedup = 10000`
-- real leaderboard launchers that use `leaderboard_run()`: request `speedup = 256`
-
-The simulation engine may achieve less than the requested speedup, especially with many drones or busy loops. The requested speedup is still part of the benchmark input and must remain consistent across candidates in the same comparison.
-
-Changing benchmark speedup requires a `BENCH_VERSION` bump. Do not use the benchmark-only value 10000 for real leaderboard launchers unless a future explicit repository decision changes this rule.
 
 ## Benchmark documentation
 
@@ -449,11 +446,9 @@ Rules:
 - Separate observations from interpretation. Label conclusions and open hypotheses explicitly; do not present them as measured facts.
 - `memory/<topic>.md` may keep durable takeaways, rejected approaches, and open questions, but it must link to the relevant `bench/<item>.md` instead of duplicating result tables.
 - Mechanic docs may explain benchmark methodology, but measured numbers and run history stay in `bench/`.
+- Use a stable topic filename such as `bench/farm.md`, `bench/maze.md`, or `bench/runtime.md`; update an existing topic instead of creating one file per run.
 
 
-## Game file-name limit
-
-Game-facing Python files must use names of at most 20 characters including `.py`. Keep benchmark, probe, and runner names short enough to be created directly in the in-game editor.
 
 ## Benchmark layout
 
@@ -468,11 +463,11 @@ Do not create one benchmark file per variant. Add variants as modes to the share
 
 ## Dinosaurs
 
-All Dinosaur-specific mechanics, production invariants, external strategy research, and benchmark plans live in:
+Dinosaur mechanics, production invariants, and external strategy research live in `docs/DINOSAUR.md` and `memory/dinosaurs.md`.
 
-`docs/DINOSAUR.md`
+Measured Dinosaur results live in `bench/dinosaurs.md`.
 
-Read that document before modifying `dinosaur.py`, Bone production, or Dinosaur benchmarks.
+Read those files before modifying `dinosaur.py`, Bone production, or Dinosaur benchmarks.
 
 ## Spawn locality
 
