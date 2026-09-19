@@ -995,3 +995,50 @@ Measured conclusions for this benchmark state:
 - do not promote a final Farm layout from this run because Sunflower placement is now being challenged independently
 
 This result set predates the benchmark-version header rule. Future runs must include `BENCHMARK VERSION ...` as their first output line.
+
+## sciencejiho asynchronous-lane benchmark
+
+The persistent-worker suite now includes an architecture-only port of:
+
+- `external/sciencejiho-tfwr-solutions/source/strategy_polyculture.py`
+- `external/sciencejiho-tfwr-solutions/source/drone_control.py`
+
+Benchmark architecture name:
+
+```text
+science-async-lanes
+```
+
+The candidate preserves the source architecture rather than its crop policy:
+
+1. the controller owns persistent lane scheduler state
+2. each child receives one copied column job
+3. child jobs terminate after one column
+4. the controller polls `has_finished()`, merges completion, and immediately relaunches idle lanes
+5. one lane stays on the controller and performs useful column work
+6. no mutable Python object is shared between drones
+
+Crop servicing, Sunflower layouts, targets, profiles, and inventory conditions remain the same as the other `bench_persist.py` modes. This isolates the worker-lifecycle question:
+
+> Is asynchronous one-column recycling fast enough to beat long-lived stride/chunk/pair workers once repeated spawn cost and controller polling are included?
+
+The benchmark deliberately includes both:
+
+- partial Megafarm
+- maximum Megafarm
+
+At full 32x32 Megafarm, a lane may own only one column, so the async implementation repeatedly respawns a worker for that same column. That is expected source-like behavior and must not be optimized away before measurement.
+
+Run:
+
+```text
+bench_persist_run.py
+```
+
+Benchmark version:
+
+```text
+persist-v2
+```
+
+No performance conclusion is recorded until an in-game/simulation run is supplied.

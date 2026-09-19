@@ -387,3 +387,9 @@ For all leaderboard candidates:
 - confirm that the program terminates after reaching the target
 - use multiple random seeds for strategies whose runtime depends on random crop/entity behavior
 - keep benchmark provenance according to the repository's commit-SHA rules
+
+## Pending reset planner benchmark (2026-09-19)
+
+`bench_reset.py` / `bench_reset_run.py` compare three Fastest Reset planner policies from empty unlock/item state to `Unlocks.Leaderboard`, all using the same current production backend: dynamic frontier, Agude-inspired sticky bounded target, and the pinned msmith93 static unlock order with live cost resampling. Runner version: `reset-v1`; seeds 1/2/3; action watchdog 10000. No result has been measured yet.
+
+`bench_ticks.py` / `bench_ticks_run.py` re-measure Flekay-inspired interpreter hot-path claims (dict key shape, membership structures, queue front-pop vs cursor, append vs concatenation). Runner version: `ticks-v1`. Treat upstream January 2026 tick values as hypotheses until this current-runtime suite is run.

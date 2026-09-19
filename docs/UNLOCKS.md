@@ -154,3 +154,84 @@ The msmith reference demonstrates a different optimization problem:
 - stop when Leaderboard is reached
 
 That should be benchmarked separately later rather than making the normal long-running planner mimic a leaderboard reset route.
+
+## Fastest Reset planner benchmark
+
+A dedicated end-to-end reset benchmark now compares planner strategy while keeping the production backend identical.
+
+Files:
+
+- `bench_reset.py`
+- `bench_reset_run.py`
+
+All simulations start with:
+
+```text
+unlock map: {}
+item map:   {}
+```
+
+and stop when:
+
+```text
+num_unlocked(Unlocks.Leaderboard) > 0
+```
+
+The benchmark therefore models the Fastest Reset objective rather than the normal infinite automation goal.
+
+### Modes
+
+`current-dynamic-frontier`
+
+Uses the current `unlocks.next_target()` selection before every bounded production action. The selected upgrade may change as inventory and weighted remaining costs change.
+
+`agude-sticky-bounded`
+
+Adapts the central planning behavior from:
+
+`external/agude-the-farmer-was-replaced/source/Save0/top_hat.py`
+
+A target selected from the current frontier stays selected until one level of that target is unlocked. Production still happens one bounded action at a time, and live `get_cost()`/inventory state is re-read after every action. This isolates whether finishing the selected level beats continuously reprioritizing the frontier.
+
+`msmith-static-bounded`
+
+Preserves the explicit unlock order from the pinned msmith93 Full Reset solution:
+
+`external/msmith93-full-reset/`
+
+The crop implementations are intentionally **not** copied. It uses this repository's current `production.py` for every resource, so the measured delta primarily reflects unlock ordering/planning rather than different farming algorithms.
+
+The static mode also re-reads live costs after every bounded production action. This keeps the external unlock sequence while avoiding stale hard-coded resource quantities.
+
+### Metrics
+
+Each simulation prints:
+
+```text
+RESET RESULT <mode>
+    elapsed
+    ticks
+    actions
+    unlocks
+    leaderboard-level
+    world
+    PASS|FAIL
+```
+
+The runner also reports average/min/max `simulate()` runtime across seeds 1, 2, and 3.
+
+A `BENCH_MAX_ACTIONS` watchdog prevents a broken planner from silently running forever. A FAIL result must not be ranked by its runtime against successful runs.
+
+Run:
+
+```text
+bench_reset_run.py
+```
+
+Benchmark version:
+
+```text
+reset-v1
+```
+
+No Fastest Reset strategy should be changed from this benchmark until successful results are available and tied to the benchmark commit SHA.

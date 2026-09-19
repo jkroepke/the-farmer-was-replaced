@@ -1,7 +1,7 @@
 import main
 
 
-BENCH_VERSION = "persist-v1"
+BENCH_VERSION = "persist-v2"
 
 BENCH_WORLD_SIZE = 32
 BENCH_SPEEDUP = 64
@@ -37,7 +37,8 @@ ARCH_NAMES = [
     "main-stride",
     "main-chunks",
     "main-pairs",
-    "scheduler-chunks"
+    "scheduler-chunks",
+    "science-async-lanes"
 ]
 
 

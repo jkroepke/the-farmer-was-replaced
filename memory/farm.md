@@ -184,3 +184,7 @@ Measured conclusions for this benchmark state:
 - do not promote a final Farm layout from this run because Sunflower placement is now being challenged independently
 
 This result set predates the benchmark-version header rule. Future runs must include `BENCHMARK VERSION ...` as their first output line.
+
+## Pending sciencejiho lane benchmark (2026-09-19)
+
+`bench_persist.py` now includes `science-async-lanes`, an architecture-only port of sciencejiho's current-memory-safe scheduler: copied one-column jobs, controller-owned lane state, `has_finished()` collection, immediate relaunch, and one controller lane doing useful work. Existing crop servicing/layouts are unchanged so the test isolates worker lifecycle. Benchmark runner version: `persist-v2`. Results are not yet measured.

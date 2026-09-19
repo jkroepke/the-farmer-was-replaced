@@ -15,7 +15,8 @@ ARCH_NAMES = [
     "main-stride",
     "main-chunks",
     "main-pairs",
-    "scheduler-chunks"
+    "scheduler-chunks",
+    "science-async-lanes"
 ]
 
 
@@ -770,6 +771,247 @@ def run_scheduler(
     return True
 
 
+def async_next_x(
+    x,
+    lane,
+    lane_count,
+    crop_columns
+):
+    next_x = x + lane_count
+
+    if next_x >= crop_columns:
+        return lane
+
+    return next_x
+
+
+def async_column_job(
+    x,
+    layout,
+    focus_item
+):
+    world_size = utils.size()
+
+    utils.move_to(
+        x,
+        0
+    )
+
+    for _ in range(
+        world_size
+    ):
+        service_crop_tile(
+            layout,
+            focus_item,
+            x,
+            world_size
+        )
+
+        move(
+            North
+        )
+
+    return x
+
+
+def run_async_lanes(
+    layout,
+    carrot_mid,
+    hay_target,
+    wood_target,
+    carrot_final
+):
+    # Source-near architecture port of sciencejiho/TFWR-Solutions
+    # strategy_polyculture.py:
+    #
+    # - one persistent scheduler record per lane
+    # - each child receives one copied column job
+    # - finished jobs are collected with has_finished()/wait_for()
+    # - idle lanes are immediately relaunched
+    # - the controller owns one lane and performs useful work itself
+    #
+    # This intentionally benchmarks the architecture only. Crop servicing
+    # remains identical to the other bench_persist modes.
+    world_size = utils.size()
+    sun_workers = layout_sun_columns(
+        layout
+    )
+    crop_columns = layout_crop_columns(
+        layout,
+        world_size
+    )
+    lane_count = min(
+        crop_columns,
+        max_drones() - sun_workers
+    )
+
+    if lane_count < 1:
+        return False
+
+    sun_handles = []
+
+    if not spawn_sun_workers(
+        sun_handles,
+        layout,
+        world_size,
+        carrot_mid,
+        hay_target,
+        wood_target,
+        carrot_final
+    ):
+        return False
+
+    child_count = lane_count - 1
+    child_handles = []
+    child_next_x = []
+    child_x = []
+
+    lane = 0
+
+    while lane < child_count:
+        child_handles.append(
+            None
+        )
+        child_next_x.append(
+            lane
+        )
+        child_x.append(
+            -1
+        )
+        lane += 1
+
+    controller_lane = lane_count - 1
+    controller_x = controller_lane
+
+    while current_focus(
+        carrot_mid,
+        hay_target,
+        wood_target,
+        carrot_final
+    ) != None:
+        lane = 0
+
+        while lane < child_count:
+            handle = child_handles[
+                lane
+            ]
+
+            if (
+                handle != None
+                and has_finished(
+                    handle
+                )
+            ):
+                wait_for(
+                    handle
+                )
+
+                child_next_x[
+                    lane
+                ] = async_next_x(
+                    child_x[
+                        lane
+                    ],
+                    lane,
+                    lane_count,
+                    crop_columns
+                )
+
+                child_handles[
+                    lane
+                ] = None
+
+                child_x[
+                    lane
+                ] = -1
+
+            lane += 1
+
+        focus_item = current_focus(
+            carrot_mid,
+            hay_target,
+            wood_target,
+            carrot_final
+        )
+
+        if focus_item == None:
+            break
+
+        lane = 0
+
+        while lane < child_count:
+            if child_handles[
+                lane
+            ] == None:
+                x = child_next_x[
+                    lane
+                ]
+
+                drone = spawn_drone(
+                    async_column_job,
+                    x,
+                    layout,
+                    focus_item
+                )
+
+                if drone == None:
+                    return False
+
+                child_handles[
+                    lane
+                ] = drone
+
+                child_x[
+                    lane
+                ] = x
+
+            lane += 1
+
+        focus_item = current_focus(
+            carrot_mid,
+            hay_target,
+            wood_target,
+            carrot_final
+        )
+
+        if focus_item == None:
+            break
+
+        async_column_job(
+            controller_x,
+            layout,
+            focus_item
+        )
+
+        controller_x = async_next_x(
+            controller_x,
+            controller_lane,
+            lane_count,
+            crop_columns
+        )
+
+    lane = 0
+
+    while lane < child_count:
+        handle = child_handles[
+            lane
+        ]
+
+        if handle != None:
+            wait_for(
+                handle
+            )
+
+        lane += 1
+
+    for drone in sun_handles:
+        wait_for(
+            drone
+        )
+
+    return True
+
+
 def run_persistent(
     layout,
     architecture,
@@ -780,6 +1022,15 @@ def run_persistent(
 ):
     if architecture == 3:
         return run_scheduler(
+            layout,
+            carrot_mid,
+            hay_target,
+            wood_target,
+            carrot_final
+        )
+
+    if architecture == 4:
+        return run_async_lanes(
             layout,
             carrot_mid,
             hay_target,

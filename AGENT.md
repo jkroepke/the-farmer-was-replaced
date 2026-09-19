@@ -100,6 +100,10 @@ Keep the existing modular design.
 - `bench_transition_run.py`: transition benchmark profiles, seeds, simulation calls, and aggregation.
 - `bench_persist.py`: full-Megafarm sync-respawn vs persistent-worker implementations.
 - `bench_persist_run.py`: persistent-worker benchmark seeds, simulation calls, and aggregation.
+- `bench_ticks.py`: current-runtime interpreter/tick microbenchmark modes derived from measured external claims.
+- `bench_ticks_run.py`: tick microbenchmark matrix and simulation orchestration.
+- `bench_reset.py`: Fastest Reset planner-policy implementations ending at `Unlocks.Leaderboard`.
+- `bench_reset_run.py`: empty-state reset simulations, seeds, watchdog, and aggregation.
 - `bench_maze.py`: all Maze benchmark implementations/modes.
 - `bench_maze_run.py`: Maze simulation matrix and benchmark orchestration.
 - `bench_dinosaur.py`: Dinosaur benchmark implementations/modes.
