@@ -432,3 +432,79 @@ Default LB hypotheses to benchmark:
 6. explicit finite target checks and worker termination
 
 Before writing the final LB simulator, run `lb_probe_run.py` to capture the exact Wood/Carrots/Hay starting inventories because the public leaderboard description does not publish those amounts.
+
+
+## Measured Wood resource-leaderboard start state
+
+Measured 2026-09-19 with the repository's diagnostic `lb_res_probe.py`.
+
+### Exact observed start state
+
+| Property | Value |
+| --- | ---: |
+| World size | 32 |
+| Max drones | 32 |
+| Water level | 0 |
+| Starting entity | `Entities.Grass` |
+| Starting ground | `Grounds.Grassland` |
+| Power | 1,000,000,000 |
+| Water inventory | 0 |
+| Fertilizer inventory | 0 |
+| Hay | 0 |
+| Wood | 0 |
+| Carrot | 0 |
+| Weird Substance | 0 |
+
+Other listed resources were also zero at start.
+
+Measured unlock levels:
+
+| Unlock | Level |
+| --- | ---: |
+| Speed | 5 |
+| Watering | 9 |
+| Fertilizer | 4 |
+| Sunflowers | 1 |
+| Trees | 10 |
+| Carrots | 10 |
+| Grass | 10 |
+| Megafarm | 5 |
+| Polyculture | 5 |
+
+Measured entity costs:
+
+| Entity | Cost |
+| --- | --- |
+| Carrot | `{Items.Hay: 512, Items.Wood: 512}` |
+| Tree | `{}` |
+| Bush | `{}` |
+| Sunflower | `{Items.Carrot: 1}` |
+
+### Consequences for Wood leaderboard research
+
+The previously documented general statement "resources needed to grow the plant and lots of Power" is now concretely resolved for Wood:
+
+- Power starts at exactly `1_000_000_000`
+- Tree and Bush planting costs are empty at this upgrade level
+- Water and Fertilizer start at zero
+- the run starts on an empty/default Grass tile on Grassland
+- all 32 drones and the full 32x32 farm are available
+
+Therefore the Wood leaderboard should not use the normal Main-Run Sunflower economy or Tree affordability checks.
+
+The leading Wood-LB hypothesis is:
+
+```text
+32x32
+32 drones
+0 sunflower workers
+0 sunflower tiles
+full Wood layout
+direct/free Tree planting
+lean steady-state checks
+finite 10,000,000,000 Wood termination
+```
+
+Water and Fertilizer remain benchmark questions because their inventories start at zero but the measured Watering/Fertilizer upgrade levels may replenish them over time.
+
+Do not assume that the Carrots or Hay leaderboard has the same starting inventory. Probe and record those modes separately.
