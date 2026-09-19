@@ -51,59 +51,92 @@ Relevant behavior:
 
 ## Production strategy
 
-`maze.py` uses a persistent reference-style tree-rebalancing strategy.
+Gold production now has two paths.
 
-### Lifecycle
+### Primary path: adaptive parallel small Mazes
 
-The Maze is reused across consecutive Gold-focused planner iterations.
+New Gold phases use `maze_parallel.py` whenever the current farm can place at least two independent small Mazes.
 
-1. The first `maze.run()`:
-   - clears the field
-   - creates one fresh Maze
-   - maps the full fresh Maze with DFS
-   - builds an ordered tree
-   - may already encounter and relocate Treasures while mapping
-2. Later `maze.run()` calls:
-   - keep the same Maze
-   - keep the same in-memory tree
-   - route to the current Treasure
-   - relocate it using Weird Substance
-3. After the configured relocation limit:
-   - route to the final Treasure
-   - harvest it
-   - reset the Maze state
-4. The next Gold request starts a fresh Maze.
+The planner evaluates 4x4 and 3x3 layouts:
 
-The important optimization is that a Gold -> Gold transition does **not** rebuild the normal farm or sunflower edges.
+- capacity is `floor(world_size / maze_size) ** 2`
+- active workers are `min(max_drones(), capacity)`
+- the heuristic score is `workers * maze_size * maze_size`
+- 4x4 wins ties
 
-### Gold planner interaction
+This makes the production layout adapt automatically to both farm size and available drones.
 
-`production.py` treats Maze/Gold specially:
+Examples:
 
-- Gold -> Gold:
-  - preserve the Maze
-  - preserve the tree
-  - do not rebuild sunflowers
-- Gold -> non-Gold:
-  - call `maze.reset()`
-  - clear/rebuild the normal farm exactly once
-- active Maze but insufficient Weird Substance:
-  - the Maze may be abandoned
-  - restore normal farming so Weird Substance can be produced
-- farm expansion:
-  - coordinates change
-  - the Maze tree is invalid
-  - `production.reset_state()` must reset Maze state before the expanded farm is rebuilt
+- 32x32 / 32 drones -> 32 independent 4x4 Mazes
+- 16x16 / 16 drones -> 16 independent 4x4 Mazes
+- 8x8 / >=4 drones -> 4 independent 4x4 Mazes
+- 6x6 / >=4 drones -> 4 independent 3x3 Mazes
+- only one usable small-Maze worker -> fall back to the reference single-Maze strategy
 
-### Current production thresholds
+The 32x32 / 32-drone 4x4 choice is benchmarked. The adaptive 3x3 choice for smaller intermediate farm states is currently a heuristic and is not yet independently benchmarked.
 
-Defined in `config.py`:
+Each parallel worker uses the zapakh-style ranked iterative DFS from the winning benchmark mode.
 
-`MAZE_STOCKPILE = 5` controls how many Maze-cost equivalents of Weird Substance normal farming tries to keep available before Gold production needs it.
+### Parallel lifecycle
 
-The routing/reuse thresholds are:
+A production burst is fully funded before it starts.
+
+`config.MAZE_PARALLEL_RELOCATIONS = 25` means every worker reserves enough Weird Substance for:
+
+1. one Maze creation
+2. 25 Treasure relocations
+3. the final Treasure harvest, which needs no Weird Substance
+
+The required stockpile is therefore:
 
 ```text
+maze_size
+* 2 ** (maze_level - 1)
+* worker_count
+* (MAZE_PARALLEL_RELOCATIONS + 1)
+```
+
+At 32x32, 32 drones, 4x4 Mazes, and the full x32 Maze multiplier:
+
+```text
+4 * 32 * 32 * 26 = 106496 Weird Substance
+```
+
+That burst produces approximately:
+
+```text
+16 * 32 * 32 * 26 = 425984 Gold
+```
+
+The normal farm keeps fertilizing until this complete Weird-Substance budget is available. This deliberately prevents a parallel Gold job from starving while dozens of drones are already inside their Mazes.
+
+Workers use the tested start barrier:
+
+1. children move to their assigned origins
+2. each child plants a Bush and waits
+3. the parent confirms every child Bush
+4. the parent creates its own Maze
+5. the guaranteed Weird-Substance inventory change releases all children
+6. every worker creates and solves its own Maze
+7. the parent waits for all spawned workers before returning to the main loop
+
+Production prints a compact diagnostic such as:
+
+```text
+MAZE PARALLEL 4 workers 32 relocations 25 substance 106496
+```
+
+### Fallback path: reference full Maze
+
+If fewer than two independent small Mazes can be placed, `maze.py` keeps the previous persistent reference tree-rebalancing strategy.
+
+An already-active reference Maze is never switched to the parallel strategy mid-lifecycle.
+
+The legacy fallback still uses:
+
+```text
+MAZE_STOCKPILE = 5
 MAZE_REUSE_LIMIT = 300
 MAZE_GREEDY_AFTER = 30
 MAZE_REROOT_AT = 40
@@ -112,7 +145,24 @@ MAZE_REBALANCE_ACTIVE_UNTIL = 80
 MAZE_REBALANCE_UNTIL = 140
 ```
 
-These values were inherited from / aligned with the reference strategy and should be treated as benchmarkable tuning parameters, not permanent truths.
+### Gold planner interaction
+
+`production.py` treats Gold specially:
+
+- before parallel Gold production:
+  - require the complete Weird-Substance burst reserve
+  - require enough resources for one Bush per planned worker
+- Gold -> Gold:
+  - do not rebuild the normal farm unnecessarily
+- if the next Gold burst is not yet funded:
+  - restore the normal farm once
+  - run high-throughput Hay/fertilizer production until the full reserve is available
+- Gold -> non-Gold:
+  - reset Maze state and restore the normal farm once
+- farm expansion:
+  - reset Maze state before using the new coordinates
+
+The benchmark that selected 32x4x4 zapakh production is commit `55734c855dd464dd846deef280d8a65d9f2c3bf7`.
 
 ---
 
