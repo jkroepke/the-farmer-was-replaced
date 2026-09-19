@@ -447,36 +447,74 @@ For a 25% target, `safe-shortcuts-hard-25` and `safe-shortcuts-hard-50` are iden
 
 That is expected: both modes use identical shortcut behavior until 25% fill, and the benchmark stops there. This is a useful confirmation that the cutoff plumbing behaves as intended.
 
-## 32x32 — partial preview
+## 32x32, 25% tail target
 
-Only the beginning of the 32x32 / 25% case was available when this preview was recorded:
+| Strategy | Seed 1 | Seed 2 | Seed 3 | Average | Min | Max |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| Hamiltonian | 1172.46 | 1295.70 | 1344.10 | 1270.75 | 1172.46 | 1344.10 |
+| Annealed 50 | 1369.73 | 1617.97 | 1569.37 | 1519.02 | 1369.73 | 1617.97 |
+| Hard 25 | 1449.68 | 1600.50 | 1621.25 | 1557.14 | 1449.68 | 1621.25 |
+| Hard 50 | 1449.68 | 1600.50 | 1621.25 | 1557.14 | 1449.68 | 1621.25 |
+| **skysdottir reference** | **673.48** | **693.09** | **688.40** | **684.99** | **673.48** | **693.09** |
 
-| Strategy | Seed 1 |
-| --- | ---: |
-| Hamiltonian | 1172.46 |
-| Annealed 50 | 1369.73 |
-| Hard 25 | 1449.68 |
-| Hard 50 | not yet recorded |
-| skysdottir reference | not yet recorded |
+This is a very strong result.
 
-This is already an important warning: on 32x32 seed 1, our skyscraper shortcut adaptations are slower than the plain Hamiltonian baseline even at only 25% fill.
+At 25% tail occupancy on the production-relevant 32x32 board:
 
-Do not conclude that shortcutting itself is bad from this partial case. It may instead mean:
+- the skysdottir reference is about **46% faster** than the plain Hamiltonian baseline
+- our annealed skyscraper shortcut adaptation is about **20% slower** than baseline
+- our hard-cutoff skyscraper variants are about **23% slower** than baseline
 
-- decision overhead scales badly with board size
-- the skyscraper geometry provides poor shortcut opportunities at 32x32 for this seed
-- the Hilbert/reference geometry may scale differently
-- the current safe-shortcut checks may cost too much relative to saved moves
+This cleanly separates two ideas:
 
-Wait for the source-reference result before changing production.
+> Shortcutting itself is not the problem. Our skyscraper shortcut implementation/path interaction is the problem.
+
+The source-near Hilbert/reference algorithm scales much better in the early run.
+
+## 32x32, 50% tail target — partial
+
+Available values so far:
+
+| Strategy | Seed 1 | Seed 2 | Seed 3 |
+| --- | ---: | ---: | ---: |
+| Hamiltonian | 1717.07 | 1815.90 | not yet recorded |
+| Annealed 50 | 2830.86 | 3247.93 | not yet recorded |
+| Hard 25 | 2293.98 | 2445.27 | not yet recorded |
+| Hard 50 | 3255.35 | 3447.38 | not yet recorded |
+| skysdottir reference | 1881.48 | not yet recorded | not yet recorded |
+
+The first completed reference point suggests a possible crossover:
+
+- at 25%, the reference is dramatically faster than Hamiltonian
+- at 50% on seed 1, the reference is about **9.6% slower** than Hamiltonian
+
+Do not conclude the crossover is confirmed until the remaining reference seeds complete.
+
+However, the possibility is important because the source reference changes character around half-board: shortcutting disappears and the run becomes mostly pure traversal of the Hilbert cycle.
+
+That may expose a path-geometry tradeoff:
+
+- Hilbert/reference: excellent early shortcut opportunities
+- skyscraper: potentially cheaper/faster pure late-cycle traversal
+
+A mid-run switch from one unrelated Hamiltonian cycle to another is **not automatically safe**, because the existing tail occupies positions according to the old path/history. Do not switch from a Hilbert body directly onto the skyscraper cycle without proving tail safety.
+
+Safer optimization directions are:
+
+1. tune the reference cutoff earlier than 50%
+2. keep the Hilbert path but stop expensive shortcut evaluation earlier
+3. design a source-style shortcut algorithm on a path geometry that remains efficient after the shortcut phase
+4. select the whole-run strategy based on requested Bone/tail target:
+   - short target: reference
+   - long target: possibly plain Hamiltonian
 
 ## Current benchmark conclusion
 
-Do not promote any strategy into production yet.
+Do not promote the current skyscraper shortcut variants.
 
-The most promising candidate so far is `skysdottir-tfwr-reference`, especially on 16x16. However, 32x32 behavior is not yet known, and the partial result shows that our own shortcut adaptations can regress badly with larger boards.
+For 32x32 at 25%, the source-near reference is decisively best. The first 50% result suggests that the best strategy may depend on requested tail length rather than one algorithm winning the entire run.
 
-The data also suggests that the shortcut cutoff must be path- and world-size-aware rather than one global constant.
+This makes target-aware Bone production more important: if the planner needs only a modest Bone amount, stopping around a short tail target can exploit the reference algorithm's strongest phase instead of paying for a long late-game traversal.
 
 ## Current next step
 
