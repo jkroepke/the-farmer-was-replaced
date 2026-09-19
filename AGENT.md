@@ -386,6 +386,17 @@ Rules:
 - never reuse a version identifier for materially different benchmark code
 - historical output without a version must be explicitly labeled unversioned and tied to its benchmark commit before drawing conclusions
 
+## Simulation speed policy
+
+Use these repository-wide defaults:
+
+- benchmark and probe runners that use `simulate()`: request `speedup = 10000`
+- real leaderboard launchers that use `leaderboard_run()`: request `speedup = 256`
+
+The simulation engine may achieve less than the requested speedup, especially with many drones or busy loops. The requested speedup is still part of the benchmark input and must remain consistent across candidates in the same comparison.
+
+Changing benchmark speedup requires a `BENCH_VERSION` bump. Do not use the benchmark-only value 10000 for real leaderboard launchers unless a future explicit repository decision changes this rule.
+
 ## Benchmark result provenance
 
 Every documented benchmark result must include the full Git commit SHA of the benchmark state that produced it.
