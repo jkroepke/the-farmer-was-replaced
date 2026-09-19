@@ -543,3 +543,25 @@ Incomplete v4 Seed 1 / nominal-25% preview signal only:
 - tested skyscraper shortcut/fast-lane variants were ~46-59% slower
 
 These relative values are only preview evidence. Re-run the full suite as `dinosaur-v5`.
+
+
+## 2026-09-19 Dinosaur v6 Reddit coil/strike correction
+
+A live v4 screenshot taken after mode 9 completed showed the next candidate (mode 10) coiling on the west side while an Apple was visible on the east side.
+
+The **coil-before-strike behavior itself is intentional** in the Reddit algorithm: the tail is first shaped into a known safe coil, then the head strikes east-side Apples.
+
+Comparison with the actual Pastebin nevertheless found two local port bugs:
+
+- same-column Apple progress used the old/pre-move Y instead of the current Apple Y relative to the newly measured next Apple
+- the coil -> strike transition omitted the source's north-edge alignment and persistent `fixFlag1` handling
+
+Fixed in:
+
+- `1e47c5201207fac0d6cf35b23f8fd56c2483c477`
+
+Runner is now `dinosaur-v6` and emits `DINOSAUR RUN START ...` before each simulation so the current candidate is always visible:
+
+- `7081dc129241652273e6793d3352db487faf3fdf`
+
+Do not use or continue v4 output. v4 is invalid both because of the head/tail accounting bug and because its Reddit modes 10/11/12 were not source-near enough.
