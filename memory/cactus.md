@@ -232,3 +232,68 @@ the old reroll candidate with both new placed-worker candidates.
 
 Do not promote a new production implementation until these follow-up results
 are measured in-game.
+
+
+## 2026-09-19 persistent-worker follow-up
+
+Two additional benchmark candidates were added after reviewing the current
+32x32 path and the Mateus persistent-worker reference again.
+
+### Positioned two-wave insertion
+
+Mode:
+
+- `two-wave-insertion-positioned-reuse`
+
+When `max_drones() >= world_size`, the caller walks one row/column between
+`spawn_drone()` calls. Current game semantics start each child at the
+caller's current position, so every worker begins directly on its assigned
+line instead of first paying a `move_to()` fan-out.
+
+The algorithm keeps the safe row barrier -> column barrier invariant. If
+fewer drones than lines are available, it falls back to the generic two-wave
+implementation, so the candidate remains valid for arbitrary world sizes and
+Megafarm levels.
+
+This specifically targets the 32x32 / 32-drone case without hard-coding 32.
+
+### Mateus-style persistent single wave
+
+Mode:
+
+- `persistent-mateus`
+
+This is a source-near generalized experiment based on:
+
+- `external/mateusmarochi-the-farmer-was-replaced-codes/source/cactus_farm.py`
+
+One worker lifetime spans:
+
+1. planting/repairing its columns
+2. repeated vertical relaxation
+3. repeated horizontal relaxation
+4. readiness waiting for its rows
+
+The caller participates as worker 0, so no scheduler slot is reserved.
+
+The candidate intentionally has no global barrier between vertical and
+horizontal mutation. Different workers can therefore enter horizontal work
+while other workers are still performing vertical swaps. That is the main
+correctness/performance risk and the reason this mode is benchmark-only.
+
+The finite benchmark adaptation uses `world_size // 2` bidirectional passes,
+matching the reference's 16 passes at 32x32 while still scaling to other
+sizes. It waits for worker completion before the final chain harvest.
+
+### Benchmark policy
+
+Run the positioned two-wave mode with the normal finalist matrix.
+
+Run `persistent-mateus` initially only as a one-seed, one-cycle reference
+smoke test. Promote it into the full candidate matrix only if it reliably
+completes a full chain and is competitive.
+
+Do not replace production `cactus.py` until measured results establish a
+winner. A one-wave persistent implementation is attractive because it halves
+spawn waves, but source shape alone is not enough to justify accepting the
+row/column race.
