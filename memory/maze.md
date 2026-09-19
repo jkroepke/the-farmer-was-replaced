@@ -238,6 +238,29 @@ Current exact-target cold-start runner commit:
 
 It tests 5 finalist architectures over seeds 1/2/3.
 
+## Leaderboard implementation
+
+Dedicated leaderboard files now exist:
+
+- `lb_maze.py`
+  - finite Maze leaderboard program
+  - target: `num_items(Items.Gold) >= 9863168`
+  - current long-run candidate: 32 independent 5x5 Mazes
+  - right-hand map each fresh Maze
+  - BFS to Treasure
+  - learn newly opened walls during reuse
+  - reuse limit 300
+  - one Maze per drone
+  - explicit termination after target
+- `lb_maze_run.py`
+  - calls `leaderboard_run(Leaderboards.Maze, "lb_maze", 64)`
+
+Implementation commit: `916b8e7e62131ac25747fbb0f9855311f3434fe3`.
+Runner commit: `84456a348c51eaca597ae6400e8673bdd8865b7f`.
+
+Important: the exact 9863168-Gold cold-start finalist benchmark still decides whether
+this 5x5 map+BFS implementation remains the final leaderboard architecture.
+
 ## Open questions
 
 - Run exact-target cold-start runner commit `15b81ee34fe9c8366cae17d70d3a27eac7d98053` and select by average time to 9863168 Gold.
