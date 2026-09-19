@@ -1,0 +1,226 @@
+import main
+
+
+BENCH_WORLD_SIZE = 32
+BENCH_SPEEDUP = 64
+
+BENCH_SEEDS = [
+    1,
+    2,
+    3
+]
+
+MODE_NAMES = [
+    "current-production",
+    "legacy-patch-wait",
+    "sparse-1x32",
+    "sparse-2x16",
+    "sparse-4x8",
+    "sparse-8x4",
+    "sparse-16x2",
+    "sparse-1x32-tail",
+    "sparse-4x8-tail",
+    "sparse-8x4-tail",
+    "tree-1x32-tail",
+    "tree-4x8-tail",
+    "tree-8x4-tail"
+]
+
+PRIMARY_MODES = [
+    0,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12
+]
+
+SHAPE_SMOKE_MODES = [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6
+]
+
+
+def simulation_items():
+    return {
+        Items.Hay: 1000000000,
+        Items.Wood: 1000000000,
+        Items.Carrot: 1000000000,
+        Items.Pumpkin: 0,
+        Items.Cactus: 1000000000,
+        Items.Bone: 1000000000,
+        Items.Gold: 1000000000,
+        Items.Power: 1000000000,
+        Items.Water: 1000000000,
+        Items.Fertilizer: 1000000000,
+        Items.Weird_Substance: 1000000000
+    }
+
+
+def run_one(
+    mode,
+    seed
+):
+    globals = {
+        "BENCH_MODE": mode,
+        "BENCH_WORLD_SIZE": BENCH_WORLD_SIZE
+    }
+
+    return simulate(
+        "bench_pumpkin",
+        Unlocks,
+        simulation_items(),
+        globals,
+        seed,
+        BENCH_SPEEDUP
+    )
+
+
+def benchmark_modes(
+    label,
+    modes,
+    seeds
+):
+    totals = []
+    minimums = []
+    maximums = []
+
+    for _ in modes:
+        totals.append(0)
+        minimums.append(-1)
+        maximums.append(0)
+
+    quick_print(
+        label,
+        "world",
+        BENCH_WORLD_SIZE,
+        "drones",
+        max_drones()
+    )
+
+    for seed in seeds:
+        quick_print(
+            "SEED",
+            seed
+        )
+
+        mode_index = 0
+
+        for mode in modes:
+            quick_print(
+                "RUN",
+                MODE_NAMES[
+                    mode
+                ]
+            )
+
+            run_time = run_one(
+                mode,
+                seed
+            )
+
+            totals[
+                mode_index
+            ] += run_time
+
+            if (
+                minimums[
+                    mode_index
+                ] < 0
+                or run_time
+                < minimums[
+                    mode_index
+                ]
+            ):
+                minimums[
+                    mode_index
+                ] = run_time
+
+            if (
+                run_time
+                > maximums[
+                    mode_index
+                ]
+            ):
+                maximums[
+                    mode_index
+                ] = run_time
+
+            quick_print(
+                MODE_NAMES[
+                    mode
+                ],
+                run_time
+            )
+
+            mode_index += 1
+
+    quick_print(
+        label,
+        "SUMMARY"
+    )
+
+    seed_count = len(
+        seeds
+    )
+
+    mode_index = 0
+
+    for mode in modes:
+        quick_print(
+            MODE_NAMES[
+                mode
+            ],
+            "avg",
+            totals[
+                mode_index
+            ] / seed_count,
+            "min",
+            minimums[
+                mode_index
+            ],
+            "max",
+            maximums[
+                mode_index
+            ]
+        )
+
+        mode_index += 1
+
+
+def run_benchmarks():
+    quick_print(
+        "PUMPKIN BENCH SUITE START"
+    )
+
+    benchmark_modes(
+        "PUMPKIN PRIMARY",
+        PRIMARY_MODES,
+        BENCH_SEEDS
+    )
+
+    benchmark_modes(
+        "PUMPKIN SHAPE SMOKE",
+        SHAPE_SMOKE_MODES,
+        [1]
+    )
+
+    quick_print(
+        "PUMPKIN BENCH SUITE DONE"
+    )
+
+
+if __name__ == "__main__":
+    run_benchmarks()
+
+    quick_print(
+        "PUMPKIN BENCH COMPLETE",
+        "STARTING MAIN LOOP"
+    )
+
+    main.main()
