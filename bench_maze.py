@@ -2470,6 +2470,279 @@ def spec_zapakh_worker(
 
 
 # ==================================================
+# SEP-2026 REDDIT: 32-SQUARE FULL-FIELD PACKING
+# ==================================================
+#
+# Reference:
+# https://www.reddit.com/r/TheFarmerWasReplaced/comments/1wjxxhx/
+#
+# The thread describes filling a 32x32 field with exactly 32 square Mazes,
+# one per drone, and reports that reducing the maximum individual Maze size
+# improves leaderboard throughput. A linked community layout uses integer
+# square sizes 4..7.
+#
+# The exact-cover layout below was independently reconstructed from those
+# constraints and verified to cover all 1024 cells exactly once:
+#
+#   12 x 4x4
+#    4 x 5x5
+#    4 x 6x6
+#   12 x 7x7
+#
+# Each entry is [lower_left_x, lower_left_y, maze_size].
+#
+# Mode 12 recreates a fresh Maze after every Treasure, matching the Reddit
+# OP's no-reuse assumption.
+# Mode 13 uses the same packing with our loop-safe zapakh DFS and Maze reuse.
+
+
+SPEC_PACKED_32 = [
+    [0, 0, 7],
+    [7, 0, 7],
+    [14, 0, 7],
+    [21, 0, 7],
+    [28, 0, 4],
+    [28, 4, 4],
+    [0, 7, 7],
+    [7, 7, 7],
+    [14, 7, 7],
+    [21, 7, 7],
+    [28, 8, 4],
+    [28, 12, 4],
+    [0, 14, 4],
+    [4, 14, 4],
+    [8, 14, 7],
+    [15, 14, 7],
+    [22, 14, 6],
+    [28, 16, 4],
+    [0, 18, 4],
+    [4, 18, 4],
+    [22, 20, 5],
+    [27, 20, 5],
+    [8, 21, 5],
+    [13, 21, 5],
+    [18, 21, 4],
+    [0, 22, 4],
+    [4, 22, 4],
+    [18, 25, 7],
+    [25, 25, 7],
+    [0, 26, 6],
+    [6, 26, 6],
+    [12, 26, 6]
+]
+
+
+def spec_packed_origin(
+    square
+):
+    return (
+        square[0]
+        + square[2] // 2,
+        square[1]
+        + square[2] // 2
+    )
+
+
+def spec_zapakh_fresh_current(
+    start_gold
+):
+    goal = measure()
+
+    if goal == None:
+        return False
+
+    goal_x, goal_y = goal
+
+    if not spec_zapakh_find(
+        goal_x,
+        goal_y
+    ):
+        return False
+
+    if (
+        get_entity_type()
+        != Entities.Treasure
+    ):
+        return False
+
+    harvest()
+
+    return True
+
+
+def spec_packed_run(
+    origin_x,
+    origin_y,
+    maze_size,
+    start_gold,
+    maze_ready,
+    reuse
+):
+    while not spec_gold_done(
+        start_gold
+    ):
+        if not maze_ready:
+            spec_create_maze(
+                maze_size
+            )
+
+        maze_ready = False
+
+        if reuse:
+            if not spec_zapakh_solve_current(
+                start_gold,
+                maze_size
+            ):
+                return
+
+        else:
+            if not spec_zapakh_fresh_current(
+                start_gold
+            ):
+                return
+
+        if spec_gold_done(
+            start_gold
+        ):
+            return
+
+        spec_move_to(
+            origin_x,
+            origin_y
+        )
+
+
+def spec_packed_worker(
+    origin_x,
+    origin_y,
+    maze_size,
+    start_gold,
+    start_substance,
+    reuse
+):
+    spec_move_to(
+        origin_x,
+        origin_y
+    )
+
+    plant(
+        Entities.Bush
+    )
+
+    while (
+        num_items(Items.Weird_Substance)
+        == start_substance
+    ):
+        pass
+
+    if not spec_relocate(
+        maze_size
+    ):
+        return
+
+    spec_packed_run(
+        origin_x,
+        origin_y,
+        maze_size,
+        start_gold,
+        True,
+        reuse
+    )
+
+
+def spec_run_packed_32(
+    reuse
+):
+    clear()
+
+    start_gold = num_items(
+        Items.Gold
+    )
+
+    start_substance = num_items(
+        Items.Weird_Substance
+    )
+
+    child_origins = []
+
+    index = 0
+
+    while index < len(
+        SPEC_PACKED_32
+    ) - 1:
+        square = SPEC_PACKED_32[
+            index
+        ]
+
+        origin = spec_packed_origin(
+            square
+        )
+
+        child_origins.append(
+            origin
+        )
+
+        spawn_drone(
+            spec_packed_worker,
+            origin[0],
+            origin[1],
+            square[2],
+            start_gold,
+            start_substance,
+            reuse
+        )
+
+        index += 1
+
+    for origin in child_origins:
+        spec_wait_for_bush(
+            origin[0],
+            origin[1]
+        )
+
+    if reuse:
+        label = "PACKED REUSE READY"
+    else:
+        label = "PACKED FRESH READY"
+
+    quick_print(
+        label,
+        len(child_origins)
+    )
+
+    parent_square = SPEC_PACKED_32[
+        len(SPEC_PACKED_32) - 1
+    ]
+
+    parent_origin = spec_packed_origin(
+        parent_square
+    )
+
+    spec_move_to(
+        parent_origin[0],
+        parent_origin[1]
+    )
+
+    plant(
+        Entities.Bush
+    )
+
+    if not spec_relocate(
+        parent_square[2]
+    ):
+        return
+
+    spec_packed_run(
+        parent_origin[0],
+        parent_origin[1],
+        parent_square[2],
+        start_gold,
+        True,
+        reuse
+    )
+
+
+# ==================================================
 # JAN-2026 STEAM: 32 INDEPENDENT 4x4 MAZES
 # ==================================================
 
