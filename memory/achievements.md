@@ -44,8 +44,8 @@
 ## Circular Import
 
 - Steam lists `Circular Import` as: `Create an import cycle.`
-- `ACHIEVEMENTS["circular-import"] = True` imports `archivments_cycle_a`.
-- `archivments_cycle_a.py` imports `archivments_cycle_b.py`, and `archivments_cycle_b.py` imports `archivments_cycle_a.py`.
+- `ACHIEVEMENTS["circular-import"] = True` imports `ach_cycle_a`.
+- `ach_cycle_a.py` imports `ach_cycle_b.py`, and `ach_cycle_b.py` imports `ach_cycle_a.py`.
 - The two helper files intentionally contain no other behavior.
 
 ## Sources
@@ -56,3 +56,10 @@
 - Current wiki Import page: https://thefarmerwasreplaced.wiki.gg/wiki/Import
 - Steam global achievements: https://steamcommunity.com/stats/2060160/achievements
 - Steam discussion `Wrong Order achievement not registering` for the historical harvest-trigger behavior and `(0, 31)` report.
+
+
+## Circular Import filename fix
+
+- Game-facing Python filenames are limited to at most 20 characters including `.py`.
+- The original helper names `archivments_cycle_a.py` and `archivments_cycle_b.py` exceeded that limit and therefore were not available as in-game modules.
+- The helpers now use `ach_cycle_a.py` and `ach_cycle_b.py`.

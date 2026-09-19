@@ -219,7 +219,7 @@ def healer():
 
 
 def circular_import():
-    import archivments_cycle_a
+    import ach_cycle_a
     quick_print("Circular import created.")
 
 
