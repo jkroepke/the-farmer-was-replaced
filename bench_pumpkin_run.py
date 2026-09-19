@@ -1,6 +1,8 @@
 import main
 
 
+BENCH_VERSION = "pumpkin-v1"
+
 BENCH_WORLD_SIZE = 32
 BENCH_SPEEDUP = 64
 
@@ -213,6 +215,11 @@ def benchmark_modes(
 
 
 def run_benchmarks():
+    quick_print(
+        "BENCHMARK VERSION",
+        BENCH_VERSION
+    )
+
     quick_print(
         "PUMPKIN BENCH SUITE START"
     )
