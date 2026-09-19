@@ -46,7 +46,7 @@ Therefore the nql1314 shared-`wait_for()` architecture should be treated as a **
 
 This distinction matters: the upstream repository was not necessarily wrong when the experiment was recorded. The game semantics changed afterward.
 
-A local runtime probe is provided in this repository as `probe_drone_memory.py` / `probe_drone_memory_run.py` to verify the current behavior directly.
+A local runtime probe is provided in this repository as `probe_drone_memory.py` / `probe_drone_memory_run.py` to verify the current behavior directly. Probe runner commit: `058e4040733fb75715def99f1a7a036d8d254406`.
 
 The repository remains useful as an algorithm/data-structure reference, but mechanics assumptions must be checked against the current game version.
 
