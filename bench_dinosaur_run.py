@@ -1,5 +1,7 @@
 import main
 
+BENCH_VERSION = "dinosaur-v1"
+
 # Dinosaur simulation benchmark controller.
 #
 # All implementations live in bench_dinosaur.py.
@@ -403,6 +405,11 @@ def benchmark_sustained():
 
 
 def run_benchmarks():
+    quick_print(
+        "BENCHMARK VERSION",
+        BENCH_VERSION
+    )
+
     quick_print(
         "DINOSAUR BENCH START"
     )
