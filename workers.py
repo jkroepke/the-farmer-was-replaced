@@ -1,46 +1,25 @@
 # ==================================================
-# DROHNEN UND HÜTE
+# DROHNEN
 # ==================================================
 #
 # Es werden so viele Drohnen parallel verwendet,
 # wie max_drones() erlaubt.
 #
-# Hüte dürfen sich wiederholen. Die vorhandenen
-# Hüte werden einfach zyklisch auf die Worker verteilt.
+# Generische Worker wechseln absichtlich NICHT den Hut.
+#
+# change_hat() kostet 200 Ticks. Normale Hüte haben für diese
+# Farm-Worker keinen dokumentierten Gameplay-Nutzen, daher wäre
+# jeder Hutwechsel nur Spawn-Overhead.
+#
+# set_main_hat() bleibt bestehen, weil der Dinosaur-Job damit den
+# Dinosaur_Hat explizit ablegt und dadurch den Schwanz erntet.
 # ==================================================
-
-# Hats.Dinosaur_Hat gehört absichtlich NICHT in diese Liste.
-# Davon existiert nur ein Exemplar und es wird ausschließlich
-# vom Dinosaur-Spezialjob verwendet.
-HATS = [
-    Hats.Straw_Hat,
-    Hats.Gray_Hat,
-    Hats.Purple_Hat,
-    Hats.Green_Hat,
-    Hats.Brown_Hat,
-    Hats.Carrot_Hat,
-    Hats.Gold_Hat,
-    Hats.Pumpkin_Hat,
-    Hats.Sunflower_Hat,
-    Hats.Traffic_Cone,
-    Hats.Tree_Hat
-]
 
 
 def set_main_hat():
-    change_hat(HATS[0])
-
-
-def _hat_for(index):
-    return HATS[index % len(HATS)]
-
-
-def _with_hat(task, hat):
-    def wrapped():
-        change_hat(hat)
-        return task()
-
-    return wrapped
+    change_hat(
+        Hats.Straw_Hat
+    )
 
 
 # ==================================================
@@ -95,24 +74,17 @@ def _run(tasks, between_batches, call_between_batches):
     while task_index < task_count:
         active = []
 
-        # Hauptdrohne verwendet Hut 0.
-        change_hat(
-            _hat_for(0)
-        )
-
         worker_index = 1
 
         # Zusätzliche Drohnen bis zum echten Drohnenlimit.
+        # Kein change_hat(): der Worker startet direkt mit seiner Aufgabe.
         while (
             task_index < task_count
             and worker_index < parallel_limit
         ):
-            wrapped = _with_hat(
-                tasks[task_index],
-                _hat_for(worker_index)
+            drone = spawn_drone(
+                tasks[task_index]
             )
-
-            drone = spawn_drone(wrapped)
 
             if drone == None:
                 break
