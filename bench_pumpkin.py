@@ -21,7 +21,10 @@ MODE_NAMES = [
     "persistent-4x8-tail",
     "persistent-8x4-tail",
     "persistent-tree-4x8-tail",
-    "persistent-tree-8x4-tail"
+    "persistent-tree-8x4-tail",
+    "ring-reuse",
+    "persistent-ring",
+    "persistent-tree-ring"
 ]
 
 TAIL_LIMIT = 3
@@ -713,6 +716,261 @@ def _run_persistent_sparse(
     return []
 
 
+def _finish_ring_cycle():
+    if pumpkin.is_full_map_pumpkin():
+        return harvest()
+
+    problems = (
+        pumpkin.collect_problem_positions()
+    )
+
+    return _complete_from_problems(
+        problems
+    )
+
+
+def _run_ring_cycle(
+    reset_field
+):
+    if reset_field:
+        clear()
+
+    if not pumpkin.run_column_workers():
+        return False
+
+    return _finish_ring_cycle()
+
+
+def _run_ring_reuse(
+    cycles
+):
+    gains = []
+
+    for cycle in range(cycles):
+        cycle_start = num_items(
+            Items.Pumpkin
+        )
+
+        if not _run_ring_cycle(
+            cycle == 0
+        ):
+            return []
+
+        gains.append(
+            num_items(
+                Items.Pumpkin
+            )
+            - cycle_start
+        )
+
+    return gains
+
+
+def _persistent_ring_worker(
+    column,
+    size,
+    cycles
+):
+    gains = []
+    utils.move_to(
+        column,
+        0
+    )
+
+    for _ in range(cycles):
+        cycle_start = 0
+
+        if column == 0:
+            cycle_start = num_items(
+                Items.Pumpkin
+            )
+
+        ready = []
+
+        for _ in range(size):
+            ready.append(False)
+
+        remaining = size
+
+        while remaining > 0:
+            for row in range(size):
+                if not ready[row]:
+                    state = (
+                        pumpkin._service_column_pumpkin()
+                    )
+
+                    if state < 0:
+                        if column == 0:
+                            return []
+
+                        return False
+
+                    if state > 0:
+                        ready[row] = True
+                        remaining -= 1
+
+                move(North)
+
+        if column == 0:
+            # This is intentionally the same merge condition as current
+            # production. The ring traversal is already measured valid;
+            # this mode changes worker lifetime, not repair semantics.
+            while not pumpkin.is_full_map_pumpkin():
+                pass
+
+            if not harvest():
+                return []
+
+            gains.append(
+                num_items(
+                    Items.Pumpkin
+                )
+                - cycle_start
+            )
+        else:
+            utils.move_to(
+                column,
+                0
+            )
+
+            # Only this worker owns this column. After worker 0 harvests
+            # the full-map Pumpkin, the origin becomes empty/soil and is
+            # therefore an unambiguous next-cycle signal.
+            while (
+                get_entity_type()
+                == Entities.Pumpkin
+            ):
+                pass
+
+    if column == 0:
+        return gains
+
+    return True
+
+
+def _run_persistent_ring(
+    cycles,
+    tree_spawn
+):
+    size = utils.size()
+
+    if max_drones() < size:
+        return []
+
+    clear()
+
+    if tree_spawn:
+        return _persistent_ring_tree_worker(
+            0,
+            size,
+            cycles
+        )
+
+    handles = []
+
+    for column in range(1, size):
+        handle = spawn_drone(
+            _persistent_ring_worker,
+            column,
+            size,
+            cycles
+        )
+
+        if handle == None:
+            return []
+
+        handles.append(handle)
+
+    gains = _persistent_ring_worker(
+        0,
+        size,
+        cycles
+    )
+
+    success = (
+        len(gains)
+        == cycles
+    )
+
+    for handle in handles:
+        if not wait_for(handle):
+            success = False
+
+    if success:
+        return gains
+
+    return []
+
+
+def _persistent_ring_tree_worker(
+    column,
+    size,
+    cycles
+):
+    handles = []
+
+    left = column * 2 + 1
+    right = left + 1
+
+    if left < size:
+        handle = spawn_drone(
+            _persistent_ring_tree_worker,
+            left,
+            size,
+            cycles
+        )
+
+        if handle == None:
+            if column == 0:
+                return []
+
+            return False
+
+        handles.append(handle)
+
+    if right < size:
+        handle = spawn_drone(
+            _persistent_ring_tree_worker,
+            right,
+            size,
+            cycles
+        )
+
+        if handle == None:
+            if column == 0:
+                return []
+
+            return False
+
+        handles.append(handle)
+
+    result = _persistent_ring_worker(
+        column,
+        size,
+        cycles
+    )
+
+    if column == 0:
+        success = (
+            len(result)
+            == cycles
+        )
+    else:
+        success = result
+
+    for handle in handles:
+        if not wait_for(handle):
+            success = False
+
+    if column == 0:
+        if success:
+            return result
+
+        return []
+
+    return success
+
+
 def _run_legacy():
     if not pumpkin.can_start():
         return False
@@ -878,13 +1136,32 @@ def run_benchmark_mode(
             cycles
         )
 
-    if mode == 17:
-        return _run_persistent_sparse(
-            8,
-            4,
-            True,
-            True,
+    # Modes 13..17 were the first persistent sparse experiment.
+    # In-game measurement showed that sparse local completion creates
+    # harvestable partial Giant Pumpkins. Those modes can never satisfy
+    # the full-map merge invariant and are intentionally rejected here
+    # instead of entering the old infinite merge wait.
+    if (
+        mode >= 13
+        and mode <= 17
+    ):
+        return []
+
+    if mode == 18:
+        return _run_ring_reuse(
             cycles
+        )
+
+    if mode == 19:
+        return _run_persistent_ring(
+            cycles,
+            False
+        )
+
+    if mode == 20:
+        return _run_persistent_ring(
+            cycles,
+            True
         )
 
     gains = []
@@ -917,7 +1194,7 @@ def _valid_gains(
     ):
         return False
 
-    expected = gains[0]
+    expected = BENCH_EXPECTED_CYCLE_GAIN
 
     if expected <= 0:
         return False
