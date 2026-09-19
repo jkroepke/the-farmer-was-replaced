@@ -65,7 +65,7 @@ Keep the existing modular design.
 - `main.py`: upgrade-driven orchestration.
 - `config.py`: tuning knobs and scheduling constants.
 - `farm.py`: normal mixed farming, companions, watering, fertilizer, sunflowers, and energy.
-- `workers.py`: multi-drone worker pool, chunking, and hats.
+- `workers.py`: multi-drone worker pool and chunking; generic workers deliberately avoid cosmetic hat changes.
 - `pumpkin.py`: pumpkin planting, patching, readiness checks, and harvest.
 - `cactus.py`: cactus planting, readiness checks, sorting, and harvest.
 - `maze.py`: persistent Maze reuse using the reference tree-rebalancing strategy.
