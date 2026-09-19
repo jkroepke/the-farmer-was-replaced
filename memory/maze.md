@@ -217,13 +217,30 @@ Critical missing comparison:
 - next benchmark must include uniform4 map+BFS at 1M and then use the exact Maze
   leaderboard target 9863168 Gold, end-to-end including setup and termination.
 
+## Maze leaderboard decision rule
+
+For the Maze leaderboard, ignore shorter benchmark winners when selecting the
+final algorithm. The only decisive metric is cold-start end-to-end runtime
+until:
+
+```python
+num_items(Items.Gold) >= 9863168
+```
+
+Every candidate/seed must start in its own fresh `simulate()` run. Include all
+setup, drone spawning/positioning, initial Maze creation, map/index building,
+reuse, rebuilds, and termination in the measured runtime.
+
+200k and 1M results are diagnostic/ablation evidence only.
+
+Current exact-target cold-start runner commit:
+`15b81ee34fe9c8366cae17d70d3a27eac7d98053`.
+
+It tests 5 finalist architectures over seeds 1/2/3.
+
 ## Open questions
 
-- Run finalist runner commit `c685de023206a55784a8fdfd671abeb830b5f482`.
-  - 1M / seeds 1,2,3: compare uniform4 map+BFS against the sustained winners.
-  - exact Maze leaderboard target 9863168 / seeds 1,2: decide final leaderboard architecture.
-- Do not replace production with the 200k uniform4 map+BFS winner before the
-  sustained/exact-target result is known.
+- Run exact-target cold-start runner commit `15b81ee34fe9c8366cae17d70d3a27eac7d98053` and select by average time to 9863168 Gold.
 - Promote a new production geometry/solver only after both 200k and sustained
   results are known.
 - Benchmark adaptive 3x3 zapakh production and reduced-drone layouts separately.
