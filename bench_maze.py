@@ -2328,7 +2328,8 @@ def spec_zapakh_find(
 
 
 def spec_zapakh_solve_current(
-    start_gold
+    start_gold,
+    maze_size
 ):
     solved = 0
 
@@ -2358,7 +2359,7 @@ def spec_zapakh_solve_current(
             return False
 
         if not spec_relocate(
-            4
+            maze_size
         ):
             harvest()
             return True
@@ -2398,6 +2399,7 @@ def spec_zapakh_run(
     origin_x,
     origin_y,
     start_gold,
+    maze_size,
     maze_ready
 ):
     while not spec_gold_done(
@@ -2405,13 +2407,14 @@ def spec_zapakh_run(
     ):
         if not maze_ready:
             spec_create_maze(
-                4
+                maze_size
             )
 
         maze_ready = False
 
         if not spec_zapakh_solve_current(
-            start_gold
+            start_gold,
+            maze_size
         ):
             return
 
@@ -2429,6 +2432,7 @@ def spec_zapakh_run(
 def spec_zapakh_worker(
     origin_x,
     origin_y,
+    maze_size,
     start_gold,
     start_substance
 ):
@@ -2452,7 +2456,7 @@ def spec_zapakh_worker(
         pass
 
     if not spec_relocate(
-        4
+        maze_size
     ):
         return
 
@@ -2460,6 +2464,7 @@ def spec_zapakh_worker(
         origin_x,
         origin_y,
         start_gold,
+        maze_size,
         True
     )
 
@@ -2854,6 +2859,7 @@ def spec_run_32x4():
                     spec_zapakh_worker,
                     x,
                     y,
+                    4,
                     start_gold,
                     start_substance
                 )
@@ -2895,6 +2901,7 @@ def spec_run_32x4():
         last_x,
         last_y,
         start_gold,
+        4,
         True
     )
 
