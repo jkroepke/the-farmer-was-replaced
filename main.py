@@ -16,7 +16,7 @@ def restore_after_expand(previous_size):
 
     workers.set_main_hat()
 
-    farm.rebuild_sunflowers()
+    farm.reset_state()
 
 
 def main():
@@ -24,8 +24,9 @@ def main():
 
     workers.set_main_hat()
 
-    # Permanent Power source + initial petal cache.
-    farm.rebuild_sunflowers()
+    # Normal farm layout is now established lazily by farm.run().
+    # This avoids rebuilding the legacy L only to replace it immediately.
+    farm.reset_state()
 
     while True:
         # =================================================
