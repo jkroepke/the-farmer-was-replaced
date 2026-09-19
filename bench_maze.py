@@ -2001,7 +2001,8 @@ def spec_cover_worker(
 
 
 def spec_cover_prepare(
-    maze_size
+    maze_size,
+    start_gold
 ):
     root = (
         get_pos_x(),
@@ -2050,7 +2051,7 @@ def spec_cover_prepare(
         spawn_drone(
             spec_cover_worker,
             maze_size,
-            0,
+            start_gold,
             False
         )
 
@@ -2067,14 +2068,10 @@ def spec_cover_maze(
     start_gold
 ):
     root = spec_cover_prepare(
-        maze_size
+        maze_size,
+        start_gold
     )
 
-    # Workers were spawned with a dummy Gold baseline while the temporary
-    # Maze was absent. They cannot collect anything before this Maze exists.
-    # Replace them with correctly-baselined workers by using the shared real
-    # Gold target directly in the worker loop below.
-    #
     # Existing children are already sitting on all non-root Maze cells. The
     # creator owns the root cell and recreates the Maze after its final
     # Treasure is harvested.
