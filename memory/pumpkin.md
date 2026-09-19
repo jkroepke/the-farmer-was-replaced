@@ -313,3 +313,56 @@ The one-cycle and three-cycle matrices now compare both variants against current
 Benchmark version:
 
 `pumpkin-v3-spawn-locality`
+
+
+## Measured ring benchmark baseline: pumpkin-v1
+
+User-supplied in-game results on 2026-09-19, 32x32, 32 drones.
+
+All listed candidates were valid and produced exactly 3,145,728 Pumpkin per cycle.
+
+### Cold one-cycle averages
+
+- `current-production`: 12.78 s
+- `persistent-ring`: 14.06 s
+- `persistent-tree-ring`: 13.65 s
+- `legacy-patch-wait` control: 22.58 s (seed 1 only)
+
+Cold-start conclusion:
+
+- current production remains the fastest one-cycle path in this matrix
+- persistence has setup overhead and should not be selected from a one-cycle benchmark
+
+### Three-cycle amortized averages
+
+- `current-production`: 39.10 s
+- `ring-reuse`: 34.52 s
+- `persistent-ring`: 33.88 s
+- `persistent-tree-ring`: 31.51 s
+
+Measured relative improvements of `persistent-tree-ring`:
+
+- 19.4% faster than `current-production`
+- 8.7% faster than `ring-reuse`
+- 7.0% faster than `persistent-ring`
+
+Additional decomposition:
+
+- `ring-reuse` is 11.7% faster than current production, so avoiding repeated clear/re-till/rebuild cost is a major part of the total gain
+- `persistent-ring` adds only about 1.9% over `ring-reuse` in this three-cycle matrix
+- distributed tree spawning/lifetime improves further and is the measured v1 winner
+
+### Interpretation
+
+The benchmark supports persistent workers for repeated Pumpkin-focused production, but not for isolated single harvests.
+
+The strongest measured v1 architecture is `persistent-tree-ring`.
+
+Do not promote it yet because the current repository benchmark is newer than the supplied log and now includes spawn-locality candidates:
+
+- `persistent-placed-ring`
+- `persistent-spatial-tree-ring`
+
+The supplied output begins with `BENCHMARK VERSION pumpkin-v1`; the current follow-up benchmark is `pumpkin-v3-spawn-locality`.
+
+The next production decision must compare the v1 winner against those locality variants under the same three-cycle amortized matrix.
