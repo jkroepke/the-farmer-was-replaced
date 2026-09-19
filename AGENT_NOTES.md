@@ -23,6 +23,7 @@ The automation is split into modules:
 - `bench_persist.py` — full-Megafarm persistent-worker candidate
 - `bench_persist_run.py` — persistent-worker benchmark runner
 - `docs/NORMAL_FARM.md` — canonical normal-farm/Sunflower design, references, and benchmark notes
+- `docs/UNLOCKS.md` — canonical automatic unlock priorities and endgame progression
 - `docs/PUMPKIN.md` — canonical Pumpkin strategy, references, and multi-drone optimization notes
 - `docs/MAZE.md` — canonical Maze design, benchmark results, and optimization notes
 
@@ -74,33 +75,34 @@ The current planner works in two stages.
 
 ### 1. Choose the next unlock
 
-`config.AUTO_UNLOCKS` defines progression order:
+`config.UNLOCK_PLANS` defines both progression order and relative priority.
 
-1. `Unlocks.Speed`
-2. `Unlocks.Expand`
-3. `Unlocks.Watering`
-4. `Unlocks.Grass`
-5. `Unlocks.Cactus`
-6. `Unlocks.Plant`
-7. `Unlocks.Carrots`
-8. `Unlocks.Trees`
-9. `Unlocks.Pumpkins`
-10. `Unlocks.Polyculture`
-11. `Unlocks.Dinosaurs`
-12. `Unlocks.Megafarm`
+The list is a hard frontier:
 
-To avoid skipping progression dependencies, `unlocks.next_target()` only considers:
+- all already-reached upgrade lines may compete
+- plus the first never-unlocked entry
+- nothing after that first never-unlocked entry is considered yet
 
-- every upgrade line that has already been unlocked at least once
-- plus the first entry in the list that has never been unlocked
+Within that candidate set, `unlocks.next_target()` compares weighted remaining cost:
 
-Within that candidate set, selection is cost-driven:
+```text
+remaining_cost / priority
+```
 
-1. lowest **remaining total cost** wins (`sum(max(required - inventory, 0))`)
-2. lowest nominal total `get_cost()` wins a tie
-3. configured unlock order wins the remaining tie
+The implementation uses cross multiplication instead of division.
 
-`get_cost(unlock)` is queried every planner loop. Do not cache upgrade costs because they change with levels. Current game behavior/documentation returns `{}` for an upgradeable unlock that is already maxed.
+The plan includes the normal production/progression unlocks and lower-priority mandatory endgame goals:
+
+```text
+... -> Mazes -> Megafarm -> Dinosaurs -> Hats
+    -> Leaderboard -> Top_Hat -> The_Farmers_Remains
+```
+
+This fixes the previous state where `PLAN goal None focus None` could appear even though endgame unlocks were still missing.
+
+Current game costs and unlock state are always read with `get_cost()` / `num_unlocked()`; do not hard-code resource amounts into the planner.
+
+See `docs/UNLOCKS.md` for the full table and reference rationale.
 
 ### 2. Choose which resource to produce
 
