@@ -343,3 +343,163 @@ Implementation commits:
 Static consistency was checked: 20 mode names match modes 0 through 19, six setup names exist, all required benchmark globals are referenced, and no duplicate function definitions were found.
 
 Runtime correctness/performance of v3 is **not yet verified in the game**. The next step is to run `bench_dinosaur_run.py`, capture the complete output, reject every mode/seed with an `INVALID` marker, and then narrow the next benchmark around the valid fastest modes.
+
+
+## 2026-09-19 Flekay deep-dive / benchmark v4
+
+Further review of `Flekay/The-Farmer-Was-Replaced` found several Dinosaur-specific details that were not captured by the v3 benchmark.
+
+### Historical `drone.py` result is not the current source
+
+Flekay's Dinosaur README still reports `drone.py` at 18.741 s, but the current source cannot reproduce that result.
+
+The README predates commit:
+
+`d3a0fc555d5e78466fd1eb39e608b9ef0627b6b6`
+
+("Simplify drone's dino movement logic", 2025-10-18).
+
+That commit replaced the previous complete implementation with a three-phase skeleton whose `phase_two()` is intentionally unimplemented.
+
+The complete predecessor was recovered from parent revision:
+
+`fe4df71ae877a484b091c2fa276cae0a6f0e2039`
+
+Useful old architecture:
+
+1. parity-based aggressive Apple routing
+2. early phase ends after about 50 Apples
+3. build a deterministic "almighty" continuation from the resulting state
+4. follow that continuation until blocked
+
+Other historical Flekay Dino implementations are clearly 100-cell / 10x10-specific:
+
+- `circle.py` contains explicit coordinates 0..9 and transitions around length 38
+- `timon.py` uses coordinates up to y=9 and comments that length 34 was fastest
+- `hybrid.py` switches roughly at lengths 18 and 34
+
+Do not reuse 18/34/50 as absolute 32x32 lengths. v4 re-tests them as occupancy-style diagnostic targets.
+
+### New early-phase diagnostic modes
+
+`bench_dinosaur.py` now also contains:
+
+- mode 20: Flekay-style simple axis greedy
+- mode 21: Flekay parity greedy derived from the historical/current `drone.py` phase-one policy
+
+Diagnostic targets:
+
+- 10%
+- 18%
+- 25%
+- 34%
+- 50%
+
+These modes are early-phase experiments. They are not assumed to be safe near full occupancy.
+
+### Cheap failed-move probing
+
+Flekay frequently uses:
+
+```text
+if not move(preferred):
+    move(fallback)
+```
+
+Its historical tick measurements record both `can_move()` and a failed `move()` as one tick. If both possible successful directions are known-safe, optimistic movement can therefore avoid a separate `can_move()` check.
+
+This is only useful inside constrained safe movement policies. It must not replace cycle/tail safety validation for arbitrary shortcuts.
+
+### Cleanup topology
+
+Flekay's historical line-formation benchmark reports:
+
+```text
+for_all.py                  25006 runtime ticks
+for_all_dual.py             16224 runtime ticks
+for_all_sync_col/row.py     16224 runtime ticks
+```
+
+The reusable lesson is that the spawn chain itself can be parallelized.
+
+v4 adds setup modes:
+
+- 6: Flekay-style line-spawn Soil cleanup
+- 7: Flekay-style dual-spawner Soil cleanup
+
+The local benchmark result, not the historical upstream tick count, decides whether either setup is useful for Dinosaur leaderboard runs.
+
+### Exact leaderboard harvest-size sweep
+
+The Dinosaur leaderboard checks total Bones, not one tail.
+
+v4 therefore adds an experiment that repeatedly harvests/restarts at:
+
+- 25%
+- 33%
+- 50%
+- 66%
+- 75%
+- 95%
+- board-1
+
+until:
+
+```text
+num_items(Items.Bone) >= 33488928
+```
+
+This directly answers whether several shorter fast runs can beat one almost-full tail after accounting for restart cost and the expensive early Dinosaur moves.
+
+Compared route families:
+
+- mode 0: plain Hamiltonian
+- mode 4: skysdottir Hilbert shortcut reference
+- mode 11: Reddit coil/strike 50% transition
+
+### Flekay route-planning negative results
+
+Do not add generic all-pairs Dinosaur routing based on Flekay's non-wrapping benchmark.
+
+Historical values:
+
+```text
+goto.py        setup 0.0002 s, 7590 ticks/benchmark
+runto_local.py setup 7.7344 s, 7470 ticks/benchmark
+```
+
+The precomputed all-pairs map has a very large setup cost for a small warm-path saving.
+
+The generic pathfinding benchmark also shows that planning cost can dominate movement savings as target counts grow. Additionally, the README's `divinepath` result rows are not reproducible from the current pinned source: `benchmark.py` does not import it and no implementation exists in the directory.
+
+### Hot-path follow-up
+
+Flekay's tick research suggests later ablations for any winning shortcut family:
+
+- integer cell ID / nested list instead of tuple-key dict path lookup
+- avoid temporary per-step direction lists
+- fixed early cutoff vs `random()` annealing
+- explicitly tracked head x/y vs repeated `get_pos_x()/get_pos_y()`
+- precomputed direction sequence vs structured Hamiltonian loops
+
+Do this only after route-level v4 identifies which family is worth optimizing.
+
+### v4 implementation
+
+Commits:
+
+- `be91a2d6ad846490130bea03cb965d48d86f085a` — Flekay early-phase diagnostics, line/dual cleanup, repeated Bone-target support
+- `4ed309863c7199b3d3a9bf08bfd1137a7b57093a` — `dinosaur-v4` runner
+- `965fd30828350a4167e5f74bb71ca91a4b213166` — canonical Flekay deep-dive documentation
+
+v4 simulation count:
+
+```text
+main route matrix         300
+setup sweep                72
+Flekay early diagnostics   30
+leaderboard harvest sweep  63
+total                      465
+```
+
+Runtime correctness and performance remain unverified until `bench_dinosaur_run.py` is executed in the game/simulator and the complete `VALID` / `INVALID` output is inspected.
