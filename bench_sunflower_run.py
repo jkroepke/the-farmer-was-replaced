@@ -1,4 +1,4 @@
-BENCH_VERSION = "sunflower-v1"
+BENCH_VERSION = "sunflower-v2-bounded7"
 BENCH_SPEEDUP = 10000
 BENCH_TARGET_POWER = 100000
 
@@ -17,7 +17,7 @@ MODE_NAMES = [
     "dumb-tree-water",
     "dumb-tree-water-fertilizer",
     "tier-linear-water",
-    "scan-tree-leave7",
+    "scan-tree-bounded7",
     "scan-tree-counted",
     "scan-linear-counted",
     "dumb-tree-no-care",
