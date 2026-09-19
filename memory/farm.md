@@ -235,9 +235,9 @@ Only reintroduce Sunflowers if an actual leaderboard start-state probe shows tha
 Files:
 
 - `lb_res_probe.py`
-- `lb_probe_run.py`
+- `lb_probe_wood.py`
 
-`lb_probe_run.py` executes failed/diagnostic Wood, Carrots, and Hay leaderboard runs. The probe prints:
+`lb_probe_wood.py` executes failed/diagnostic Wood, Carrots, and Hay leaderboard runs. The probe prints:
 
 - initial item inventory including Power, Water, Fertilizer, and Weird Substance
 - world size and max drones
@@ -390,7 +390,7 @@ Modes compare lean Grass harvesting, water thresholds 0.25/0.50/0.75, Fertilizer
 
 No mode uses Sunflowers or planting.
 
-The current v1 runner uses Power=1,000,000,000 as a provisional hypothesis copied from the measured Wood-LB environment. Do not treat this as measured Hay state until `lb_hay_probe.py` is run.
+The current v1 runner uses Power=1,000,000,000 as a provisional hypothesis copied from the measured Wood-LB environment. Do not treat this as measured Hay state until `lb_probe_hay.py` is run.
 
 ### Carrot v1
 
@@ -410,9 +410,58 @@ A real `leaderboard_run()` does not continue to subsequent leaderboard calls in 
 
 Use separate launchers:
 
-- `lb_car_probe.py`
-- `lb_hay_probe.py`
+- `lb_probe_carrot.py`
+- `lb_probe_hay.py`
 
 Both run the shared `lb_res_probe.py` diagnostic inside the respective real leaderboard environment.
 
 After those are measured, bump the affected benchmark version before replacing provisional/synthetic start-state inputs.
+
+
+## Universal leaderboard start-state probes
+
+All known leaderboard variants use the shared diagnostic:
+
+```text
+lb_res_probe.py
+probe version: lbprobe-v2
+```
+
+A real `leaderboard_run()` does not continue to another leaderboard call in the same launcher, so every leaderboard has its own launcher.
+
+| Leaderboard | Probe launcher |
+| --- | --- |
+| Fastest Reset | `lb_probe_reset.py` |
+| Maze | `lb_probe_maze.py` |
+| Dinosaur | `lb_probe_dino.py` |
+| Cactus | `lb_probe_cactus.py` |
+| Sunflowers | `lb_probe_sun.py` |
+| Pumpkins | `lb_probe_pump.py` |
+| Wood | `lb_probe_wood.py` |
+| Carrots | `lb_probe_carrot.py` |
+| Hay | `lb_probe_hay.py` |
+| Maze Single | `lb_probe_maze_s.py` |
+| Cactus Single | `lb_probe_cactus_s.py` |
+| Sunflowers Single | `lb_probe_sun_s.py` |
+| Pumpkins Single | `lb_probe_pump_s.py` |
+| Wood Single | `lb_probe_wood_s.py` |
+| Carrots Single | `lb_probe_carrot_s.py` |
+| Hay Single | `lb_probe_hay_s.py` |
+
+Every launcher uses real `leaderboard_run(..., 256)` and executes `lb_res_probe.py` inside the actual leaderboard environment.
+
+`lbprobe-v2` prints:
+
+- world size
+- max drones
+- initial water level
+- initial entity and ground
+- every `Items` inventory value
+- every `Unlocks` level
+- planting costs for Grass, Bush, Tree, Carrot, Sunflower, Pumpkin, and Cactus
+
+The probe intentionally terminates immediately and therefore fails the leaderboard target. It exists only to capture the exact initial environment.
+
+Measured probe output must be stored as leaderboard-specific evidence. Never generalize one leaderboard's inventory, unlock levels, world size, or drone count to another leaderboard until that mode is probed.
+
+The old combined `lb_probe_run.py`, `lb_car_probe.py`, and `lb_hay_probe.py` launchers are superseded and removed.
