@@ -89,9 +89,6 @@ DRONE_MEMORY RUN DONE 1.5
 
 -----
 
-
------
-
 ### move-v2 and spawn-v5 2026-09-19
 
 #### Provenance
