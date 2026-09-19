@@ -561,8 +561,8 @@ Files:
 | Resource | Benchmark | Runner | Version | Start-state status |
 | --- | --- | --- | --- | --- |
 | Wood | `bench_lb_wood.py` | `bench_lb_wood_run.py` | `lbwood-v1` | measured Wood-LB inventory |
-| Carrot | `bench_lb_carrot.py` | `bench_lb_car_run.py` | `lbcar-v1` | synthetic support inventory until Carrot probe |
-| Hay | `bench_lb_hay.py` | `bench_lb_hay_run.py` | `lbhay-v1` | Wood Power start used provisionally until Hay probe |
+| Carrot | `bench_lb_carrot.py` | `bench_lb_car_run.py` | `lbcar-v2` | measured Carrots-LB inventory |
+| Hay | `bench_lb_hay.py` | `bench_lb_hay_run.py` | `lbhay-v2` | measured Hay-LB inventory |
 
 All benchmark runners request simulation speedup 10000.
 
@@ -593,7 +593,7 @@ Modes:
 
 No mode uses Sunflowers.
 
-### Hay v1
+### Hay v2
 
 Screen target: 50,000,000 Hay.
 
@@ -603,9 +603,9 @@ Modes compare lean Grass harvesting, water thresholds 0.25/0.50/0.75, Fertilizer
 
 No mode uses Sunflowers or planting.
 
-The current v1 runner uses Power=1,000,000,000 as a provisional hypothesis copied from the measured Wood-LB environment. Do not treat this as measured Hay state until `lb_probe.py` is run.
+The v2 runner uses the measured Hay leaderboard start inventory: Power=1,000,000,000 and all other item inventories zero.
 
-### Carrot v1
+### Carrot v2
 
 Screen target: 50,000,000 Carrot.
 
@@ -615,7 +615,7 @@ Modes compare lean direct harvest/replant, water thresholds 0.25/0.50/0.75, Fert
 
 No mode uses Sunflowers.
 
-The Carrot start inventory has not yet been measured. `bench_lb_car_run.py` intentionally supplies 10,000,000,000 Hay and 10,000,000,000 Wood as synthetic support so v1 measures hot-path behavior rather than starvation. This is not a claim about the real Carrot leaderboard start state.
+The v2 runner uses the measured Carrots leaderboard start inventory: Hay=1,000,000,000, Wood=1,000,000,000, Power=1,000,000,000, and all other item inventories zero.
 
 ### Probe launchers
 
@@ -687,4 +687,126 @@ The probe prints:
 The probe intentionally terminates immediately and therefore fails the leaderboard target. Its only purpose is to record the exact initial environment.
 
 Do not generalize one leaderboard's measured start state to another leaderboard before probing it.
+
+
+
+## Measured multi-drone leaderboard start states (lbprobe-v4)
+
+Measured directly on 2026-09-19 by running the `lb_probe.py` queue in order.
+
+The nine captured outputs map cleanly to the queue order. No mix-up was detected.
+
+| Queue | Leaderboard | World | Drones | Non-zero starting items |
+| ---: | --- | ---: | ---: | --- |
+| 1 | Fastest Reset | 1 | 1 | none |
+| 2 | Maze | 32 | 32 | Weird Substance = 1,000,000,000; Power = 1,000,000,000 |
+| 3 | Dinosaur | 32 | 32 | Cactus = 1,000,000,000; Power = 1,000,000,000 |
+| 4 | Cactus | 32 | 32 | Pumpkin = 1,000,000,000; Power = 1,000,000,000 |
+| 5 | Sunflowers | 32 | 32 | Carrot = 1,000,000,000 |
+| 6 | Pumpkins | 32 | 32 | Carrot = 1,000,000,000; Power = 1,000,000,000 |
+| 7 | Wood | 32 | 32 | Power = 1,000,000,000 |
+| 8 | Carrots | 32 | 32 | Hay = 1,000,000,000; Wood = 1,000,000,000; Power = 1,000,000,000 |
+| 9 | Hay | 32 | 32 | Power = 1,000,000,000 |
+
+For all measured non-reset multi-drone leaderboards:
+
+- initial water level = 0
+- initial entity = `Entities.Grass`
+- initial ground = `Grounds.Grassland`
+- Water inventory = 0
+- Fertilizer inventory = 0
+- target-output inventory starts at 0
+- world size = 32
+- max drones = 32
+
+The common fully-developed unlock profile observed for Maze through Hay was:
+
+| Unlock | Level |
+| --- | ---: |
+| Cactus | 6 |
+| Carrots | 10 |
+| Dinosaurs | 6 |
+| Expand | 9 |
+| Fertilizer | 4 |
+| Grass | 10 |
+| Mazes | 6 |
+| Megafarm | 5 |
+| Polyculture | 5 |
+| Pumpkins | 10 |
+| Speed | 5 |
+| Sunflowers | 1 |
+| Trees | 10 |
+| Watering | 9 |
+| Top Hat | 1 |
+| The Farmers Remains | 1 |
+
+Common measured planting costs for these developed LB environments:
+
+| Entity | Cost |
+| --- | --- |
+| Grass | `{}` |
+| Bush | `{}` |
+| Tree | `{}` |
+| Carrot | `{Items.Hay: 512, Items.Wood: 512}` |
+| Sunflower | `{Items.Carrot: 1}` |
+| Pumpkin | `{Items.Carrot: 512}` |
+| Cactus | `{Items.Pumpkin: 64}` |
+
+### Fastest Reset measured start
+
+Fastest Reset is intentionally different:
+
+- world = 1
+- drones = 1
+- all item inventories = 0
+- Water = 0
+- Fertilizer = 0
+- Power = 0
+- initial entity = Grass
+- initial ground = Grassland
+
+Key progression unlock levels start at zero:
+
+- Cactus 0
+- Carrots 0
+- Dinosaurs 0
+- Expand 0
+- Fertilizer 0
+- Hats 0
+- Leaderboard 0
+- Mazes 0
+- Megafarm 0
+- Plant 0
+- Polyculture 0
+- Pumpkins 0
+- Speed 0
+- Sunflowers 0
+- Trees 0
+- Watering 0
+
+Programming/control unlocks such as Auto Unlock, Costs, Debug, Dictionaries, Functions, Import, Lists, Loops, Operators, Senses, Simulation, Timing, Utilities, and Variables are already available.
+
+Measured low-level planting costs at reset start:
+
+| Entity | Cost |
+| --- | --- |
+| Grass | `{}` |
+| Bush | `{}` |
+| Tree | `{}` |
+| Carrot | `{Items.Hay: 1, Items.Wood: 1}` |
+| Sunflower | `{Items.Carrot: 1}` |
+| Pumpkin | `{Items.Carrot: 1}` |
+| Cactus | `{Items.Pumpkin: 2}` |
+
+### Important optimization implications
+
+- Wood and Hay start with 1,000,000,000 Power and need no Sunflower support.
+- Carrots start with exactly the two required planting resources, 1,000,000,000 Hay and 1,000,000,000 Wood, plus 1,000,000,000 Power.
+- Pumpkins start with 1,000,000,000 Carrots plus Power.
+- Cactus starts with 1,000,000,000 Pumpkins plus Power.
+- Dinosaur starts with 1,000,000,000 Cactus plus Power.
+- Maze starts with 1,000,000,000 Weird Substance plus Power.
+- Sunflowers are the deliberate exception: they start with 1,000,000,000 Carrots but **Power starts at 0**, because Power is the leaderboard target.
+
+Single-drone variants were not measured in this batch and remain pending.
 
