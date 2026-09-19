@@ -557,6 +557,91 @@ The transition workload is essential because an isolated Hay benchmark cannot me
 Keep source-near external modes unchanged. Add all-Soil and rerolling as separate modes.
 
 
+
+
+## Cold-start benchmark results
+
+The production decision is based on the completed 32x32 benchmark with:
+
+```text
+start Power: 0
+seeds: 1, 2, 3
+Hay target gain:    +10,000,000
+Wood target gain:   +20,000,000
+Carrot target gain: +10,000,000
+```
+
+The earlier run with 1,000 starting Power is retained only as a warm-start observation. It is not used for the production-layout decision because short runs could consume the preloaded Power buffer without proving that their own Sunflower layout was sustainable.
+
+### Partial Megafarm: 8 drones
+
+Average time to return after reaching/overshooting the requested target:
+
+| Mode | Hay | Wood | Carrot |
+| --- | ---: | ---: | ---: |
+| legacy L | 71.48 s | 105.23 s | 121.93 s |
+| pure crop columns | 33.27 s | 115.33 s | 106.81 s |
+| one dumb Sunflower row | 33.44 s | 101.18 s | 96.47 s |
+| one dumb Sunflower column | 33.28 s | 108.23 s | 108.36 s |
+| two dumb Sunflower columns | 33.55 s | 91.64 s | 93.36 s |
+| one max-petal Sunflower column | **25.09 s** | **76.02 s** | **63.11 s** |
+
+Measured conclusion:
+
+- one dedicated max-petal Sunflower worker wins all three target-oriented crop cases
+- compared with the legacy L, time-to-target/return improves by about 65% for Hay, 28% for Wood, and 48% for Carrot
+- the legacy L can still show high raw crop/sec because one `farm.run_legacy()` call overshoots targets heavily; this is not the same metric as planner responsiveness
+- the adaptive production path therefore uses one dedicated max-petal Sunflower column when `max_drones() < world_size`
+
+### Maximum Megafarm: 32 drones
+
+Average time to return:
+
+| Mode | Hay | Wood | Carrot |
+| --- | ---: | ---: | ---: |
+| legacy L | 28.82 s | 67.65 s | 61.77 s |
+| pure crop columns | 14.00 s | 37.71 s | 37.07 s |
+| one dumb Sunflower row | **13.98 s** | 29.81 s | 31.60 s |
+| one dumb Sunflower column | 14.02 s | 31.93 s | **29.23 s** |
+| two dumb Sunflower columns | 14.38 s | **29.69 s** | 29.63 s |
+| one max-petal Sunflower column | 14.00 s | 33.66 s | 33.48 s |
+
+Measured conclusion:
+
+- the legacy L is roughly twice as slow as column ownership in all three target cases
+- there is no single per-crop winner:
+  - Hay narrowly favors one Sunflower row / pure crop
+  - Wood favors two Sunflower columns
+  - Carrot favors one Sunflower column
+- two dumb Sunflower columns are selected as the robust persistent production layout:
+  - best measured Wood time
+  - only about 0.40 s behind the best Carrot time
+  - only about 0.40 s behind the best Hay time
+- avoiding layout changes between planner focus switches is expected to be more valuable than chasing those very small isolated per-crop differences
+
+Therefore production uses:
+
+```text
+max_drones() < world_size:
+    one max-petal Sunflower column
+
+max_drones() == world_size:
+    two dumb Sunflower columns
+```
+
+### Reference smoke results
+
+The source-near juritox single-drone crop reference was intentionally kept unchanged and only smoke-tested:
+
+```text
+Hay:    276.40 s for ~1M
+Wood:   494.26 s for the smoke target
+Carrot: 898.16 s for ~1M
+```
+
+These modes remain as historical/reference implementations but are no longer useful as regular default-suite candidates.
+
+
 ## Production selection after cold-start benchmark
 
 The legacy Sunflower/Carrot L is no longer the production layout. It is retained through `farm.run_legacy()` only for historical benchmark reproduction.
