@@ -30,6 +30,8 @@ Always validate assumptions against:
   - raw community source references; inspect the actual source before deriving assumptions from them
 - https://github.com/nql1314/The-Farmer-Was-Replaced-AI-Code
   - broad implementation repository covering multiple mechanics; useful for alternative algorithms, data structures, and optimization ideas
+- https://github.com/msmith93/thefarmerwasreplaced/tree/full_reset/full_reset
+  - Fastest Reset reference with an explicit static unlock sequence and composable per-resource harvest functions
 
 When looking for an optimization:
 
@@ -255,3 +257,22 @@ Prefer a complex algorithm when it measures faster, but never assume complexity 
 - `external/juritox-the-farmer-was-replaced/` — MIT-licensed source/text snapshot at `544bb832ffcec00aacf2c8dd5278bdb534ab674b`; large binary media is provenance-manifested
 - `external/skysdottir-tfwr/` — provenance and analysis at `e15968982e957045c5239e580e2d040a9ac73a52`; no redistribution license found
 - `external/ketrab2004-the-farmer-was-replaced/` — provenance and analysis at `cdbbcf32ca100237cdfc3b78783cee77722a96fd`; no redistribution license found
+
+
+### msmith93/thefarmerwasreplaced full_reset
+
+Local provenance:
+
+- `external/msmith93-full-reset/`
+- branch: `full_reset`
+- revision: `28544222a2b1531c915b0646f8eb74971f4cc615`
+
+The worked `full_reset_solution.py` uses a deliberately explicit `unlock_order` and repeatedly buys selected levels of Speed, Expand, Watering, Fertilizer, crop upgrades, Mazes, Megafarm and Dinosaurs before finishing with `Unlocks.Leaderboard`.
+
+Reusable idea:
+
+> Unlock progression is a strategy input, not merely a loop over every `Unlocks` enum value.
+
+Our normal-game planner adapts that concept with a dependency frontier plus static relative priorities while continuing to use live `get_cost()` values.
+
+Do not copy the exact upstream order as a current complete-tech-tree definition. The reference does not include newer/current hidden endgame nodes such as `Unlocks.Top_Hat` and `Unlocks.The_Farmers_Remains`.
