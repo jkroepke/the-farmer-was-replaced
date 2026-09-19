@@ -31,7 +31,10 @@ MODE_NAMES = [
     "persistent-power-ring-tail3",
     "patch16-6x6-power",
     "patch16-6x6-power-tail3",
-    "patch16-7x7-power-tail3"
+    "patch16-7x7-power-tail3",
+    "patch9-9x9-power-tail3",
+    "patch4-15x15-power-tail3",
+    "power-wave-ring-tail3"
 ]
 
 TAIL_LIMIT = 3
@@ -1994,7 +1997,549 @@ def run_throughput_mode(
             3
         )
 
+    if mode == 28:
+        return _run_grid_patch_power(
+            3,
+            9,
+            target,
+            3
+        )
+
+    if mode == 29:
+        return _run_grid_patch_power(
+            2,
+            15,
+            target,
+            3
+        )
+
+    if mode == 30:
+        return _run_power_wave_ring_target(
+            target,
+            3
+        )
+
     return False
+
+
+def _ring_column_ready_tail(
+    column,
+    size,
+    tail_limit
+):
+    utils.move_to(
+        column,
+        0
+    )
+
+    ready = []
+
+    for _ in range(size):
+        ready.append(False)
+
+    remaining = size
+
+    while remaining > 0:
+        for row in range(size):
+            if not ready[row]:
+                state = (
+                    pumpkin._service_column_pumpkin()
+                )
+
+                if (
+                    state == 0
+                    and remaining <= tail_limit
+                ):
+                    state = (
+                        _tail_finish_ring_tile()
+                    )
+
+                if state < 0:
+                    return False
+
+                if state > 0:
+                    ready[row] = True
+                    remaining -= 1
+
+            move(North)
+
+    return True
+
+
+def _power_wave_ring_worker(
+    column,
+    size,
+    tail_limit
+):
+    handles = []
+    power = 1
+
+    while column + power < size:
+        if power > column:
+            child = (
+                column
+                + power
+            )
+
+            handle = spawn_drone(
+                _power_wave_ring_worker,
+                child,
+                size,
+                tail_limit
+            )
+
+            if handle == None:
+                return False
+
+            handles.append(
+                handle
+            )
+
+        power *= 2
+
+    if not _wait_for_spatial_deployment(
+        size
+    ):
+        return False
+
+    success = _ring_column_ready_tail(
+        column,
+        size,
+        tail_limit
+    )
+
+    # Unlike the persistent tail experiment, this worker returns only
+    # after its complete subtree has finished the current cycle. The
+    # caller therefore gets a real all-column barrier before harvesting.
+    for handle in handles:
+        if not wait_for(handle):
+            success = False
+
+    return success
+
+
+def _run_power_wave_ring_target(
+    target,
+    tail_limit
+):
+    size = utils.size()
+
+    if max_drones() < size:
+        return False
+
+    clear()
+
+    while (
+        num_items(Items.Pumpkin)
+        < target
+    ):
+        if not _power_wave_ring_worker(
+            0,
+            size,
+            tail_limit
+        ):
+            return False
+
+        # All 32 column jobs have returned. This is the synchronization
+        # that persistent-power-ring-tail3 was missing.
+        merge_deadline = (
+            get_time()
+            + PERSISTENT_MERGE_TIMEOUT
+        )
+
+        while not pumpkin.is_full_map_pumpkin():
+            if get_time() >= merge_deadline:
+                return False
+
+        if not harvest():
+            return False
+
+    return True
+
+
+def _grid_patch_geometry(
+    worker_index,
+    grid_size,
+    patch_size
+):
+    patch_count = (
+        grid_size
+        * grid_size
+    )
+
+    base_workers = (
+        32
+        // patch_count
+    )
+
+    extra_workers = (
+        32
+        % patch_count
+    )
+
+    remaining_index = (
+        worker_index
+    )
+
+    patch_index = 0
+    workers_in_patch = 0
+    local_worker = 0
+
+    while patch_index < patch_count:
+        workers_in_patch = (
+            base_workers
+        )
+
+        if patch_index < extra_workers:
+            workers_in_patch += 1
+
+        if (
+            remaining_index
+            < workers_in_patch
+        ):
+            local_worker = (
+                remaining_index
+            )
+            break
+
+        remaining_index -= (
+            workers_in_patch
+        )
+        patch_index += 1
+
+    if patch_index >= patch_count:
+        return None
+
+    pitch = (
+        patch_size
+        + 1
+    )
+
+    origin_x = (
+        (patch_index % grid_size)
+        * pitch
+    )
+
+    origin_y = (
+        (patch_index // grid_size)
+        * pitch
+    )
+
+    start_x = (
+        local_worker
+        * patch_size
+        // workers_in_patch
+    )
+
+    end_x = (
+        (local_worker + 1)
+        * patch_size
+        // workers_in_patch
+    )
+
+    return (
+        origin_x,
+        origin_y,
+        start_x,
+        end_x,
+        local_worker == 0
+    )
+
+
+def _grid_patch_ready(
+    worker_index,
+    grid_size,
+    patch_size,
+    tail_limit
+):
+    geometry = _grid_patch_geometry(
+        worker_index,
+        grid_size,
+        patch_size
+    )
+
+    if geometry == None:
+        return -1
+
+    (
+        origin_x,
+        origin_y,
+        start_x,
+        end_x,
+        is_leader
+    ) = geometry
+
+    positions = _patch_positions(
+        origin_x,
+        origin_y,
+        start_x,
+        end_x,
+        patch_size
+    )
+
+    for position in positions:
+        x, y = position
+
+        utils.move_to(
+            x,
+            y
+        )
+
+        if not _patch_ensure_pumpkin():
+            return -1
+
+    remaining = positions
+
+    while len(remaining) > 0:
+        next_remaining = []
+
+        use_tail = (
+            tail_limit > 0
+            and len(remaining) <= tail_limit
+        )
+
+        for position in remaining:
+            x, y = position
+
+            utils.move_to(
+                x,
+                y
+            )
+
+            entity = (
+                get_entity_type()
+            )
+
+            if entity == None:
+                # Another local worker observed the patch harvest first.
+                return 0
+
+            if entity == Entities.Dead_Pumpkin:
+                if not _patch_ensure_pumpkin():
+                    return -1
+
+                if use_tail:
+                    state = (
+                        _patch_tail_finish()
+                    )
+
+                    if state < 0:
+                        return -1
+
+                    if state == 0:
+                        return 0
+
+                    continue
+
+                next_remaining.append(
+                    position
+                )
+                continue
+
+            if (
+                entity == Entities.Pumpkin
+                and can_harvest()
+            ):
+                continue
+
+            if use_tail:
+                state = (
+                    _patch_tail_finish()
+                )
+
+                if state < 0:
+                    return -1
+
+                if state == 0:
+                    return 0
+
+                continue
+
+            next_remaining.append(
+                position
+            )
+
+        remaining = (
+            next_remaining
+        )
+
+    return 1
+
+
+def _grid_patch_worker(
+    worker_index,
+    grid_size,
+    patch_size,
+    target,
+    tail_limit
+):
+    geometry = _grid_patch_geometry(
+        worker_index,
+        grid_size,
+        patch_size
+    )
+
+    if geometry == None:
+        return False
+
+    (
+        origin_x,
+        origin_y,
+        start_x,
+        end_x,
+        is_leader
+    ) = geometry
+
+    while (
+        num_items(Items.Pumpkin)
+        < target
+    ):
+        state = _grid_patch_ready(
+            worker_index,
+            grid_size,
+            patch_size,
+            tail_limit
+        )
+
+        if state < 0:
+            return False
+
+        if (
+            num_items(Items.Pumpkin)
+            >= target
+        ):
+            return True
+
+        if is_leader:
+            while (
+                num_items(Items.Pumpkin)
+                < target
+            ):
+                if _is_patch_giant(
+                    origin_x,
+                    origin_y,
+                    patch_size
+                ):
+                    harvest()
+
+                    settle_end = (
+                        get_time()
+                        + PATCH_HARVEST_SETTLE
+                    )
+
+                    while get_time() < settle_end:
+                        pass
+
+                    break
+        else:
+            utils.move_to(
+                origin_x,
+                origin_y
+            )
+
+            while (
+                get_entity_type()
+                != None
+            ):
+                if (
+                    num_items(Items.Pumpkin)
+                    >= target
+                ):
+                    return True
+
+    return True
+
+
+def _grid_patch_power_worker(
+    worker_index,
+    grid_size,
+    patch_size,
+    target,
+    tail_limit
+):
+    handles = []
+    power = 1
+    worker_count = 32
+
+    while (
+        worker_index + power
+        < worker_count
+    ):
+        if power > worker_index:
+            child = (
+                worker_index
+                + power
+            )
+
+            handle = spawn_drone(
+                _grid_patch_power_worker,
+                child,
+                grid_size,
+                patch_size,
+                target,
+                tail_limit
+            )
+
+            if handle == None:
+                return False
+
+            handles.append(
+                handle
+            )
+
+        power *= 2
+
+    if not _wait_for_spatial_deployment(
+        worker_count
+    ):
+        return False
+
+    success = _grid_patch_worker(
+        worker_index,
+        grid_size,
+        patch_size,
+        target,
+        tail_limit
+    )
+
+    for handle in handles:
+        if not wait_for(handle):
+            success = False
+
+    return success
+
+
+def _run_grid_patch_power(
+    grid_size,
+    patch_size,
+    target,
+    tail_limit
+):
+    if (
+        utils.size() != 32
+        or max_drones() < 32
+    ):
+        return False
+
+    # Keep one separator row/column after every patch, including the wrap
+    # edge. Without the wrap separator, patches at x=31/y=31 can merge
+    # with patches starting at x=0/y=0.
+    if (
+        grid_size
+        * (patch_size + 1)
+        > 32
+    ):
+        return False
+
+    clear()
+
+    return _grid_patch_power_worker(
+        0,
+        grid_size,
+        patch_size,
+        target,
+        tail_limit
+    )
 
 
 def _persistent_ring_tree_worker(
@@ -2356,12 +2901,15 @@ def main():
         BENCH_MODE >= 25
     )
 
+    worker_success = True
+
     if throughput_mode:
         gains = []
-        success = run_throughput_mode(
+        worker_success = run_throughput_mode(
             BENCH_MODE,
             BENCH_TARGET_PUMPKIN
         )
+        success = worker_success
     else:
         gains = run_benchmark_mode(
             BENCH_MODE,
@@ -2372,6 +2920,7 @@ def main():
             gains,
             BENCH_CYCLES
         )
+        worker_success = success
 
     elapsed = (
         get_time()
@@ -2412,10 +2961,16 @@ def main():
     )
 
     if throughput_mode:
+        # Throughput runs are finite inventory-target workloads. Reaching
+        # the target and terminating is the benchmark success condition.
+        # Keep the recursive worker return separately as a diagnostic:
+        # v6 showed that cleanup could return False after the global target
+        # had already been exceeded.
         valid = (
-            success
-            and gain >= BENCH_TARGET_PUMPKIN
+            gain
+            >= BENCH_TARGET_PUMPKIN
         )
+        success = valid
     else:
         valid = success
 
@@ -2451,6 +3006,8 @@ def main():
         ],
         "success",
         success,
+        "worker success",
+        worker_success,
         "throughput",
         throughput_mode,
         "completed",
