@@ -1,5 +1,6 @@
 import config
 import utils
+import maze_parallel
 
 
 # Reference strategy:
@@ -50,6 +51,27 @@ def substance_required():
     )
 
 
+def parallel_plan():
+    return maze_parallel.plan()
+
+
+def bushes_required():
+    if maze_parallel.enabled():
+        return maze_parallel.bushes_required()
+
+    return 1
+
+
+def stockpile_required():
+    if maze_parallel.enabled():
+        return maze_parallel.stockpile_required()
+
+    return (
+        substance_required()
+        * config.MAZE_STOCKPILE
+    )
+
+
 def reset():
     global _ROOT
     global _VISITED
@@ -90,6 +112,8 @@ def can_start():
     if substance <= 0:
         return False
 
+    # Never switch algorithms in the middle of an already-active
+    # reference Maze. Finish or abandon that Maze first.
     if _ACTIVE:
         # After the final relocation only the final Treasure harvest
         # remains, which does not need more Weird Substance.
@@ -101,13 +125,20 @@ def can_start():
             >= substance
         )
 
+    if maze_parallel.enabled():
+        return maze_parallel.can_start()
+
+    # Single-Maze fallback also waits for the configured reserve instead
+    # of entering Gold production with only one relocation available.
     if (
         num_items(Items.Weird_Substance)
-        < substance
+        < stockpile_required()
     ):
         return False
 
-    if not utils.can_afford(Entities.Bush):
+    if not utils.can_afford(
+        Entities.Bush
+    ):
         return False
 
     return True
@@ -946,7 +977,7 @@ def _finish_maze():
     return True
 
 
-def run():
+def _run_reference():
     global _TARGET
     global _REROOTED
 
@@ -995,3 +1026,21 @@ def run():
         _REROOTED = True
 
     return _relocate_here()
+
+
+
+# ==================================================
+# ADAPTIVE PRODUCTION ENTRY POINT
+# ==================================================
+
+def run():
+    # Preserve an already-active legacy/reference Maze until its lifecycle
+    # ends. New Gold phases use the parallel small-Maze strategy whenever
+    # the current world/drone layout can support at least two workers.
+    if _ACTIVE:
+        return _run_reference()
+
+    if maze_parallel.enabled():
+        return maze_parallel.run()
+
+    return _run_reference()
