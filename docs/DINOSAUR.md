@@ -233,6 +233,91 @@ Its numeric examples use an old **800-tick** Dinosaur movement model and are the
 
 This independently supports benchmarking target-tail production instead of always filling the complete farm.
 
+### 9. MateusMarochi repository: collision-triggered harvest/restart
+
+Source:
+
+- https://github.com/MateusMarochi/the-farmer-was-replaced-codes
+- `bone_farm.py`
+
+The repository's Dinosaur path is not a fundamentally new geometry. It is effectively another skyscraper/Hamiltonian sweep:
+
+- alternating vertical columns
+- row 0 kept as a return lane
+- West along row 0 back toward x=0
+- repeat
+
+So it does not provide a better path candidate than the ones already benchmarked.
+
+However, its `dinosaur_safe_move()` contains an important production idea:
+
+```text
+if move is blocked:
+    change away from Dinosaur Hat
+    change back to Dinosaur Hat
+```
+
+Changing away from the Dinosaur Hat harvests the current tail. Changing back starts another Dinosaur run.
+
+Therefore this is not really a "safe move" workaround. It is effectively:
+
+> collision-triggered harvest + immediate restart
+
+The outer traversal then continues from the current position with a fresh Dinosaur/tail.
+
+### Why this matters for our benchmark
+
+Our current benchmark answers:
+
+> What is the throughput of one run harvested at a chosen 25/50/75/95% tail target?
+
+The MateusMarochi code suggests a second production question:
+
+> What is the sustained Bones/minute over many consecutive harvest/restart cycles when the algorithm decides naturally when it can no longer continue?
+
+For long-running Bone production, that may be the more relevant metric.
+
+A strategy can have excellent one-run throughput but perform worse over time if it:
+
+- chooses a poor harvest point
+- has expensive restart/setup overhead
+- repeatedly spends too long in a low-throughput early phase
+
+Conversely, a collision-triggered or target-triggered strategy can be evaluated across several complete cycles.
+
+### Recommended sustained-throughput benchmark
+
+After the current 32x32 single-run benchmark is complete, add a separate benchmark mode/phase that runs multiple Dino harvest cycles, for example:
+
+```text
+32x32
+3-5 complete harvest/restart cycles
+same seed set
+measure total runtime
+sum total expected/observed Bones
+report aggregate Bones/s and Bones/min
+```
+
+Candidates should include:
+
+1. plain Hamiltonian, harvest on collision
+2. skysdottir reference, harvest on collision / natural failure
+3. explicit 50%, 75%, 95% target harvest + restart
+4. eventually a planner-derived target based on missing Bones
+
+Do not replace the current target-percent benchmark. The two tests answer different questions:
+
+- fixed target benchmark isolates path efficiency
+- repeated-cycle benchmark measures sustained production efficiency
+
+### Benchmark setup caution
+
+The current simulation setup calls `set_world_size()` and then `clear()`.
+
+Because `set_world_size()` itself clears/reset the farm, this may add setup work that production does not perform in exactly the same way. This fixed overhead affects all strategies in one case equally, but can bias throughput comparisons between short and long target runs.
+
+Before making a final production decision from Bones/s across different target percentages, benchmark or remove avoidable setup overhead so the simulation setup matches `dinosaur.run()` as closely as possible.
+
 ## Important research conclusion: our baseline is already skyscraper-like
 
 The current repository path and the external `skyscraper.py` share the same core geometry:
