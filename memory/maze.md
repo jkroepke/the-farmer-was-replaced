@@ -113,14 +113,16 @@ Current production rules:
 - smaller farms reduce spatial capacity automatically
 - if only one small-Maze worker is usable, fall back to the existing reference full-Maze solver
 - 3x3 adaptive selection is functional but not yet separately benchmarked
-- each parallel worker performs 25 relocations per production burst
-- stock the full Weird-Substance budget before starting any worker
+- 25 relocations per worker is only the minimum start threshold
+- if more Weird Substance is already available, use as many synchronized relocation rounds as the stock can safely fund, capped at 300
+- stock at least the full minimum Weird-Substance budget before starting any worker
 - at full 32x32 / 32-drone / x32 Maze multiplier, required stockpile is 106496 Weird Substance
 - that burst yields approximately 425984 Gold
 - production also requires one affordable Bush per planned worker
 - the tested Bush/Weird-Substance barrier is reused; never use Water as the launch signal
 - parent waits for every spawned worker before returning to the main loop
-- production prints `MAZE PARALLEL <size> workers <count> relocations <count> substance <amount>`
+- production prints the chosen dynamic relocation count plus minimum/available substance
+- if Gold cannot start, print `MAZE WAIT bushes ...` or `MAZE WAIT substance ...` to expose the blocker
 
 Production integration commits begin at `b07d95a870252df2f093c250137b909557183f4c`; benchmark provenance remains `55734c855dd464dd846deef280d8a65d9f2c3bf7`.
 
