@@ -347,9 +347,9 @@ Files:
 
 | Resource | Benchmark | Runner | Version | Start-state status |
 | --- | --- | --- | --- | --- |
-| Wood | `bench_lb_wood.py` | `bench_wood_run.py` | `lbwood-v1` | measured Wood-LB inventory |
-| Carrot | `bench_lb_carrot.py` | `bench_car_run.py` | `lbcar-v1` | synthetic support inventory until Carrot probe |
-| Hay | `bench_lb_hay.py` | `bench_hay_run.py` | `lbhay-v1` | Wood Power start used provisionally until Hay probe |
+| Wood | `bench_lb_wood.py` | `bench_lb_wood_run.py` | `lbwood-v1` | measured Wood-LB inventory |
+| Carrot | `bench_lb_carrot.py` | `bench_lb_car_run.py` | `lbcar-v1` | synthetic support inventory until Carrot probe |
+| Hay | `bench_lb_hay.py` | `bench_lb_hay_run.py` | `lbhay-v1` | Wood Power start used provisionally until Hay probe |
 
 All benchmark runners request simulation speedup 10000.
 
@@ -402,7 +402,7 @@ Modes compare lean direct harvest/replant, water thresholds 0.25/0.50/0.75, Fert
 
 No mode uses Sunflowers.
 
-The Carrot start inventory has not yet been measured. `bench_car_run.py` intentionally supplies 10,000,000,000 Hay and 10,000,000,000 Wood as synthetic support so v1 measures hot-path behavior rather than starvation. This is not a claim about the real Carrot leaderboard start state.
+The Carrot start inventory has not yet been measured. `bench_lb_car_run.py` intentionally supplies 10,000,000,000 Hay and 10,000,000,000 Wood as synthetic support so v1 measures hot-path behavior rather than starvation. This is not a claim about the real Carrot leaderboard start state.
 
 ### Probe launchers
 
