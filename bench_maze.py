@@ -4902,6 +4902,309 @@ def spec_steam_worker(
 
 
 # ==================================================
+# FLEKAY: STATIONARY SUBSTANCE-SPAM MAZES
+# ==================================================
+
+
+def spec_stationary_amount(
+    world_size
+):
+    return (
+        world_size
+        * 2**(
+            num_unlocked(
+                Unlocks.Mazes
+            )
+            - 1
+        )
+    )
+
+
+def spec_flekay_spam_worker(
+    substance,
+    start_gold
+):
+    # Source-near behavior from Flekay's substance_spam.py.
+    while not spec_gold_done(
+        start_gold
+    ):
+        while use_item(
+            Items.Weird_Substance,
+            substance
+        ):
+            if spec_gold_done(
+                start_gold
+            ):
+                return
+
+        if (
+            get_entity_type()
+            == Entities.Treasure
+        ):
+            if not use_item(
+                Items.Weird_Substance,
+                substance
+            ):
+                harvest()
+
+                if spec_gold_done(
+                    start_gold
+                ):
+                    return
+
+                plant(
+                    Entities.Bush
+                )
+
+                use_item(
+                    Items.Weird_Substance,
+                    substance
+                )
+
+
+def spec_run_flekay_spam_5():
+    # Preserve the source architecture:
+    # - shrink to 5x5
+    # - spawn one child on every cell
+    # - all children blindly spam Weird Substance
+    # - parent creates the first Maze
+    clear()
+    set_world_size(
+        5
+    )
+
+    start_gold = num_items(
+        Items.Gold
+    )
+
+    substance = spec_stationary_amount(
+        5
+    )
+
+    for x in range(5):
+        for y in range(5):
+            spawn_drone(
+                spec_flekay_spam_worker,
+                substance,
+                start_gold
+            )
+
+            move(
+                North
+            )
+
+        move(
+            East
+        )
+
+    plant(
+        Entities.Bush
+    )
+
+    use_item(
+        Items.Weird_Substance,
+        substance
+    )
+
+    # Keep the parent alive like the benchmark harnesses used elsewhere.
+    while not spec_gold_done(
+        start_gold
+    ):
+        pass
+
+
+def spec_stationary_spam_loop(
+    substance,
+    start_gold
+):
+    while not spec_gold_done(
+        start_gold
+    ):
+        use_item(
+            Items.Weird_Substance,
+            substance
+        )
+
+        if (
+            get_entity_type()
+            == Entities.Treasure
+        ):
+            if not use_item(
+                Items.Weird_Substance,
+                substance
+            ):
+                harvest()
+
+                if spec_gold_done(
+                    start_gold
+                ):
+                    return
+
+                plant(
+                    Entities.Bush
+                )
+
+                use_item(
+                    Items.Weird_Substance,
+                    substance
+                )
+
+
+def spec_stationary_event_loop(
+    substance,
+    start_gold
+):
+    while not spec_gold_done(
+        start_gold
+    ):
+        if (
+            get_entity_type()
+            != Entities.Treasure
+        ):
+            continue
+
+        if use_item(
+            Items.Weird_Substance,
+            substance
+        ):
+            continue
+
+        harvest()
+
+        if spec_gold_done(
+            start_gold
+        ):
+            return
+
+        plant(
+            Entities.Bush
+        )
+
+        use_item(
+            Items.Weird_Substance,
+            substance
+        )
+
+
+def spec_stationary_worker(
+    substance,
+    start_gold,
+    start_substance,
+    event_gated
+):
+    # Unlike the source-near mode, do not burn failed use_item calls while
+    # the parent is still distributing workers.
+    while (
+        num_items(
+            Items.Weird_Substance
+        )
+        == start_substance
+    ):
+        pass
+
+    if event_gated:
+        spec_stationary_event_loop(
+            substance,
+            start_gold
+        )
+
+    else:
+        spec_stationary_spam_loop(
+            substance,
+            start_gold
+        )
+
+
+def spec_stationary_spawn_grid(
+    world_size,
+    event_gated
+):
+    clear()
+
+    set_world_size(
+        world_size
+    )
+
+    start_gold = num_items(
+        Items.Gold
+    )
+
+    start_substance = num_items(
+        Items.Weird_Substance
+    )
+
+    substance = spec_stationary_amount(
+        world_size
+    )
+
+    cell_count = (
+        world_size
+        * world_size
+    )
+
+    index = 0
+
+    # Snake over every cell exactly once. Spawn children on the first
+    # N-1 cells; the parent remains on the final cell and becomes worker N.
+    for x in range(
+        world_size
+    ):
+        for row_index in range(
+            world_size
+        ):
+            if index < cell_count - 1:
+                spawn_drone(
+                    spec_stationary_worker,
+                    substance,
+                    start_gold,
+                    start_substance,
+                    event_gated
+                )
+
+            index += 1
+
+            if index >= cell_count:
+                break
+
+            if x % 2 == 0:
+                move(
+                    North
+                )
+
+            else:
+                move(
+                    South
+                )
+
+        if index < cell_count:
+            move(
+                East
+            )
+
+    plant(
+        Entities.Bush
+    )
+
+    if not use_item(
+        Items.Weird_Substance,
+        substance
+    ):
+        return
+
+    if event_gated:
+        spec_stationary_event_loop(
+            substance,
+            start_gold
+        )
+
+    else:
+        spec_stationary_spam_loop(
+            substance,
+            start_gold
+        )
+
+
+# ==================================================
 # 32-WORKER GRID LAUNCHER
 # ==================================================
 
@@ -5301,11 +5604,32 @@ def run_special():
             "UNIFORM4 MAP BFS TREE"
         )
 
-    else:
+    elif BENCH_MODE == 35:
         spec_run_map_bfs_tree_spawn(
             3,
             300,
             "NEAREST4 MAP BFS TREE"
+        )
+
+    elif BENCH_MODE == 36:
+        spec_run_flekay_spam_5()
+
+    elif BENCH_MODE == 37:
+        spec_stationary_spawn_grid(
+            5,
+            False
+        )
+
+    elif BENCH_MODE == 38:
+        spec_stationary_spawn_grid(
+            5,
+            True
+        )
+
+    else:
+        spec_stationary_spawn_grid(
+            4,
+            True
         )
 
     spec_report_result(
