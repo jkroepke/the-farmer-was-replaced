@@ -18,22 +18,21 @@ MODE_NAMES = [
     "two-wave-insertion-reuse",
     "two-wave-insertion-reroll-reuse",
     "tstambaugh-reference-32",
-    "nql1314-reference"
+    "nql1314-reference",
+    "tstambaugh-placed-generalized",
+    "adaptive-placed-pool"
 ]
 
-# Production candidates. These run on all three seeds.
+# Follow-up finalists. The source-near Tstambaugh mode proved competitive,
+# so it now runs the full three-seed / three-cycle matrix as a control.
 CANDIDATE_MODES = [
-    0,
-    1,
-    2,
-    3,
-    4
+    4,
+    5,
+    7,
+    8
 ]
 
-# Source-near references stay in the suite, but only need a one-seed smoke
-# test until a reference proves competitive.
 REFERENCE_MODES = [
-    5,
     6
 ]
 
@@ -250,8 +249,7 @@ def run_benchmarks():
             "CACTUS SIZE SMOKE",
             [
                 2,
-                3,
-                4
+                8
             ],
             [1],
             world_size,
@@ -262,9 +260,9 @@ def run_benchmarks():
     benchmark_modes(
         "CACTUS DRONE SMOKE",
         [
-            2,
-            3,
-            4
+            4,
+            7,
+            8
         ],
         [1],
         BENCH_WORLD_SIZE,
