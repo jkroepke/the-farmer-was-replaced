@@ -92,7 +92,8 @@ STATIC_ORDER = [
 
 
 def reset_runtime():
-    clear()
+    # Fastest Reset simulations already start on a fresh one-tile farm.
+    # Do not pay for or depend on an artificial clear() before progression.
     production.reset_state()
     farm.reset_state()
 
@@ -327,7 +328,23 @@ def run_static():
 
 
 def main():
+    quick_print(
+        "RESET WORKER START",
+        MODE_NAMES[BENCH_MODE],
+        "world",
+        get_world_size(),
+        "leaderboard-level",
+        num_unlocked(
+            Unlocks.Leaderboard
+        )
+    )
+
     reset_runtime()
+
+    quick_print(
+        "RESET WORKER READY",
+        MODE_NAMES[BENCH_MODE]
+    )
 
     start_ticks = get_tick_count()
     start_time = get_time()

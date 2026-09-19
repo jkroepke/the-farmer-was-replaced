@@ -1,7 +1,7 @@
 import main
 
 
-BENCH_VERSION = "reset-v2"
+BENCH_VERSION = "reset-v3"
 
 BENCH_SPEEDUP = 10000
 BENCH_MAX_ACTIONS = 10000
@@ -28,8 +28,15 @@ def run_one(
         "BENCH_MAX_ACTIONS": BENCH_MAX_ACTIONS
     }
 
+    quick_print(
+        "RESET CASE START",
+        MODE_NAMES[mode],
+        "seed",
+        seed
+    )
+
     # Empty unlock/item maps model Fastest Reset from the initial farm.
-    return simulate(
+    elapsed = simulate(
         "bench_reset",
         {},
         {},
@@ -37,6 +44,29 @@ def run_one(
         seed,
         BENCH_SPEEDUP
     )
+
+    if elapsed == None:
+        quick_print(
+            "RESET CASE FAIL",
+            MODE_NAMES[mode],
+            "seed",
+            seed,
+            "reason",
+            "simulate-returned-none"
+        )
+
+        return -1
+
+    quick_print(
+        "RESET CASE DONE",
+        MODE_NAMES[mode],
+        "seed",
+        seed,
+        "elapsed",
+        elapsed
+    )
+
+    return elapsed
 
 
 def run_benchmarks():
@@ -56,6 +86,11 @@ def run_benchmarks():
         -1
     ]
     maximums = [
+        0,
+        0,
+        0
+    ]
+    successes = [
         0,
         0,
         0
@@ -81,7 +116,17 @@ def run_benchmarks():
                 seed
             )
 
+            if elapsed < 0:
+                quick_print(
+                    "RESET TIME",
+                    MODE_NAMES[mode],
+                    "FAIL"
+                )
+
+                continue
+
             totals[mode] += elapsed
+            successes[mode] += 1
 
             if (
                 minimums[mode] < 0
@@ -102,22 +147,30 @@ def run_benchmarks():
         "RESET SUMMARY"
     )
 
-    count = len(
-        BENCH_SEEDS
-    )
-
     for mode in range(
         len(MODE_NAMES)
     ):
-        quick_print(
-            MODE_NAMES[mode],
-            "avg",
-            totals[mode] / count,
-            "min",
-            minimums[mode],
-            "max",
-            maximums[mode]
-        )
+        if successes[mode] == 0:
+            quick_print(
+                MODE_NAMES[mode],
+                "FAIL",
+                "no-successful-runs"
+            )
+
+        else:
+            quick_print(
+                MODE_NAMES[mode],
+                "avg",
+                totals[mode] / successes[mode],
+                "min",
+                minimums[mode],
+                "max",
+                maximums[mode],
+                "successful",
+                successes[mode],
+                "requested",
+                len(BENCH_SEEDS)
+            )
 
     quick_print(
         "RESET BENCH SUITE DONE"
