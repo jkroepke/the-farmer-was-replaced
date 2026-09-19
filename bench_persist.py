@@ -330,6 +330,43 @@ def sun_dumb_worker(
     return True
 
 
+def ensure_seven_sunflower():
+    entity = get_entity_type()
+
+    if entity == Entities.Sunflower:
+        if measure() == 7:
+            return True
+
+        # harvest() also destroys an unripe plant, matching Flekay's
+        # source-near reroll loop.
+        harvest()
+
+    elif entity != None:
+        harvest()
+
+    if get_ground_type() != Grounds.Soil:
+        till()
+
+    while True:
+        if not utils.can_afford(
+            Entities.Sunflower
+        ):
+            return False
+
+        if not plant(
+            Entities.Sunflower
+        ):
+            return False
+
+        if measure() == 7:
+            # Water only the accepted roll. Do not pay watering cost for
+            # rejected rolls.
+            utils.water()
+            return True
+
+        harvest()
+
+
 def sun_seven_worker(
     column,
     carrot_mid,
@@ -339,11 +376,9 @@ def sun_seven_worker(
 ):
     world_size = utils.size()
 
-    # Flekay-inspired equal-petal strategy:
-    # force the complete dedicated column to the same petal count so every
-    # mature Sunflower is globally maximal inside this layout. Seven is used
-    # because it is the cheapest target to recognize; reroll probability is
-    # symmetric across the documented 7..15 petal range.
+    # Flekay-inspired equal-petal strategy. With 32 dedicated Sunflowers
+    # all fixed at 7 petals, every mature plant is tied for the global
+    # maximum and qualifies for the max-petal bonus.
     utils.move_to(
         column,
         0
@@ -352,16 +387,8 @@ def sun_seven_worker(
     for _ in range(
         world_size
     ):
-        if not farm._ensure_sunflower_here():
+        if not ensure_seven_sunflower():
             return False
-
-        while measure() != 7:
-            # harvest() deliberately destroys an unripe plant too, which is
-            # exactly what the source-near reroll strategy relies on.
-            harvest()
-
-            if not farm._ensure_sunflower_here():
-                return False
 
         move(
             North
@@ -382,26 +409,14 @@ def sun_seven_worker(
             world_size
         ):
             if get_entity_type() != Entities.Sunflower:
-                if not farm._ensure_sunflower_here():
+                if not ensure_seven_sunflower():
                     return False
 
-                while measure() != 7:
-                    harvest()
-
-                    if not farm._ensure_sunflower_here():
-                        return False
-
-            if can_harvest():
+            elif can_harvest():
                 harvest()
 
-                if not farm._ensure_sunflower_here():
+                if not ensure_seven_sunflower():
                     return False
-
-                while measure() != 7:
-                    harvest()
-
-                    if not farm._ensure_sunflower_here():
-                        return False
 
             move(
                 North
