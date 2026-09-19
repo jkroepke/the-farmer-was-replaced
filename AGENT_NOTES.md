@@ -297,3 +297,9 @@ All Dinosaur mechanics, current strategy, external algorithm research, and bench
 `docs/DINOSAUR.md`
 
 Do not duplicate Dinosaur benchmark tables or strategy notes here.
+
+
+## Game file-name limit
+
+Game-facing Python files must use names of at most 20 characters including `.py`. Keep benchmark, probe, and runner names short enough to be created directly in the in-game editor.
+
