@@ -19,12 +19,13 @@
 # Modes 34/35 test the spawn-v4 hierarchical result in the real leaderboard
 # workload: a persistent binary spawn tree with row-major 4x4 slots versus
 # the precomputed nearest-32 toroidal 4x4 slot set.
-# Modes 36..39 test Flekay's stationary full-coverage Maze idea:
+# Modes 36..40 test Flekay's stationary full-coverage Maze idea:
 # source-near 5x5 substance spam, one-drone-per-cell spam/event-gated
-# mutations, and a 4x4 event-gated geometry control.
+# mutations, a 4x4 geometry control, and a 5x5 event-gated variant
+# that uses all 32 drones by adding seven duplicate stationary pollers.
 
 
-BENCH_VERSION = "maze-v4"
+BENCH_VERSION = "maze-v5"
 BENCH_SPEEDUP = 10000
 BENCH_VERBOSE = False
 BENCH_GREEDY_AFTER = 30
@@ -43,6 +44,7 @@ LEADERBOARD_SEEDS = [
 
 LEADERBOARD_MODE_IDS = [
     38,
+    40,
     37,
     36,
     39,
@@ -59,6 +61,7 @@ LEADERBOARD_MODE_IDS = [
 
 LEADERBOARD_MODE_NAMES = [
     "lb-stationary5-event",
+    "lb-stationary5-event-32drones",
     "lb-stationary5-spam",
     "ref-flekay-5x5-substance-spam",
     "lb-stationary4-event",
