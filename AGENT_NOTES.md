@@ -33,6 +33,12 @@ if __name__ == "__main__":
     ...
 ```
 
+## Benchmark provenance
+
+Every benchmark result recorded in documentation must reference the full commit SHA of the benchmark state that produced it.
+
+Use the SHA that pins both the runner and the tested implementation. Do not replace it with the SHA of a later docs-only commit.
+
 ## Multi-drone rules
 
 Use as many drones as `max_drones()` permits when useful.
