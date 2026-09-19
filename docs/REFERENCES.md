@@ -30,6 +30,9 @@ Always validate assumptions against:
   - raw community source references; inspect the actual source before deriving assumptions from them
 - https://github.com/nql1314/The-Farmer-Was-Replaced-AI-Code
   - broad implementation repository covering multiple mechanics; useful for alternative algorithms, data structures, and optimization ideas
+- https://github.com/msmith93/thefarmerwasreplaced
+  - broad main-branch reference covering single-drone leaderboards, Megafarm/multi-drone experiments, resource planners, and a simulator-backed Sunflowers_Single optimization series
+  - complete pinned snapshot and detailed review: `external/msmith93-thefarmerwasreplaced/`
 - https://github.com/msmith93/thefarmerwasreplaced/tree/full_reset/full_reset
   - Fastest Reset reference with an explicit static unlock sequence and composable per-resource harvest functions
 
@@ -257,6 +260,7 @@ Prefer a complex algorithm when it measures faster, but never assume complexity 
 - `external/juritox-the-farmer-was-replaced/` — MIT-licensed source/text snapshot at `544bb832ffcec00aacf2c8dd5278bdb534ab674b`; large binary media is provenance-manifested
 - `external/skysdottir-tfwr/` — provenance and analysis at `e15968982e957045c5239e580e2d040a9ac73a52`; no redistribution license found
 - `external/ketrab2004-the-farmer-was-replaced/` — provenance and analysis at `cdbbcf32ca100237cdfc3b78783cee77722a96fd`; no redistribution license found
+- `external/msmith93-thefarmerwasreplaced/` — complete main-branch source snapshot at `7fef7c327e8d0b6ef34af2fafc3e5aeaf0b89823`; includes the Sunflowers_Single simulator/iteration series and multi-drone reference implementations
 
 
 ### msmith93/thefarmerwasreplaced full_reset
