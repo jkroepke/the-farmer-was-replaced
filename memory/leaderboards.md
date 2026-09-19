@@ -631,7 +631,7 @@ Both run the shared `lb_probe.py` diagnostic inside the respective real leaderbo
 After those are measured, bump the affected benchmark version before replacing provisional/synthetic start-state inputs.
 
 
-## Universal leaderboard start-state probe
+## Universal leaderboard start-state probe queue
 
 There is exactly one leaderboard probe file:
 
@@ -639,20 +639,19 @@ There is exactly one leaderboard probe file:
 lb_probe.py
 ```
 
-Probe version: `lbprobe-v3`.
+Current probe version: `lbprobe-v4`.
 
-`lb_probe.py` is the payload for every leaderboard environment. It intentionally does not call `leaderboard_run()` itself, because starting another leaderboard from inside the probe would recurse.
+The file intentionally contains all known `leaderboard_run()` calls as an ordered queue.
 
-Run the desired leaderboard with `lb_probe` as its filename, for example:
+Workflow:
 
-```python
-leaderboard_run(Leaderboards.Wood, "lb_probe", 256)
-leaderboard_run(Leaderboards.Carrots, "lb_probe", 256)
-leaderboard_run(Leaderboards.Hay, "lb_probe", 256)
-leaderboard_run(Leaderboards.Wood_Single, "lb_probe", 256)
-```
+1. run `lb_probe.py` normally from the main farm
+2. the first remaining `leaderboard_run()` starts that leaderboard
+3. the same file runs inside the fresh leaderboard and prints the start-state probe
+4. delete the completed first `leaderboard_run()` line
+5. run `lb_probe.py` again for the next leaderboard
 
-The same pattern applies to every other known leaderboard:
+The queue order is:
 
 - Fastest_Reset
 - Maze
@@ -670,6 +669,10 @@ The same pattern applies to every other known leaderboard:
 - Wood_Single
 - Carrots_Single
 - Hay_Single
+
+`leaderboard_run()` takes over execution and does not return to later queue lines, so only the first remaining line is executed per run.
+
+To avoid recursive `leaderboard_run()` calls when `lb_probe.py` is loaded inside the leaderboard, `lbprobe-v4` uses the fresh leaderboard timer: when `get_time() < 5`, the file executes only the probe payload. Therefore do not start the queue from a freshly opened normal farm until the main-farm `get_time()` value is above 5 seconds.
 
 The probe prints:
 
