@@ -30,7 +30,9 @@ MODE_IDS = [
     8,
     9,
     10,
-    11
+    11,
+    12,
+    13
 ]
 
 MODE_NAMES = [
@@ -39,7 +41,9 @@ MODE_NAMES = [
     "cover-4x4",
     "cover-2x4x4",
     "zapakh-32x4x4",
-    "steam-32x4x4"
+    "steam-32x4x4",
+    "packed-4to7-fresh",
+    "packed-4to7-reuse"
 ]
 
 
