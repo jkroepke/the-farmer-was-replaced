@@ -60,47 +60,6 @@ A cold benchmark must include:
 
 Persistent workers may have a larger one-time setup but lower repeated pass overhead. Measure at multiple workload horizons to determine whether/when the setup amortizes.
 
-## Current maximum benchmark
-
-Benchmark code state:
-
-`d1956d30d2e1aa98da49bbccecf8c087b7b72828`
-
-Files:
-
-- `bench_poly.py`
-- `bench_poly_run.py`
-
-Profiles:
-
-- partial Megafarm level 3
-- max Megafarm
-
-Modes screen current and static-rerolling implementations across:
-
-- one max-petal Sunflower column
-- two dumb Sunflower columns
-- stride workers
-- contiguous chunks
-- column pairs
-
-Horizons:
-
-- cold-short: +100k Carrot -> +100k Hay -> +200k Wood -> +100k Carrot
-- cold-medium: +1M Carrot -> +1M Hay -> +2M Wood -> +1M Carrot
-- sustained: +5M Carrot -> +5M Hay -> +10M Wood -> +5M Carrot
-
-All candidates run cold-short and cold-medium with seed 1. The best current persistent candidate and best static-rerolling candidate from the medium screen then run against synchronous production over seeds 1, 2, and 3 on the sustained workload.
-
-The poly modes print explicit `FARMX POLY PREP` and `FARMX POLY LAUNCH` metrics. Primary comparison remains total `simulate()` runtime, because setup and useful worker activity can overlap.
-
-Run:
-
-`bench_poly_run.py`
-
-No production switch has been made yet. Paste the complete `FARMX ...` output back and only record measured conclusions against the benchmark SHA above.
-
-
 ## Sunflower placement challenge
 
 Verified reference finding: there is no source-backed reason to reserve Sunflowers at a farm edge. Normal farm movement wraps, so coordinates at an apparent edge are not topologically special. The meaningful choices are concentration vs distribution, crop-area loss, worker ownership, Sunflower servicing overhead, and whether max-petal ordering repays its coordination/movement cost.
@@ -151,120 +110,9 @@ Do not frame this as "edge vs center": because movement wraps, the real benchmar
 
 The existing `bench_poly_run.py` does not yet cover these placement families. Extend or add a placement screen before making a production decision.
 
-
-## FARMX unversioned benchmark results
-
-Benchmark version: `unversioned-legacy`
-
-Benchmark commit: `d1956d30d2e1aa98da49bbccecf8c087b7b72828`
-
-The supplied run completed both profiles and all three sustained seeds.
-
-Sustained summaries:
-
-```text
-partial Megafarm / 8 drones:
-  sync-selected          avg 224.17
-  current-two-sun-pairs  avg  94.96
-  poly-two-sun-pairs     avg 156.49
-
-max Megafarm / 32 drones:
-  sync-selected           avg 47.16
-  current-two-sun-stride  avg 38.18
-  poly-two-sun-stride     avg 52.39
-```
-
-Measured conclusions for this benchmark state:
-
-- persistent current crop logic is much faster than synchronous production in both profiles
-- at 8 drones, `current-two-sun-pairs` reduced average sustained runtime by about 57.6% versus `sync-selected`
-- at 32 drones, `current-two-sun-stride` reduced average sustained runtime by about 19.0% versus `sync-selected`
-- the static all-Soil Bush-checkerboard/rerolling candidate did not beat the best persistent current-crop candidate
-- at 32 drones the rerolling finalist was slower than even synchronous production
-- do not promote a final Farm layout from this run because Sunflower placement is now being challenged independently
-
-This result set predates the benchmark-version header rule. Future runs must include `BENCHMARK VERSION ...` as their first output line.
-
 ## Pending sciencejiho lane benchmark (2026-09-19)
 
 `bench_persist.py` now includes `science-async-lanes`, an architecture-only port of sciencejiho's current-memory-safe scheduler: copied one-column jobs, controller-owned lane state, `has_finished()` collection, immediate relaunch, and one controller lane doing useful work. Existing crop servicing/layouts are unchanged so the test isolates worker lifecycle. Benchmark runner version: `persist-v2`. Results are not yet measured.
-
-
-## Flekay seven-petal Sunflower ablation
-
-Farm-only follow-up after reviewing `Flekay/The-Farmer-Was-Replaced`.
-
-The next `bench_poly_run.py` suite is `farmx-v3`.
-
-New current-farm candidates:
-
-```text
-current-one-seven-stride
-current-one-seven-chunks
-current-one-seven-pairs
-```
-
-These keep the existing persistent crop architectures unchanged and replace the dedicated Sunflower worker with a source-near equal-petal strategy:
-
-1. dedicate one full 32-tile column to Sunflowers
-2. reroll each Sunflower until it has exactly 7 petals
-3. rejected rolls are destroyed with `harvest()` and immediately replanted
-4. only the accepted 7-petal roll is watered
-5. during steady state, mature Sunflowers are harvested and immediately rerolled back to 7 petals
-
-Because all 32 dedicated Sunflowers are fixed to the same petal count, every mature Sunflower is tied for the global maximum and there are more than the required 10 Sunflowers for the max-petal bonus.
-
-Why this belongs in `farmx`:
-
-- initial reroll setup is intentionally expensive
-- steady-state service is much simpler than maintaining a max-petal list
-- `cold-short`, `cold-medium`, and `sustained` directly expose the amortization crossover
-- stride/chunks/pairs isolates whether worker architecture changes the result
-
-Relevant commits:
-
-- `1eadbaa5cf42db6dfdd6e34b0dfad7c8e3422f08` initial seven-petal worker
-- `63638f712ba989786ee072b4e4b97edc225683cf` FarmX modes
-- `e4e838c1829afe241b2e9c602c7497c3df0d73fb` `farmx-v3` runner
-- `25ec285ed0736a17db73e7d94a10d265ec7a235f` source-near reroll correction: do not water rejected rolls
-
-Do not change production `farm.py` from this benchmark alone. First compare the seven-petal modes against the existing one-max and two-dumb Sunflower layouts in both partial and max Megafarm profiles.
-
-
-## FarmX max-crop focus modes
-
-`farmx-v4` adds three pure max-Megafarm throughput scenarios in addition to the mixed Carrot -> Hay -> Wood -> Carrot sequence:
-
-```text
-max-carrot
-max-grass
-max-wood
-```
-
-Targets are aligned with the broad `bench_farm` max-Megafarm baseline:
-
-```text
-max-carrot 10M total Carrot gain
-max-grass  10M Hay gain
-max-wood   20M Wood gain
-```
-
-Carrot is internally split into the two existing Carrot phases, so `BENCH_CARROT_GAIN=5M` produces 10M total Carrot.
-
-Each max-crop scenario:
-
-1. runs only with the fully unlocked/max-Megafarm profile
-2. screens all FarmX modes with seed 1
-3. selects the best current mode and best poly mode for that crop
-4. compares `sync-selected`, best current, and best poly across seeds 1/2/3
-
-This isolates pure crop throughput from transition performance and allows the winning architecture/layout to differ for Grass, Wood, and Carrot.
-
-Relevant commits:
-
-- `ab4f1fb8e47edee8e567632bc7aacea7e0f8e887` scenario labels in `bench_poly.py`
-- `b38fd2bd47c58a1211be8e59209c584f8cc96207` `farmx-v4` max-crop focus runner
-
 
 ## FarmX v4 measured results
 
@@ -322,3 +170,7 @@ Next missing persistent layouts:
 Both already exist in `bench_persist.py` and were strong in the older broad `bench_farm` baseline, but `bench_poly` did not expose them. They must be compared before finalizing per-crop production layouts.
 
 Because max-Grass still has high seed variance at the 10M target, the next pure-focus validation should use a longer sustained target rather than interpreting the v4 Grass average as final.
+
+## Benchmark record
+
+Measured Farm and Sunflower results are maintained in `bench/farm.md`. Keep only durable strategy decisions and open research questions in this memory file.
