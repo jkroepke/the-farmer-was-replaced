@@ -508,3 +508,45 @@ instead of extrapolating the new spawn topology beyond its benchmark evidence.
 
 The dedicated `lb_cactus.py` automatically uses the new production path on
 the full 32x32 leaderboard setup because it calls `cactus.run()`.
+
+
+-----
+
+## cactus-v3 leaderboard-profile correction 2026-09-19
+
+Benchmark source commit:
+
+`05ee0dbd2ff6483dec93c1707a0e957b25185c5f`
+
+The v3 `CACTUS TARGET COLD` matrix was a valid one-cycle algorithm
+comparison, but its simulation profile supplied 1,000,000,000 Water. The real
+Cactus leaderboard run later emitted repeated `use_item(Items.Water)`
+warnings, so v3 must not be described as an exact leaderboard-resource model.
+
+The user confirmed that the leaderboard supplies the Cactus planting input
+(Pumpkin) in effectively unlimited quantity. The dedicated leaderboard path
+can therefore remove Main-Run affordability and optional-Water logic.
+
+The v3 three-cycle Main-Run comparison remains valid for its documented
+oversized-resource setup. Only the exact-LB interpretation is corrected.
+
+## cactus-v4 pending exact-LB comparison
+
+The v4 default runner intentionally avoids the known noisy/rejected reference
+smokes and runs only:
+
+| Matrix | World | Drones | Cycles | Simulation items |
+| --- | ---: | ---: | ---: | --- |
+| `CACTUS LB EXACT` | 32 | 32 | 1 | Pumpkin=1e9, Power=1e9 |
+| `CACTUS MAIN FINALISTS` | 32 | 32 | 3 | prior oversized Main profile |
+
+`CACTUS LB EXACT` candidates:
+
+| Mode | Purpose |
+| --- | --- |
+| `current-production` | generic Main-Run control |
+| `adaptive-flekay-powers` | generic powers-of-two control |
+| `lb-powers-specialized` | fixed LB-only implementation without Water/resource/repair checks |
+
+The specialized LB implementation must still produce exactly 33,554,432
+Cactus for every seed before it is considered valid.

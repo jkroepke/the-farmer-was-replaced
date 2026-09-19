@@ -289,7 +289,9 @@ def _batched_row_job(
             ):
                 return False
 
-            if num_items(Items.Water) > 0:
+            # Leave a full-wave reserve before optional parallel watering.
+            # This avoids many workers observing the same final Water item.
+            if num_items(Items.Water) >= max_drones():
                 use_item(
                     Items.Water
                 )

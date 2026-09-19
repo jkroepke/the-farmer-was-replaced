@@ -1,4 +1,5 @@
 import cactus
+import lb_cactus
 import utils
 
 
@@ -15,7 +16,8 @@ MODE_NAMES = [
     "persistent-mateus",
     "adaptive-binary-spawn",
     "adaptive-flekay-powers",
-    "current-production-fresh"
+    "current-production-fresh",
+    "lb-powers-specialized"
 ]
 
 
@@ -899,7 +901,9 @@ def _batched_row_job(y, size, reroll, wait_ready):
             if not plant(Entities.Cactus):
                 return False
 
-            use_item(Items.Water)
+            if num_items(Items.Water) >= max_drones():
+                use_item(Items.Water)
+
             level = measure()
             values[x] = level
 
@@ -1365,6 +1369,9 @@ def run_cycle(mode, cycle):
         return cactus.run(
             True
         )
+
+    if mode == 13:
+        return lb_cactus.run()
 
     return False
 

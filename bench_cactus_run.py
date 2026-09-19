@@ -1,7 +1,7 @@
 import main
 
 
-BENCH_VERSION = "cactus-v3"
+BENCH_VERSION = "cactus-v4"
 
 BENCH_WORLD_SIZE = 32
 BENCH_CYCLES = 3
@@ -26,7 +26,8 @@ MODE_NAMES = [
     "persistent-mateus",
     "adaptive-binary-spawn",
     "adaptive-flekay-powers",
-    "current-production-fresh"
+    "current-production-fresh",
+    "lb-powers-specialized"
 ]
 
 # Follow-up finalists. The source-near Tstambaugh mode proved competitive,
@@ -37,25 +38,23 @@ CANDIDATE_MODES = [
     11
 ]
 
-# One cold 32x32 cycle is decisive for Leaderboards.Cactus because one valid
-# full-chain harvest produces the exact 33,554,432-Cactus target.
-TARGET_MODES = [
+LB_MODES = [
     0,
-    5,
-    7,
-    8,
-    10,
     11,
-    12
-]
-
-REFERENCE_MODES = [
-    6,
-    9
+    13
 ]
 
 
-def simulation_items(cactus_amount):
+def simulation_items(
+    cactus_amount,
+    profile
+):
+    if profile == 1:
+        return {
+            Items.Pumpkin: 1000000000,
+            Items.Power: 1000000000
+        }
+
     return {
         Items.Hay: 1000000000,
         Items.Wood: 1000000000,
@@ -95,7 +94,8 @@ def run_one(
     world_size,
     cycles,
     megafarm_level,
-    cactus_amount
+    cactus_amount,
+    profile
 ):
     globals = {
         "BENCH_MODE": mode,
@@ -109,7 +109,8 @@ def run_one(
             megafarm_level
         ),
         simulation_items(
-            cactus_amount
+            cactus_amount,
+            profile
         ),
         globals,
         seed,
@@ -124,7 +125,8 @@ def benchmark_modes(
     world_size,
     cycles,
     megafarm_level,
-    cactus_amount
+    cactus_amount,
+    profile
 ):
     totals = []
     minimums = []
@@ -165,7 +167,8 @@ def benchmark_modes(
                 world_size,
                 cycles,
                 megafarm_level,
-                cactus_amount
+                cactus_amount,
+                profile
             )
 
             totals[
@@ -248,68 +251,25 @@ def run_benchmarks():
     )
 
     benchmark_modes(
-        "CACTUS TARGET COLD",
-        TARGET_MODES,
+        "CACTUS LB EXACT",
+        LB_MODES,
         BENCH_SEEDS,
         BENCH_WORLD_SIZE,
         1,
         -1,
-        0
+        0,
+        1
     )
 
     benchmark_modes(
-        "CACTUS FINALISTS",
+        "CACTUS MAIN FINALISTS",
         CANDIDATE_MODES,
         BENCH_SEEDS,
         BENCH_WORLD_SIZE,
         BENCH_CYCLES,
         -1,
-        1000000000
-    )
-
-    benchmark_modes(
-        "CACTUS REFERENCE SMOKE",
-        REFERENCE_MODES,
-        [1],
-        BENCH_WORLD_SIZE,
-        1,
-        -1,
-        1000000000
-    )
-
-    # Generalization smoke tests:
-    # - smaller worlds with max available drones
-    # - 32x32 with fewer drones so each persistent worker owns
-    #   multiple rows/columns through index += worker_count
-    for world_size in [
-        6,
-        16
-    ]:
-        benchmark_modes(
-            "CACTUS SIZE SMOKE",
-            [
-                2,
-                8
-            ],
-            [1],
-            world_size,
-            1,
-            -1,
-            1000000000
-        )
-
-    benchmark_modes(
-        "CACTUS DRONE SMOKE",
-        [
-            4,
-            7,
-            8
-        ],
-        [1],
-        BENCH_WORLD_SIZE,
-        1,
-        3,
-        1000000000
+        1000000000,
+        0
     )
 
     quick_print(

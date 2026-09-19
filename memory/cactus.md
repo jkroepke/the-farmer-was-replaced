@@ -125,3 +125,22 @@ Measured Cactus comparisons, worker experiments, and leaderboard benchmark histo
 | --- | --- | --- |
 | Conclusion | Use the powers-of-two distributed spawn topology only for the measured 32x32 case with at least 32 drones. Keep the placed/batched architecture for smaller worlds or fewer drones. | `bench/cactus.md`, `cactus-v3`. |
 | Open question | Test fertilizer as an explicit Cactus benchmark axis before changing production behavior. | Durable research note retained during the 2026-09-19 documentation consolidation. |
+
+
+## Dedicated leaderboard path
+
+The Cactus leaderboard is now treated as a separate fixed workload from Main
+production. The real leaderboard run exposed repeated Water warnings in the
+generic path, while the leaderboard supplies the Cactus planting input in bulk.
+
+Durable decision:
+
+- keep `cactus.py` generic and resource-safe for Main Run
+- keep `lb_cactus.py` fixed to the 32x32 / 32-drone leaderboard contract
+- do not use Water/Fertilizer in the LB hot path
+- omit Main-Run affordability/entity/repair/generalization checks in LB code
+- use `cactus-v4` with the no-Water LB profile before further LB promotion
+
+The earlier v3 cold matrix had oversized Water and must not be treated as an
+exact leaderboard-resource benchmark. Measurements and correction history are
+in `bench/cactus.md`.
