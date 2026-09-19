@@ -1550,15 +1550,41 @@ def run_hilbert_path_only():
 
 
 def move_to_origin_normal():
-    while get_pos_x() > 0:
-        move(
-            West
-        )
+    world_size = get_world_size()
 
-    while get_pos_y() > 0:
-        move(
-            South
-        )
+    x = get_pos_x()
+
+    if x <= world_size - x:
+        for _ in range(
+            x
+        ):
+            move(
+                West
+            )
+    else:
+        for _ in range(
+            world_size - x
+        ):
+            move(
+                East
+            )
+
+    y = get_pos_y()
+
+    if y <= world_size - y:
+        for _ in range(
+            y
+        ):
+            move(
+                South
+            )
+    else:
+        for _ in range(
+            world_size - y
+        ):
+            move(
+                North
+            )
 
 
 def prep_tile(
@@ -2249,6 +2275,28 @@ def main():
             return
 
         harvest_tail()
+
+        # A 32x32 target of board-1 with max Dinosaur upgrades is
+        # exactly the real Dinosaur leaderboard success condition.
+        if (
+            BENCH_WORLD_SIZE == 32
+            and BENCH_TARGET_PERCENT == 100
+            and num_items(Items.Bone) < 33488928
+        ):
+            quick_print(
+                "DINOSAUR BENCH INVALID",
+                "leaderboard-bones",
+                BENCH_MODE,
+                "setup",
+                BENCH_SETUP_MODE,
+                "bones",
+                num_items(Items.Bone),
+                "required",
+                33488928
+            )
+
+            return
+
         completed_cycles += 1
 
     elapsed_ticks = (
