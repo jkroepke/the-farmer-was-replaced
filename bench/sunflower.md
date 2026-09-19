@@ -1,10 +1,38 @@
-# Sunflower benchmarks
+# Benchmark: Sunflower
 
-This file is the canonical home for measured Sunflower leaderboard benchmark results.
+## Scope
 
-## Run: interrupted sunflower-v1
+| Field | Value |
+| --- | --- |
+| Topic | Sunflower |
+| Purpose | Compare finite 32x32 Sunflower leaderboard algorithms to reach the Power target while preserving ordering correctness. |
+| Implementation | `sunflower_lb.py`, `bench_sunflower.py` |
+| Runner | `bench_sunflower_run.py` |
+| Primary metric | Elapsed time and ticks to the Power target. |
+| Success condition | Terminate with `num_items(Items.Power) >= 100000`; candidate must report `valid True`. |
 
-### Provenance
+## Benchmark index
+
+| Run / version | Source commit | Profile | Status |
+| --- | --- | --- | --- |
+| `sunflower-v1` | `6a34d906f5ee5cb2902fa891fe268cbff0e1b151` | 32x32 / seed 1 partial output | Interrupted; historical |
+| `sunflower-v2-bounded7` | `689c8e20a44f6d24a46521ba1130360c5b5acbc5` | Bounded seven-petal scan | Pending full run |
+
+## Results
+
+### interrupted sunflower-v1
+
+#### Provenance
+
+| Field | Value |
+| --- | --- |
+| Source commit | `6a34d906f5ee5cb2902fa891fe268cbff0e1b151` |
+| Benchmark/version | `sunflower-v1` |
+| Requested speedup | Not recorded |
+| Seeds | See recorded setup |
+| Canonical status | Source state recorded |
+
+#### Measurements and observations
 
 | Field | Value |
 | --- | --- |
@@ -18,7 +46,22 @@ This file is the canonical home for measured Sunflower leaderboard benchmark res
 
 The source commit above is the final code-state commit that defines the exact `sunflower-v1` screen shown by the recorded output. The later `87f80fe175f81ae0fd43d5bcb99240f25676832d` commit changed documentation only.
 
-## Interrupted sunflower-v1 result and root cause
+
+-----
+
+### Interrupted sunflower-v1 result and root cause
+
+#### Provenance
+
+| Field | Value |
+| --- | --- |
+| Source commit | **Unknown / not recorded** |
+| Benchmark/version | `sunflower-v1`, `sunflower-v2-bounded7` |
+| Requested speedup | Not recorded |
+| Seeds | See recorded setup |
+| Canonical status | Historical/non-canonical until rerun from a committed state |
+
+#### Measurements and observations
 
 The first supplied `sunflower-v1` run reached these seed-1 results before
 stalling in the old `scan-tree-leave7` mode:
@@ -58,7 +101,22 @@ summary without marking their provenance.
 
 -----
 
-## Next run: sunflower-v2-bounded7
+
+-----
+
+### sunflower-v2-bounded7
+
+#### Provenance
+
+| Field | Value |
+| --- | --- |
+| Source commit | **Unknown / not recorded** |
+| Benchmark/version | `sunflower-v2-bounded7` |
+| Requested speedup | Not recorded |
+| Seeds | 1 |
+| Canonical status | Historical/non-canonical until rerun from a committed state |
+
+#### Measurements and observations
 
 | Field | Value |
 | --- | --- |
@@ -68,13 +126,13 @@ summary without marking their provenance.
 | Status | Partial preview available; full three-seed run still in progress. |
 
 
-### Preview results
+#### Preview results
 
 Status: **partial**. Seed 1 completed all seven modes. Seed 2 is currently
 complete through `tier-linear-no-care`; the run is still executing
 `scan-tree-bounded7`.
 
-#### Seed 1
+##### Seed 1
 
 | Mode | Time | Ticks | Final Power | Valid |
 | --- | ---: | ---: | ---: | --- |
@@ -99,7 +157,7 @@ The scan family therefore has a strong first-seed lead, and the binary-tree
 spawn topology also remains beneficial inside the scan algorithm. This is only
 a preview; no winner should be promoted until all three seeds finish.
 
-#### Seed 2 partial
+##### Seed 2 partial
 
 | Mode | Time | Ticks | Final Power | Valid |
 | --- | ---: | ---: | ---: | --- |
@@ -112,3 +170,22 @@ The non-scan controls are very stable between seeds 1 and 2, which makes the
 large seed-1 scan improvement especially worth validating across the remaining
 results.
 
+## Interpretation
+
+| Kind | Statement | Evidence |
+| --- | --- | --- |
+| Open question | No separate interpretation section was present in the migrated record. | Review result groups and Notes. |
+
+## Reproduction
+
+| Step | Action |
+| ---: | --- |
+| 1 | Check out the source commit listed for the result group. |
+| 2 | Run the matching benchmark runner from Scope. |
+| 3 | Preserve complete output and update this file without changing historical values. |
+
+## Notes
+
+| Kind | Detail |
+| --- | --- |
+| Note | No additional notes. |
