@@ -23,7 +23,7 @@ The historical 8/16/32 benchmarks established `reference-tree-rebalancing` as th
 - `zapakh-32x4x4`: 32 independent 4x4 Mazes using zapakh's ranked iterative DFS
 - `steam-32x4x4`: 32 independent 4x4 Mazes using the January 2026 route/map/path community algorithm
 
-The default target is 200000 Gold, seeds 1/2/3, speedup 64. Results are pending an in-game run.
+The default target is 200000 Gold, seeds 1/2/3, speedup 64. The full suite has now been measured; see the final benchmark section below.
 
 - `simulate()` uses an isolated copy of the inventory. Gold earned by a benchmark does not change the real farm inventory, and `simulate()` returns only runtime.
 - Special Maze modes print `MAZE SPECIAL RESULT <mode> gold gained <value> target <target> PASS|FAIL` inside the simulation so target completion can be verified independently from runtime.
@@ -56,19 +56,31 @@ The root worker is the fixed Maze creator. After the final Treasure is harvested
   - archived as provenance under `external/steam-32x4x4/`
 - Existing local references remain relevant, especially `external/msmith93-thefarmerwasreplaced/source/multidrone/maze_leaderboard.py` and the prior Pastebin tree-rebalancing reference.
 
-## Partial 200000-Gold results
+## Final 200000-Gold benchmark
 
-Tested against benchmark code commit `64c5f4bc4a8407303caac6a675d6f4709846bf2f`, seed 1:
+Tested against code commit `55734c855dd464dd846deef280d8a65d9f2c3bf7`, seeds 1/2/3, speedup 64. All runs passed the internal Gold assertion.
 
-| Mode | Runtime | Gold | Status |
-| --- | ---: | ---: | --- |
-| current-reference-32 | 121.29 | 229376 | PASS |
-| cover-3x3 | 35.27 | 200160 | PASS |
-| cover-4x4 | 28.20 | 200192 | PASS |
-| cover-2x4x4 | 22.54 | 200192 | PASS |
-| zapakh-32x4x4 | n/a | n/a | HUNG |
+| Mode | Average runtime | Min | Max |
+| --- | ---: | ---: | ---: |
+| current-reference-32 | 122.63 | 117.42 | 129.17 |
+| cover-3x3 | 33.44 | 31.84 | 35.27 |
+| cover-4x4 | 28.20 | 28.12 | 28.28 |
+| cover-2x4x4 | 21.68 | 21.09 | 22.54 |
+| zapakh-32x4x4 | 13.51 | 13.27 | 13.87 |
+| steam-32x4x4 | 22.07 | 22.03 | 22.11 |
 
-The zapakh result is invalid. Investigation found that the small-Maze DFS used non-wrapped neighbor coordinates even though the 32x4x4 layout includes Mazes near the toroidal world edge. It also ignored failed Treasure relocation at the reuse cap. Both are fixed in `c9403d86561fa80e28efce42cf97b2c9571d815d`.
+Raw runtime-to-target: zapakh is 9.08x faster than current-reference-32.
+
+Because Gold overshoot differs by mode, also compare normalized runtime per exactly 200000 Gold:
+
+- current-reference-32: 106.92
+- cover-3x3: 33.41
+- cover-4x4: 28.17
+- cover-2x4x4: 21.66
+- zapakh-32x4x4: 12.76
+- steam-32x4x4: 21.48
+
+Gold-normalized result: zapakh is 8.38x faster than the current reference and is the current production candidate for 32x32 / 32-drone Gold farming.
 
 ## 32x4x4 launcher barrier
 
