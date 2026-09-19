@@ -106,6 +106,10 @@ Keep the existing modular design.
 - `bench_reset_run.py`: empty-state reset simulations, seeds, watchdog, and aggregation.
 - `bench_maze.py`: all Maze benchmark implementations/modes.
 - `bench_maze_run.py`: Maze simulation matrix and benchmark orchestration.
+- `bench_spawn.py`: drone spawn/locality/topology benchmark implementations.
+- `bench_spawn_run.py`: spawn topology benchmark orchestration.
+- `bench_move.py`: wrapped movement implementation benchmark modes.
+- `bench_move_run.py`: cold/warm 32x32 movement benchmark orchestration.
 - `bench_dinosaur.py`: Dinosaur benchmark implementations/modes.
 - `bench_dinosaur_run.py`: Dinosaur simulation matrix and benchmark orchestration.
 - `docs/NORMAL_FARM.md`: canonical Hay/Wood/Carrot, Sunflower/Power, worker-layout, and benchmark notes.
