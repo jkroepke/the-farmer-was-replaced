@@ -309,6 +309,8 @@ The runner requires a 32x32 world and 32 available drones. Every mode starts wit
 
 The coverage modes deliberately distribute drones by traversing the actual freshly-created Maze rather than assuming which absolute world coordinates a small Maze occupies.
 
+Coverage workers detect the 300-relocation limit from a failed Weird-Substance `use_item()` call. `measure()` continues to return the Treasure position at the cap, so it must not be used as the cap signal. The Treasure is then harvested and the fixed-root creator recreates the small Maze.
+
 ### zapakh Gist reference
 
 Source:
@@ -339,7 +341,7 @@ Results are intentionally pending until this amount-based suite is run in-game. 
 
 The suite runs through `simulate()`. Gold earned inside a simulation is isolated from the real farm inventory; only the runtime is returned to the caller. Every special mode therefore prints an internal `MAZE SPECIAL RESULT` line with Gold gained, target, and PASS/FAIL before the simulation exits.
 
-Benchmark implementation commit: `600b4e061deaa6b2b64a7282289a07337330b5a3`
+Benchmark implementation commit: `64c5f4bc4a8407303caac6a675d6f4709846bf2`
 
 ---
 
