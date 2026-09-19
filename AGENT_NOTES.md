@@ -18,6 +18,7 @@ The automation is split into modules:
 - `bench_maze_run.py` — Maze simulation matrix, seeds, `simulate()` calls, and result aggregation
 - `bench_dinosaur.py` — Dinosaur benchmark implementations/modes
 - `bench_dinosaur_run.py` — Dinosaur simulation matrix, seeds, `simulate()` calls, and aggregation
+- `docs/PUMPKIN.md` — canonical Pumpkin strategy, references, and multi-drone optimization notes
 - `docs/MAZE.md` — canonical Maze design, benchmark results, and optimization notes
 
 Always use `import module`, not `from module import ...`.
