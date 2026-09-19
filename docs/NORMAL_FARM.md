@@ -1042,3 +1042,44 @@ persist-v2
 ```
 
 No performance conclusion is recorded until an in-game/simulation run is supplied.
+
+
+## Flekay seven-petal Sunflower ablation
+
+Farm-only follow-up after reviewing `Flekay/The-Farmer-Was-Replaced`.
+
+The next `bench_poly_run.py` suite is `farmx-v3`.
+
+New current-farm candidates:
+
+```text
+current-one-seven-stride
+current-one-seven-chunks
+current-one-seven-pairs
+```
+
+These keep the existing persistent crop architectures unchanged and replace the dedicated Sunflower worker with a source-near equal-petal strategy:
+
+1. dedicate one full 32-tile column to Sunflowers
+2. reroll each Sunflower until it has exactly 7 petals
+3. rejected rolls are destroyed with `harvest()` and immediately replanted
+4. only the accepted 7-petal roll is watered
+5. during steady state, mature Sunflowers are harvested and immediately rerolled back to 7 petals
+
+Because all 32 dedicated Sunflowers are fixed to the same petal count, every mature Sunflower is tied for the global maximum and there are more than the required 10 Sunflowers for the max-petal bonus.
+
+Why this belongs in `farmx`:
+
+- initial reroll setup is intentionally expensive
+- steady-state service is much simpler than maintaining a max-petal list
+- `cold-short`, `cold-medium`, and `sustained` directly expose the amortization crossover
+- stride/chunks/pairs isolates whether worker architecture changes the result
+
+Relevant commits:
+
+- `1eadbaa5cf42db6dfdd6e34b0dfad7c8e3422f08` initial seven-petal worker
+- `63638f712ba989786ee072b4e4b97edc225683cf` FarmX modes
+- `e4e838c1829afe241b2e9c602c7497c3df0d73fb` `farmx-v3` runner
+- `25ec285ed0736a17db73e7d94a10d265ec7a235f` source-near reroll correction: do not water rejected rolls
+
+Do not change production `farm.py` from this benchmark alone. First compare the seven-petal modes against the existing one-max and two-dumb Sunflower layouts in both partial and max Megafarm profiles.
