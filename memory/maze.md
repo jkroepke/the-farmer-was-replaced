@@ -28,7 +28,7 @@ The default target is 200000 Gold, seeds 1/2/3, speedup 64. Results are pending 
 - `simulate()` uses an isolated copy of the inventory. Gold earned by a benchmark does not change the real farm inventory, and `simulate()` returns only runtime.
 - Special Maze modes print `MAZE SPECIAL RESULT <mode> gold gained <value> target <target> PASS|FAIL` inside the simulation so target completion can be verified independently from runtime.
 
-Current benchmark implementation commit: `c9403d86561fa80e28efce42cf97b2c9571d815d`.
+Current benchmark implementation commit: `55734c855dd464dd846deef280d8a65d9f2c3bf7`.
 
 ## Stationary coverage design
 
@@ -69,6 +69,24 @@ Tested against benchmark code commit `64c5f4bc4a8407303caac6a675d6f4709846bf2f`,
 | zapakh-32x4x4 | n/a | n/a | HUNG |
 
 The zapakh result is invalid. Investigation found that the small-Maze DFS used non-wrapped neighbor coordinates even though the 32x4x4 layout includes Mazes near the toroidal world edge. It also ignored failed Treasure relocation at the reuse cap. Both are fixed in `c9403d86561fa80e28efce42cf97b2c9571d815d`.
+
+## 32x4x4 launcher barrier
+
+A screenshot from the in-game benchmark showed mode 10 stalled with drones distributed but no 4x4 Mazes created. This proved the hang occurred before the zapakh DFS.
+
+Root cause: the launcher used a change in `num_items(Items.Water)` as a start signal. `use_item(Items.Water)` is not a guaranteed inventory-changing action on an arbitrary tile, so all workers can wait forever if the parent's Water use fails.
+
+Current design:
+
+- each child moves to its assigned 4x4 origin
+- each child plants a Bush and waits without creating a Maze
+- the parent visits all 31 child origins and waits until the Bush is visible
+- after all 31 are confirmed, the parent moves to the 32nd origin
+- the parent creates its own 4x4 Maze; the guaranteed Weird-Substance consumption is the shared start signal
+- children then turn their already-planted Bushes into 4x4 Mazes
+- the runner prints `ZAPAKH READY 31` / `STEAM READY 31` after the readiness scan
+
+This avoids both the failed-Water deadlock and the earlier risk of creating Mazes while other workers are still moving through the open field.
 
 ## Open questions
 
