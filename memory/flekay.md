@@ -217,13 +217,72 @@ map_inline setup 15 ticks / 12 ticks per benchmark
 
 Physical movement still dominates at 200 ticks per successful move, so this is lower priority. It may matter only in extremely repeated persistent-worker scans or non-moving computation-heavy traversal logic.
 
+## Current benchmark implementation status
+
+### spawn-v5 ready
+
+`bench_spawn.py` / `bench_spawn_run.py` now contain a topology-only shootout
+using the same `CURRENT_ORIGINS` target set and the same root/parent target
+(`CURRENT_ORIGINS[0]`) for every candidate:
+
+- serial control: `origin00-parent-near`
+- dual-spawner
+- Flekay precomputed powers-of-two fan-out
+- Jarvan dynamic powers-of-two fan-out
+- local balanced binary tree
+
+This deliberately excludes `binary-tree-nearest-origin00` from the topology
+comparison because that mode changes both topology and target geometry.
+
+Benchmark version: `spawn-v5`
+Requested speedup: `10000`
+Benchmark code state: `cba75a7c26fd11da30408c8706deb8d8bf09d66a`.
+
+### move-v2 ready
+
+New files:
+
+- `bench_move.py`
+- `bench_move_run.py`
+
+32x32 movement modes:
+
+- current `utils.move_to()` arithmetic control
+- static signed-delta table
+- static direction/count table
+- runtime-built dict lookup
+- runtime-built list lookup
+- static delta table while carrying known current coordinates, avoiding
+  `get_pos_x()/get_pos_y()` in the hot route loop
+
+Cold counts:
+
+- 1
+- 10
+- 100 targets
+
+Warm counts:
+
+- 10
+- 100
+- 1000 targets
+
+For warm comparisons, use the internal `run ticks` from `MOVE RESULT`.
+The outer `simulate()` time still includes table setup because every
+simulation starts from a fresh file execution.
+
+Benchmark version: `move-v2`
+Requested speedup: `10000`
+Benchmark code state: `f309a1a6ab4423d22f9be26e41539ee8eed3aa21`.
+
 ## Priority order
 
-Recommended order for new local work:
+Recommended next work after measuring the two ready suites:
 
-1. exact Maze `maze-v3` binary-tree validation already queued
-2. spawn topology shootout: binary vs Flekay powers-of-two vs dual-spawner
-3. wrapped movement cold/warm benchmark at 32x32
+1. run `spawn-v5`
+2. run `move-v2`
+3. continue exact Maze leaderboard work (currently `maze-v5`, including the
+   Flekay stationary 5x5 family)
 4. Maze shared-flow-field / incremental-repair ablation
 5. Sunflower 7-petal simplification benchmark
 6. multi-target routing break-even by target count
