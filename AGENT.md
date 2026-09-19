@@ -76,6 +76,7 @@ Keep the existing modular design.
 - `bench_maze_run.py`: Maze simulation matrix and benchmark orchestration.
 - `bench_dinosaur.py`: Dinosaur benchmark implementations/modes.
 - `bench_dinosaur_run.py`: Dinosaur simulation matrix and benchmark orchestration.
+- `docs/PUMPKIN.md`: canonical Pumpkin mechanics, multi-drone strategy, references, and optimization notes.
 - `docs/MAZE.md`: canonical Maze mechanics, production design, benchmark data, and optimization notes.
 - `docs/DINOSAUR.md`: canonical Dinosaur mechanics, external strategy research, and optimization/benchmark plan.
 
