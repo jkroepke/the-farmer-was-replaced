@@ -3,18 +3,28 @@ import main
 
 # Normal-farm benchmark suite.
 #
-# Crop cases use fixed inventory gains, so simulate() runtime is directly
-# comparable within one focus/profile. bench_farm.py also prints actual gain,
-# rate, max_drones(), and Power delta for each simulation.
+# This runner intentionally uses two levels:
 #
-# Targets are 1% of the current 32-drone resource leaderboard goals:
+# 1. Finalist matrix:
+#    only candidates still competitive after the first 3-seed Hay run.
 #
-# Hay     2,000,000,000 -> 20,000,000
-# Wood   10,000,000,000 -> 100,000,000
-# Carrot  2,000,000,000 -> 20,000,000
+# 2. Reference smoke tests:
+#    source-near implementations remain unchanged, but use smaller targets
+#    so a deliberately old/single-drone reference cannot dominate suite time.
 #
-# Power uses the full 100,000 leaderboard-sized gain because the dedicated
-# Power references are fast enough and startup effects should be amortized.
+# First screening result (32x32, 8 drones, Hay):
+#
+# current-l-no-polyculture:
+#   avg 298.71 s
+#
+# columns-one-sunflower-column-simple-crop:
+#   avg 436.96 s
+#
+# competitive modes:
+#   about 29.6 .. 44.6 s
+#
+# Modes 1 and 7 therefore stay implemented in bench_farm.py for historical
+# reproducibility, but are removed from the expensive full matrix.
 
 
 BENCH_WORLD_SIZE = 32
@@ -25,10 +35,12 @@ BENCH_FOCUSES = [
     2
 ]
 
+# Long enough to amortize setup, but much smaller than the original
+# 20M / 100M / 20M screening targets.
 BENCH_TARGET_GAINS = [
+    10000000,
     20000000,
-    100000000,
-    20000000
+    10000000
 ]
 
 BENCH_SEEDS = [
@@ -39,38 +51,33 @@ BENCH_SEEDS = [
 
 BENCH_SPEEDUP = 64
 
-# profile 0 deliberately represents max_drones() < world_size.
-# Megafarm level 3 is used; bench_farm.py prints the actual max_drones()
-# so the result remains unambiguous if the game's level mapping changes.
-#
-# profile 1 uses fully upgraded Unlocks and should be 32 drones on 32x32.
 PROFILE_NAMES = [
     "partial-megafarm-level-3",
     "max-megafarm"
 ]
 
-CROP_MODES_PARTIAL = [
+# Finalists after the first full Hay screening.
+CROP_MODES = [
     0,
-    1,
     2,
     3,
     4,
     5,
-    6,
-    7
+    6
 ]
 
-CROP_MODES_MAX = [
-    0,
-    1,
-    2,
-    3,
-    4,
-    5,
-    6,
-    7,
+# Source-near crop reference. Keep it unchanged, but only smoke-test it.
+REFERENCE_CROP_MODES = [
     8
 ]
+
+REFERENCE_TARGET_GAINS = [
+    1000000,
+    2000000,
+    1000000
+]
+
+REFERENCE_SEED = 1
 
 POWER_MODES = [
     20,
@@ -79,7 +86,10 @@ POWER_MODES = [
     23
 ]
 
-POWER_TARGET_GAIN = 100000
+# 100k was unnecessary for first-pass discrimination.
+# 20k is still large enough to amortize setup while keeping all source
+# references practical to run for three seeds.
+POWER_TARGET_GAIN = 20000
 
 MODE_NAMES = [
     "current-l-production",
@@ -126,11 +136,6 @@ def simulation_unlocks(profile):
 
 
 def simulation_items():
-    # Large producer-input pools keep the benchmark focused on farming
-    # throughput instead of prerequisite acquisition.
-    #
-    # Power is intentionally small. Crop cases therefore reveal whether
-    # their integrated Sunflower layout can sustain the speed boost.
     return {
         Items.Hay: 1000000000,
         Items.Wood: 1000000000,
@@ -194,22 +199,14 @@ def run_one(
     )
 
 
-def modes_for_profile(profile):
-    if profile == 0:
-        return CROP_MODES_PARTIAL
-
-    return CROP_MODES_MAX
-
-
-def benchmark_crop_case(
+def benchmark_modes(
+    label,
+    modes,
     profile,
     focus,
-    target_gain
+    target_gain,
+    seeds
 ):
-    modes = modes_for_profile(
-        profile
-    )
-
     totals = []
     minimums = []
     maximums = []
@@ -220,7 +217,7 @@ def benchmark_crop_case(
         maximums.append(0)
 
     quick_print(
-        "FARM CASE",
+        label,
         PROFILE_NAMES[profile],
         "focus",
         focus,
@@ -228,7 +225,7 @@ def benchmark_crop_case(
         target_gain
     )
 
-    for seed in BENCH_SEEDS:
+    for seed in seeds:
         quick_print(
             "SEED",
             seed
@@ -280,7 +277,8 @@ def benchmark_crop_case(
             mode_index += 1
 
     quick_print(
-        "FARM SUMMARY",
+        label,
+        "SUMMARY",
         PROFILE_NAMES[profile],
         "focus",
         focus
@@ -288,7 +286,7 @@ def benchmark_crop_case(
 
     mode_index = 0
     seed_count = len(
-        BENCH_SEEDS
+        seeds
     )
 
     for mode in modes:
@@ -316,108 +314,69 @@ def benchmark_crop_case(
         mode_index += 1
 
 
-def benchmark_power_case():
-    profile = 1
+def benchmark_crop_finalists():
+    for profile in range(
+        len(PROFILE_NAMES)
+    ):
+        focus_index = 0
 
-    totals = []
-    minimums = []
-    maximums = []
+        for focus in BENCH_FOCUSES:
+            benchmark_modes(
+                "FARM FINAL",
+                CROP_MODES,
+                profile,
+                focus,
+                BENCH_TARGET_GAINS[
+                    focus_index
+                ],
+                BENCH_SEEDS
+            )
 
-    for _ in POWER_MODES:
-        totals.append(0)
-        minimums.append(-1)
-        maximums.append(0)
+            focus_index += 1
 
-    quick_print(
-        "POWER CASE",
-        PROFILE_NAMES[profile],
-        "target-gain",
-        POWER_TARGET_GAIN
-    )
 
-    for seed in BENCH_SEEDS:
-        quick_print(
-            "SEED",
-            seed
+def benchmark_crop_references():
+    seeds = [
+        REFERENCE_SEED
+    ]
+
+    focus_index = 0
+
+    for focus in BENCH_FOCUSES:
+        benchmark_modes(
+            "FARM REFERENCE SMOKE",
+            REFERENCE_CROP_MODES,
+            1,
+            focus,
+            REFERENCE_TARGET_GAINS[
+                focus_index
+            ],
+            seeds
         )
 
-        mode_index = 0
+        focus_index += 1
+
+
+def benchmark_power():
+    for seed in BENCH_SEEDS:
+        quick_print(
+            "POWER SEED",
+            seed
+        )
 
         for mode in POWER_MODES:
             run_time = run_one(
                 mode,
-                profile,
+                1,
                 3,
                 POWER_TARGET_GAIN,
                 seed
             )
 
-            totals[
-                mode_index
-            ] += run_time
-
-            if (
-                minimums[
-                    mode_index
-                ] < 0
-                or run_time
-                < minimums[
-                    mode_index
-                ]
-            ):
-                minimums[
-                    mode_index
-                ] = run_time
-
-            if (
-                run_time
-                > maximums[
-                    mode_index
-                ]
-            ):
-                maximums[
-                    mode_index
-                ] = run_time
-
             quick_print(
                 MODE_NAMES[mode],
                 run_time
             )
-
-            mode_index += 1
-
-    quick_print(
-        "POWER SUMMARY"
-    )
-
-    mode_index = 0
-    seed_count = len(
-        BENCH_SEEDS
-    )
-
-    for mode in POWER_MODES:
-        average = (
-            totals[
-                mode_index
-            ]
-            / seed_count
-        )
-
-        quick_print(
-            MODE_NAMES[mode],
-            "avg",
-            average,
-            "min",
-            minimums[
-                mode_index
-            ],
-            "max",
-            maximums[
-                mode_index
-            ]
-        )
-
-        mode_index += 1
 
 
 def run_benchmarks():
@@ -427,23 +386,17 @@ def run_benchmarks():
 
     run_clean_probe()
 
-    for profile in range(
-        len(PROFILE_NAMES)
-    ):
-        focus_index = 0
+    benchmark_crop_finalists()
 
-        for focus in BENCH_FOCUSES:
-            benchmark_crop_case(
-                profile,
-                focus,
-                BENCH_TARGET_GAINS[
-                    focus_index
-                ]
-            )
+    benchmark_crop_references()
 
-            focus_index += 1
+    quick_print(
+        "POWER FINAL",
+        "target-gain",
+        POWER_TARGET_GAIN
+    )
 
-    benchmark_power_case()
+    benchmark_power()
 
     quick_print(
         "FARM BENCH SUITE DONE"
