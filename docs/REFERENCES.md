@@ -35,6 +35,7 @@ Always validate assumptions against:
   - complete pinned snapshot and detailed review: `external/skysdottir-tfwr/`
 - https://github.com/nql1314/The-Farmer-Was-Replaced-AI-Code
   - broad implementation repository covering multiple mechanics; useful for alternative algorithms, data structures, and optimization ideas
+  - complete pinned snapshot and detailed review: `external/nql1314-the-farmer-was-replaced-ai-code/`
 - https://github.com/msmith93/thefarmerwasreplaced
   - broad main-branch reference covering single-drone leaderboards, Megafarm/multi-drone experiments, resource planners, and a simulator-backed Sunflowers_Single optimization series
   - complete pinned snapshot and detailed review: `external/msmith93-thefarmerwasreplaced/`
@@ -266,6 +267,7 @@ Prefer a complex algorithm when it measures faster, but never assume complexity 
 - `external/skysdottir-tfwr/` — complete 8-file source snapshot and Dinosaur analysis at `e15968982e957045c5239e580e2d040a9ac73a52`; source-near behavior is benchmarked locally
 - `external/ketrab2004-the-farmer-was-replaced/` — provenance and analysis at `cdbbcf32ca100237cdfc3b78783cee77722a96fd`; no redistribution license found
 - `external/msmith93-thefarmerwasreplaced/` — complete main-branch source snapshot at `7fef7c327e8d0b6ef34af2fafc3e5aeaf0b89823`; includes the Sunflowers_Single simulator/iteration series and multi-drone reference implementations
+- `external/nql1314-the-farmer-was-replaced-ai-code/` — complete 78-file source snapshot at `688325db004607563e59535a15ce94fad092ff9f`; detailed review distinguishes reusable algorithms from the historical shared-`wait_for()` exploit
 
 
 ### msmith93/thefarmerwasreplaced full_reset
