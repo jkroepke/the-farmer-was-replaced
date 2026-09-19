@@ -134,7 +134,7 @@ shared["priority"] = ...
 
 as invalid for current production code.
 
-Use `probe_drone_memory.py` / `probe_drone_memory_run.py` when re-validating the mechanic against a future game version. Probe runner commit: `058e4040733fb75715def99f1a7a036d8d254406`.
+Use `drone_mem_probe.py` / `drone_mem_run.py` when re-validating the mechanic against a future game version. Probe runner commit: `9aa2d72459e692033901e8de7569f54ae4d77af1`.
 
 The **persistent-worker idea itself** is still worth benchmarking. A long-lived drone can avoid repeated `spawn_drone()` cost, but any dynamic coordination must be redesigned around actual shared game state, independent worker decisions, or explicit task lifetimes rather than shared Python objects.
 
