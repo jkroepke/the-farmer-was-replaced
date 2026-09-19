@@ -28,55 +28,6 @@ DRONE MEMORY RESULT isolated
 
 This invalidates the historical shared mutable queue/list mechanism for the tested current runtime.
 
-## Expanded probe suite
-
-`drone_mem_probe.py` now tests the semantics independently:
-
-- global mutation isolation
-- mutable list arguments passed to spawned drones
-- nested mutable argument copying
-- closure-captured list isolation
-- normal worker return-value communication
-- repeated `wait_for(source)` calls in the parent
-- repeated `wait_for(source)` calls inside one worker
-- parent mutation -> worker visibility
-- worker mutation -> parent visibility
-- worker mutation -> later worker visibility
-- nested source-return isolation
-- the historical producer/consumer queue pattern
-
-The cross-worker tests are intentionally sequential. That removes scheduler races and makes any cumulative mutable state evidence much stronger.
-
-The parent/worker repeated-wait tests accept and report either `copy-per-wait` or `same-drone-alias` for calls made by the same drone. The critical invariant is cross-drone isolation.
-
-## Verified current-runtime result
-
-Executed in-game on 2026-09-19 via `drone_mem_run.py`.
-
-Simulation runtime reported: `1.5` seconds.
-
-Complete result:
-
-```text
-DRONE_MEMORY RUN START
-DRONE_MEMORY SUITE START
-DRONE_MEMORY global PASS worker-mutates-parent-stays-zero
-DRONE_MEMORY spawn-arg-list PASS copied
-DRONE_MEMORY spawn-arg-nested PASS deep-copied
-DRONE_MEMORY closure-list PASS isolated
-DRONE_MEMORY return-value PASS worker-to-caller
-DRONE_MEMORY source-parent-repeat PASS copy-per-wait
-DRONE_MEMORY source-worker-repeat PASS copy-per-wait
-DRONE_MEMORY source-parent-worker PASS parent-mutation-not-visible
-DRONE_MEMORY source-worker-parent PASS worker-mutation-not-visible
-DRONE_MEMORY source-worker-worker PASS historical-exploit-isolated
-DRONE_MEMORY source-nested PASS deep-isolation
-DRONE_MEMORY source-queue PASS historical-producer-consumer-isolated
-DRONE_MEMORY SUMMARY 12 12
-DRONE_MEMORY RESULT PASS
-DRONE_MEMORY RUN DONE 1.5
-```
-
 ## Confirmed semantics
 
 The 12/12 result establishes the following for the tested current runtime:
@@ -107,7 +58,6 @@ wait_for(completed_source) -> fresh copy per call, not a shared mutable referenc
 This directly disproves the historical nql1314 shared-`wait_for()` queue/list mechanism on the tested current runtime.
 
 Keep the probe suite as a regression test after future game updates. The result proves the tested mutable list/dict semantics; do not generalize it to every possible engine-internal value type without a dedicated probe.
-
 
 ## Spawn locality hypothesis 2026-09-19
 
@@ -140,3 +90,7 @@ Two benchmarkable forms:
 For spatial workloads such as Pumpkin columns or independent Maze blocks, the second topology is the stronger general hypothesis.
 
 Do not assume locality wins automatically: a parent move costs a physical action too, and sequential placement may lengthen the critical launch path. Measure cold start and amortized repeated-work throughput separately.
+
+## Benchmark record
+
+The probe matrix and measured current-runtime result are maintained in `bench/runtime.md`. This memory file keeps only the durable semantics derived from that run.
