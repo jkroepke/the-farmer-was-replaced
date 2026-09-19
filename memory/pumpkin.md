@@ -312,7 +312,7 @@ The one-cycle and three-cycle matrices now compare both variants against current
 
 Benchmark version:
 
-`pumpkin-v3-spawn-locality`
+`pumpkin-v4-spawn-locality`
 
 
 ## Measured ring benchmark baseline: pumpkin-v1
@@ -366,3 +366,18 @@ Do not promote it yet because the current repository benchmark is newer than the
 The supplied output begins with `BENCHMARK VERSION pumpkin-v1`; the current follow-up benchmark is `pumpkin-v3-spawn-locality`.
 
 The next production decision must compare the v1 winner against those locality variants under the same three-cycle amortized matrix.
+
+
+## Simulation speedup policy 2026-09-19
+
+The active Pumpkin benchmark uses:
+
+`BENCH_SPEEDUP = 10000`
+
+This is an execution acceleration for `simulate()`; benchmark comparisons continue to use the simulation's returned elapsed time and in-simulation tick counters.
+
+The high speedup is intentional so multi-seed and multi-cycle matrices finish much faster in wall-clock time. The game documentation notes that simulations may run below the requested speedup when computation, busy loops, or multiple drones become the limiting factor.
+
+Benchmark version:
+
+`pumpkin-v4-spawn-locality`

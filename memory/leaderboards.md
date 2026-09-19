@@ -68,8 +68,10 @@ Do not assume that the normal production policy is leaderboard-optimal. Fastest 
 Current dedicated launcher:
 
 ```python
-leaderboard_run(Leaderboards.Maze, "lb_maze", 64)
+leaderboard_run(Leaderboards.Maze, "lb_maze", 256)
 ```
+
+The dedicated Maze leaderboard launcher uses speedup 256. This is intentionally lower than the 10000 used by simulation-only benchmarks.
 
 Files:
 
