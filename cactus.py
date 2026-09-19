@@ -641,15 +641,13 @@ def run(reuse_field = False):
 
     size = utils.size()
 
-    # This fast path is benchmark-proven for 6x6, 16x16 and 32x32 when
-    # enough drones exist to place one worker on every row/column.
-    if max_drones() >= size:
-        return _run_placed(
-            size
-        )
-
-    # With fewer drones keep the previously validated generalized two-wave
-    # architecture. Each worker owns multiple rows/columns by index += count.
-    return _run_fallback(
+    # The placed/batched architecture is benchmark-proven with:
+    # - 6x6 and 16x16 worlds
+    # - 32x32 with 32 drones
+    # - 32x32 with only 8 drones
+    #
+    # With fewer drones each worker simply owns additional lines through
+    # index += worker_count, so the same architecture remains valid.
+    return _run_placed(
         size
     )
