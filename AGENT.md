@@ -25,6 +25,39 @@ For generic community implementation lookups across all mechanics, also consult:
 
 That file contains reusable external codebases that may provide alternative algorithms, data structures, and benchmark candidates. Treat them as idea/reference sources, not as authoritative game documentation.
 
+### External reference snapshot policy
+
+Every external reference used for research must also have a local provenance entry under:
+
+`external/<name>/`
+
+Required layout:
+
+```text
+external/<name>/
+├── README.md
+└── source/
+```
+
+`README.md` must contain:
+
+- canonical upstream URL
+- source type (GitHub, GitLab, Pastebin, Steam, Reddit, website, etc.)
+- retrieval/review date
+- upstream revision/commit when one exists
+- license/redistribution status when known
+- a concise summary of the useful ideas and any known validity warnings
+
+`source/` is reserved for the **unchanged upstream snapshot**. Never clean up, reformat, translate, or mix local modifications into the snapshot.
+
+Copy the upstream source verbatim when redistribution is permitted by an applicable license/permission or when the user supplied the source content directly. Preserve the upstream license and attribution files with the snapshot.
+
+When a complete verbatim snapshot cannot legally be redistributed, or the source cannot currently be retrieved, still create the directory and add `source/UPSTREAM.md` containing provenance, revision information, and the reason the body was not mirrored. Do not invent missing source.
+
+Local analysis, corrections, benchmark notes, and warnings belong in `external/<name>/README.md`, never inside the mirrored `source/` tree.
+
+When a reference materially influences production code or a benchmark, prefer linking the corresponding local `external/<name>/` entry from the mechanic-specific documentation.
+
 ## Repository architecture
 
 Keep the existing modular design.

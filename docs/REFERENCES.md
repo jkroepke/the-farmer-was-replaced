@@ -4,6 +4,8 @@ Use these repositories as generic lookup references when researching or optimizi
 
 They are not authoritative API documentation. Treat them as implementation examples, optimization ideas, data-structure references, and sources for benchmark candidates.
 
+Every reference should also have a provenance/snapshot entry under `external/<name>/`. The external directory is the canonical local archive/index; this document is the cross-reference and review summary.
+
 Always validate assumptions against:
 
 1. current in-game behavior
