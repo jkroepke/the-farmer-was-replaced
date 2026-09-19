@@ -96,6 +96,11 @@ RESOURCE_PLANS = [
         "item": Items.Gold,
         "plant": None,
         "priority": 3
+    },
+    {
+        "item": Items.Weird_Substance,
+        "plant": None,
+        "priority": 3
     }
 ]
 
