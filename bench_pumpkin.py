@@ -24,7 +24,9 @@ MODE_NAMES = [
     "persistent-tree-8x4-tail",
     "ring-reuse",
     "persistent-ring",
-    "persistent-tree-ring"
+    "persistent-tree-ring",
+    "persistent-placed-ring",
+    "persistent-spatial-tree-ring"
 ]
 
 TAIL_LIMIT = 3
@@ -920,6 +922,201 @@ def _run_persistent_ring(
     return []
 
 
+def _run_persistent_placed_ring(
+    cycles
+):
+    size = utils.size()
+
+    if max_drones() < size:
+        return []
+
+    clear()
+    utils.move_to(
+        0,
+        0
+    )
+    handles = []
+
+    # Direct interpretation of spawn locality:
+    # move the launcher to the child's owned column first, then spawn.
+    # This eliminates child positioning, but serializes one parent move
+    # between each spawn. The benchmark decides whether that trade pays.
+    for column in range(1, size):
+        move(East)
+
+        handle = spawn_drone(
+            _persistent_ring_worker,
+            column,
+            size,
+            cycles
+        )
+
+        if handle == None:
+            return []
+
+        handles.append(handle)
+
+    utils.move_to(
+        0,
+        0
+    )
+
+    gains = _persistent_ring_worker(
+        0,
+        size,
+        cycles
+    )
+
+    success = (
+        len(gains)
+        == cycles
+    )
+
+    for handle in handles:
+        if not wait_for(handle):
+            success = False
+
+    if success:
+        return gains
+
+    return []
+
+
+def _persistent_spatial_subtree(
+    start_column,
+    end_column,
+    size,
+    cycles
+):
+    if start_column > end_column:
+        return True
+
+    column = (
+        start_column
+        + end_column
+    ) // 2
+
+    # This is the key locality experiment: a child starts at its parent's
+    # current location, moves only to the midpoint of its own interval,
+    # then spawns the next generation from that new position.
+    utils.move_to(
+        column,
+        0
+    )
+
+    handles = []
+
+    if start_column < column:
+        handle = spawn_drone(
+            _persistent_spatial_subtree,
+            start_column,
+            column - 1,
+            size,
+            cycles
+        )
+
+        if handle == None:
+            return False
+
+        handles.append(handle)
+
+    if column < end_column:
+        handle = spawn_drone(
+            _persistent_spatial_subtree,
+            column + 1,
+            end_column,
+            size,
+            cycles
+        )
+
+        if handle == None:
+            return False
+
+        handles.append(handle)
+
+    success = _persistent_ring_worker(
+        column,
+        size,
+        cycles
+    )
+
+    for handle in handles:
+        if not wait_for(handle):
+            success = False
+
+    return success
+
+
+def _run_persistent_spatial_tree_ring(
+    cycles
+):
+    size = utils.size()
+
+    if max_drones() < size:
+        return []
+
+    clear()
+    utils.move_to(
+        0,
+        0
+    )
+
+    handles = []
+
+    # Keep worker 0 at the origin as the merge/harvest coordinator.
+    # Split the remaining ring into two near-equal arcs. Both first-level
+    # children start at column 0, then move in opposite short directions
+    # to their interval midpoints (8 and 24 for size 32).
+    split = size // 2
+
+    handle = spawn_drone(
+        _persistent_spatial_subtree,
+        1,
+        split,
+        size,
+        cycles
+    )
+
+    if handle == None:
+        return []
+
+    handles.append(handle)
+
+    if split + 1 <= size - 1:
+        handle = spawn_drone(
+            _persistent_spatial_subtree,
+            split + 1,
+            size - 1,
+            size,
+            cycles
+        )
+
+        if handle == None:
+            return []
+
+        handles.append(handle)
+
+    gains = _persistent_ring_worker(
+        0,
+        size,
+        cycles
+    )
+
+    success = (
+        len(gains)
+        == cycles
+    )
+
+    for handle in handles:
+        if not wait_for(handle):
+            success = False
+
+    if success:
+        return gains
+
+    return []
+
+
 def _persistent_ring_tree_worker(
     column,
     size,
@@ -1180,6 +1377,16 @@ def run_benchmark_mode(
         return _run_persistent_ring(
             cycles,
             True
+        )
+
+    if mode == 21:
+        return _run_persistent_placed_ring(
+            cycles
+        )
+
+    if mode == 22:
+        return _run_persistent_spatial_tree_ring(
+            cycles
         )
 
     gains = []
