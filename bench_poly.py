@@ -20,7 +20,13 @@ MODE_NAMES = [
     "poly-two-sun-pairs",
     "current-one-seven-stride",
     "current-one-seven-chunks",
-    "current-one-seven-pairs"
+    "current-one-seven-pairs",
+    "current-one-row-stride",
+    "current-one-row-chunks",
+    "current-one-row-pairs",
+    "current-one-col-stride",
+    "current-one-col-chunks",
+    "current-one-col-pairs"
 ]
 
 
@@ -487,6 +493,26 @@ def run_mode(
             carrot_final
         )
         return True
+
+    if mode >= 19:
+        return bench_persist.run_persistent(
+            2,
+            mode - 19,
+            carrot_mid,
+            hay_target,
+            wood_target,
+            carrot_final
+        )
+
+    if mode >= 16:
+        return bench_persist.run_persistent(
+            1,
+            mode - 16,
+            carrot_mid,
+            hay_target,
+            wood_target,
+            carrot_final
+        )
 
     if mode >= 13:
         return bench_persist.run_persistent(
