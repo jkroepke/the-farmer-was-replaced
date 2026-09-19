@@ -1983,19 +1983,13 @@ def spec_cover_worker(
         entity = get_entity_type()
 
         if entity == Entities.Treasure:
-            before = measure()
-
-            spec_relocate(
-                maze_size
-            )
-
-            after = measure()
-
-            if (
-                after == None
-                or after == before
-            ):
+            if measure() == None:
                 harvest()
+
+            else:
+                spec_relocate(
+                    maze_size
+                )
 
         elif (
             creator
@@ -2322,6 +2316,11 @@ def spec_zapakh_worker(
     start_gold,
     start_water
 ):
+    spec_move_to(
+        origin_x,
+        origin_y
+    )
+
     while (
         num_items(Items.Water)
         == start_water
@@ -2352,7 +2351,11 @@ def spec_zapakh_worker(
             ):
                 return
 
-            before = measure()
+            goal = measure()
+
+            if goal == None:
+                harvest()
+                break
 
             spec_relocate(
                 4
@@ -2360,12 +2363,6 @@ def spec_zapakh_worker(
 
             solved += 1
             goal = measure()
-
-            if (
-                goal == None
-                or goal == before
-            ):
-                break
 
         if spec_gold_done(
             start_gold
@@ -2568,6 +2565,10 @@ def spec_steam_hunt(
                 get_entity_type()
                 == Entities.Treasure
             ):
+                if measure() == None:
+                    harvest()
+                    return -1
+
                 spec_relocate(
                     4
                 )
@@ -2603,6 +2604,10 @@ def spec_steam_hunt(
     ):
         target = measure()
 
+        if target == None:
+            harvest()
+            return -1
+
         depth = spec_steam_distance(
             target
         )
@@ -2634,6 +2639,14 @@ def spec_steam_worker(
     start_gold,
     start_water
 ):
+    spec_move_to(
+        origin_x,
+        origin_y
+    )
+
+    # Preserved from the January 2026 community implementation.
+    do_a_flip()
+
     while (
         num_items(Items.Water)
         == start_water
@@ -2655,6 +2668,13 @@ def spec_steam_worker(
             start_gold
         ):
             return
+
+        if found < 0:
+            spec_move_to(
+                origin_x,
+                origin_y
+            )
+            continue
 
         if found >= 300:
             target = measure()
@@ -2708,17 +2728,14 @@ def spec_run_32x4(
     last_x = 30
     last_y = 14
 
+    # Spawn from one location. Each child moves to its own origin in
+    # parallel instead of making the parent serialize all positioning.
     for row in range(4):
         for column in range(8):
             x = column * 4 + 2
             y = row * 4 + 2
 
             if worker_index < 31:
-                spec_move_to(
-                    x,
-                    y
-                )
-
                 spawn_drone(
                     worker,
                     x,
@@ -2750,6 +2767,48 @@ def spec_run_32x4(
     )
 
 
+def spec_run_steam_32x4():
+    clear()
+
+    start_gold = num_items(
+        Items.Gold
+    )
+
+    start_water = num_items(
+        Items.Water
+    )
+
+    # Source correction from the Steam thread: keep the parent at
+    # (14, 30), attempt the original 8x8 set of 4x4 origins, then let
+    # the parent itself own the 32nd Maze. Once 31 children exist, the
+    # remaining spawn attempts fail cheaply because max_drones() is 32.
+    spec_move_to(
+        14,
+        30
+    )
+
+    for i in range(8):
+        for j in range(8):
+            spawn_drone(
+                spec_steam_worker,
+                i * 4 + 2,
+                j * 4 + 2,
+                start_gold,
+                start_water
+            )
+
+    use_item(
+        Items.Water
+    )
+
+    spec_steam_worker(
+        14,
+        30,
+        start_gold,
+        start_water
+    )
+
+
 def run_special():
     if BENCH_MODE == 6:
         spec_run_reference_target()
@@ -2773,9 +2832,7 @@ def run_special():
         )
 
     else:
-        spec_run_32x4(
-            spec_steam_worker
-        )
+        spec_run_steam_32x4()
 
 
 # ==================================================
