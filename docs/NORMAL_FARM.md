@@ -297,7 +297,7 @@ All runs use:
 ```text
 world size: 32
 seeds: 1, 2, 3
-speedup: 64
+speedup: 10000
 ```
 
 ## Power starting condition
