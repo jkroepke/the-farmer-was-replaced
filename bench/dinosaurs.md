@@ -662,16 +662,10 @@ So the 95% reference run has almost 6x the Bone throughput of the 25% reference 
 
 The same effect already appears in partial 32x32 data:
 
-- 25% reference average:
-  - tail 256
-  - 65,536 Bones
-  - 684.99 s
-  - about **95.67 Bones/s**
-- 50% seed 1:
-  - tail 512
-  - 262,144 Bones
-  - Hamiltonian: about **152.67 Bones/s**
-  - reference: about **139.33 Bones/s**
+| Target | Sample | Tail | Bones | Reference time (s) | Hamiltonian Bones/s | Reference Bones/s |
+| ---: | --- | ---: | ---: | ---: | ---: | ---: |
+| 25% | average | 256 | 65,536 | 684.99 | — | 95.67 |
+| 50% | seed 1 | 512 | 262,144 | — | 152.67 | 139.33 |
 
 Therefore:
 
