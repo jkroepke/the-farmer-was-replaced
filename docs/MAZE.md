@@ -337,23 +337,48 @@ The benchmark keeps that architecture while adding the repository's fixed-Gold s
 
 ### Results
 
-Seed 1 produced the following valid partial results on benchmark commit `64c5f4bc4a8407303caac6a675d6f4709846bf2f`:
+Final 200000-Gold special benchmark, tested against code commit `55734c855dd464dd846deef280d8a65d9f2c3bf7`.
 
-| Mode | Runtime | Gold gained | Status |
-| --- | ---: | ---: | --- |
-| `current-reference-32` | 121.29 | 229376 | PASS |
-| `cover-3x3` | 35.27 | 200160 | PASS |
-| `cover-4x4` | 28.20 | 200192 | PASS |
-| `cover-2x4x4` | 22.54 | 200192 | PASS |
-| `zapakh-32x4x4` | — | — | HUNG / invalid |
+All 18 runs passed their internal Gold-target assertion.
 
-The zapakh hang was traced to non-wrapped DFS neighbor coordinates for small Mazes near the toroidal world edge, plus missing handling for a failed relocation at the Treasure reuse cap. Those issues are fixed in `c9403d86561fa80e28efce42cf97b2c9571d815d`; rerun mode 10 before drawing any conclusion about that strategy.
+| Mode | Seed 1 | Seed 2 | Seed 3 | Average | Min | Max |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| `current-reference-32` | 121.29 | 117.42 | 129.17 | 122.63 | 117.42 | 129.17 |
+| `cover-3x3` | 35.27 | 33.20 | 31.84 | 33.44 | 31.84 | 35.27 |
+| `cover-4x4` | 28.20 | 28.28 | 28.12 | 28.20 | 28.12 | 28.28 |
+| `cover-2x4x4` | 22.54 | 21.40 | 21.09 | 21.68 | 21.09 | 22.54 |
+| **`zapakh-32x4x4`** | **13.87** | **13.27** | **13.40** | **13.51** | **13.27** | **13.87** |
+| `steam-32x4x4` | 22.07 | 22.03 | 22.11 | 22.07 | 22.03 | 22.11 |
 
-Results are intentionally pending until this amount-based suite is run in-game. Do not infer a winner from the historical full-world benchmarks or community throughput claims.
+Gold gained per run:
 
-The suite runs through `simulate()`. Gold earned inside a simulation is isolated from the real farm inventory; only the runtime is returned to the caller. Every special mode therefore prints an internal `MAZE SPECIAL RESULT` line with Gold gained, target, and PASS/FAIL before the simulation exits.
+| Mode | Seed 1 | Seed 2 | Seed 3 | Average |
+| --- | ---: | ---: | ---: | ---: |
+| `current-reference-32` | 229376 | 229376 | 229376 | 229376 |
+| `cover-3x3` | 200160 | 200160 | 200160 | 200160 |
+| `cover-4x4` | 200192 | 200192 | 200192 | 200192 |
+| `cover-2x4x4` | 200192 | 200192 | 200192 | 200192 |
+| `zapakh-32x4x4` | 211968 | 210432 | 212992 | 211797 |
+| `steam-32x4x4` | 202752 | 205312 | 208384 | 205483 |
 
-Current benchmark implementation commit: `c9403d86561fa80e28efce42cf97b2c9571d815d`
+Because Treasure rewards are discrete, modes overshoot the 200000 target by different amounts. Raw runtime-to-target therefore slightly favors modes with smaller overshoot. Normalizing each run to exactly 200000 Gold gives these approximate equivalent runtimes:
+
+| Mode | Normalized 200k runtime | Speedup vs current |
+| --- | ---: | ---: |
+| `current-reference-32` | 106.92 | 1.00x |
+| `cover-3x3` | 33.41 | 3.20x |
+| `cover-4x4` | 28.17 | 3.80x |
+| `cover-2x4x4` | 21.66 | 4.94x |
+| **`zapakh-32x4x4`** | **12.76** | **8.38x** |
+| `steam-32x4x4` | 21.48 | 4.98x |
+
+Raw average runtime-to-target gives `zapakh-32x4x4` a 9.08x speedup over `current-reference-32`. The Gold-normalized comparison is the more conservative figure and still shows an 8.38x throughput improvement.
+
+The benchmark therefore establishes `zapakh-32x4x4` as the current performance candidate for production Gold farming on a 32x32 farm with 32 drones.
+
+The suite runs through `simulate()`. Gold earned inside a simulation is isolated from the real farm inventory; only the runtime is returned to the caller. Every special mode prints an internal `MAZE SPECIAL RESULT` line with Gold gained, target, and PASS/FAIL before the simulation exits.
+
+Current benchmark implementation commit: `55734c855dd464dd846deef280d8a65d9f2c3bf7`
 
 ---
 
