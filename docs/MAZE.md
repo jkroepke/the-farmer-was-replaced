@@ -512,7 +512,7 @@ Every special result now reports:
 
 This makes runtime and resource efficiency independently comparable.
 
-Extended benchmark code state: `b51873132eec90ee623e513f5b8479b1e86f0997`.
+Extended benchmark code state: `c045c3da2a015b77491532199fc3f0735cc2a640`.
 
 Local provenance:
 
@@ -521,6 +521,23 @@ Local provenance:
 - `external/zapakh-maze-dfs/README.md`
 - `external/steam-32x4x4/README.md`
 - `external/msmith93-thefarmerwasreplaced/source/multidrone/maze_leaderboard.py`
+
+A first extended run exposed a lifecycle bug in the benchmark harness: the
+post-harvest helper returned to a Maze origin by moving only East and then
+North. For short reuse caps this could wrap almost the entire world and become
+blocked by a neighboring active Maze. That run stalled at
+`mut-packed-zapakh-reuse1` after `PACKED REUSE READY 31`.
+
+The helper now chooses the shortest toroidal direction on each axis and returns
+failure if the path is blocked. Rebuild lifecycle callers propagate that
+failure instead of creating a new Maze at the wrong location.
+
+The runner also starts with a 100000-Gold
+`MAZE REBUILD SMOKE` using `mut-packed-zapakh-reuse1` before executing the
+full matrix.
+
+Partial timings collected before this fix are diagnostic only and must not be
+mixed into the final matrix.
 
 Results for this extended matrix are intentionally pending an in-game run.
 The last measured winner remains `zapakh-32x4x4` from benchmark commit
