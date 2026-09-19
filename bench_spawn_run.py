@@ -23,11 +23,12 @@ MODE_NAMES = [
     "jarvan-powers-rowmajor"
 ]
 
-# Topology shootout keeps the final 32 target origins identical.
+# Topology shootout keeps the final 32 target origins identical and keeps
+# the root/parent on CURRENT_ORIGINS[0]. Mode 1 is therefore the serial control.
 # Mode 7 remains the measured locality+binary winner but is not a topology-only
 # comparison because it uses the alternate NEAREST_ORIGINS layout.
 TOPOLOGY_MODES = [
-    0,
+    1,
     8,
     9,
     10,
