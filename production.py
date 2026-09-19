@@ -37,7 +37,6 @@ def reset_state():
     _gold_active = False
     _pumpkin_active = False
     _cactus_active = False
-    _cactus_active = False
 
     maze.reset()
     farm.reset_state()
