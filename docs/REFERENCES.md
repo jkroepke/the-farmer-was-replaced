@@ -15,6 +15,10 @@ Always validate assumptions against:
 - https://github.com/MateusMarochi/the-farmer-was-replaced-codes
 - https://github.com/juritox/the-farmer-was-replaced
 - https://github.com/ketrab2004/the-farmer-was-replaced
+  - original Dinosaur implementation: https://github.com/ketrab2004/the-farmer-was-replaced/blob/main/dinosaur.py
+  - pathfinding helpers: https://github.com/ketrab2004/the-farmer-was-replaced/blob/main/pathfind.py
+  - queue implementation: https://github.com/ketrab2004/the-farmer-was-replaced/blob/main/queue.py
+  - tail data structure: https://github.com/ketrab2004/the-farmer-was-replaced/blob/main/tail.py
 - https://github.com/jdeokkim/tfwr
 
 When looking for an optimization:
