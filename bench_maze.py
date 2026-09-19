@@ -3929,6 +3929,134 @@ def spec_map_bfs_worker(
     )
 
 
+def spec_spawn_route(
+    layout_mode
+):
+    if layout_mode == 1:
+        # Uniform 4x4: 8 columns x 4 rows. Start near (0,0) and snake
+        # through all 32 final origins. The last slot belongs to the parent.
+        return [
+            0, 1, 2, 3, 4, 5, 6, 7,
+            15, 14, 13, 12, 11, 10, 9, 8,
+            16, 17, 18, 19, 20, 21, 22, 23,
+            31, 30, 29, 28, 27, 26, 25, 24
+        ]
+
+    # Uniform 5x5: 6 columns, with only two slots used in the last row.
+    # Starting from (0,0), this toroidal snake is shorter than the old
+    # spawn-all + verification walk.
+    return [
+        5, 4, 3, 2, 1, 0,
+        6, 7, 8, 9, 10, 11,
+        17, 16, 15, 14, 13, 12,
+        18, 19, 20, 21, 22, 23,
+        29, 28, 27, 26, 25, 24,
+        30, 31
+    ]
+
+
+def spec_run_map_bfs_route_spawn(
+    layout_mode,
+    reuse_limit,
+    label
+):
+    clear()
+
+    start_gold = num_items(
+        Items.Gold
+    )
+
+    start_substance = num_items(
+        Items.Weird_Substance
+    )
+
+    route = spec_spawn_route(
+        layout_mode
+    )
+
+    index = 0
+
+    while index < len(route) - 1:
+        square = spec_layout_square(
+            layout_mode,
+            route[index]
+        )
+
+        origin = spec_packed_origin(
+            square
+        )
+
+        if not spec_move_to(
+            origin[0],
+            origin[1]
+        ):
+            return
+
+        drone = spawn_drone(
+            spec_map_bfs_worker,
+            origin[0],
+            origin[1],
+            square[2],
+            start_gold,
+            start_substance,
+            reuse_limit
+        )
+
+        if drone == None:
+            return
+
+        # The child starts on this exact tile. Wait locally until it has
+        # planted its ready Bush, then continue the single distribution walk.
+        while (
+            get_entity_type()
+            != Entities.Bush
+        ):
+            pass
+
+        index += 1
+
+    quick_print(
+        label,
+        "ROUTE READY",
+        len(route) - 1
+    )
+
+    square = spec_layout_square(
+        layout_mode,
+        route[
+            len(route) - 1
+        ]
+    )
+
+    origin = spec_packed_origin(
+        square
+    )
+
+    if not spec_move_to(
+        origin[0],
+        origin[1]
+    ):
+        return
+
+    plant(
+        Entities.Bush
+    )
+
+    if not spec_relocate(
+        square[2]
+    ):
+        return
+
+    spec_map_bfs_run(
+        origin[0],
+        origin[1],
+        square[2],
+        start_gold,
+        True,
+        reuse_limit
+    )
+
+
 def spec_run_map_bfs_layout(
     layout_mode,
     reuse_limit,
@@ -4942,12 +5070,26 @@ def run_special():
             "UNIFORM4 MAP BFS"
         )
 
-    else:
+    elif BENCH_MODE == 31:
         spec_run_search_layout(
             1,
             0,
             8,
             "UNIFORM4 REUSE8"
+        )
+
+    elif BENCH_MODE == 32:
+        spec_run_map_bfs_route_spawn(
+            2,
+            300,
+            "UNIFORM5 MAP BFS ROUTE"
+        )
+
+    else:
+        spec_run_map_bfs_route_spawn(
+            1,
+            300,
+            "UNIFORM4 MAP BFS ROUTE"
         )
 
     spec_report_result(
