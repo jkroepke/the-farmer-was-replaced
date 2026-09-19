@@ -144,3 +144,105 @@ Relevant commits:
 
 - `cf836e64e4c3cb6e0f241d11f8c67f9f021d817f` exposes persistent row/column dumb layouts in `bench_poly.py`
 - `25aacb7719da11c5f39c1f54cd3ecf695f8c7baa` creates the `farmx-v5` runner
+
+
+## Main farm vs resource leaderboard specialization
+
+Resource leaderboards are a different workload from the normal progression farm.
+
+Official leaderboard description:
+
+- all unlocks are available
+- resources required to grow the target plant are provided
+- the run starts with lots of Power
+- the program must terminate after the target is reached
+- exact starting inventory for the resource leaderboards is not documented in the public leaderboard text
+
+Do not reuse Main-Run safety policy unchanged for Wood/Carrots/Hay leaderboards.
+
+### Main Run policy
+
+The normal farm must remain robust across progression:
+
+- Power may start at zero and may need active Sunflower production
+- Water and Fertilizer inventories are not assumed
+- planting affordability must be checked where depletion is possible
+- unlock/state transitions may happen during execution
+- Fertilizer also serves the Main-Run Weird Substance / Maze economy
+- defensive entity/ground repair is appropriate because other production jobs can mutate the farm
+
+### Resource leaderboard hypothesis
+
+For Wood/Carrots/Hay:
+
+- start with no dedicated Sunflower production unless measurement proves the supplied Power can run out
+- use the entire available farm/drone budget for the target resource
+- benchmark removal of repeated `utils.can_afford()`, `num_unlocked()`, entity-type, and ground-type checks after deterministic initialization
+- keep only correctness-critical checks such as maturity unless a schedule guarantees maturity
+- check the target inventory less frequently than every tile if termination overshoot stays small
+- terminate all workers as soon as the leaderboard target is satisfied
+
+Power is consumed by normal actions and speeds execution, so layout rankings measured with `Power=0` are not automatically valid for a Resource LB.
+
+### Water
+
+Watering is a throughput accelerator and should be benchmarked separately.
+
+Current Main Run:
+
+```python
+if get_water() < WATER_LIMIT:
+    if num_items(Items.Water) > 0:
+        use_item(Items.Water)
+```
+
+LB candidates should compare at least:
+
+- no watering
+- water threshold 0.25
+- water threshold 0.50
+- water threshold 0.75
+- a lean threshold version without the repeated `num_items(Water)` check if the true LB start/replenishment makes that safe
+
+Do not assume the Main-Run 0.75 threshold is LB-optimal.
+
+### Fertilizer
+
+Fertilizer removes 2 seconds of remaining grow time but infects the plant. Infected harvests convert half of the normal yield into Weird Substance.
+
+Therefore Main Run and Resource LB have opposite incentives:
+
+- Main Run can intentionally value Weird Substance
+- Wood/Carrot/Hay LB values only the target resource, so infection directly reduces useful yield
+
+Do not enable fertilizer in LB by default. Benchmark it as an ablation only, especially for Carrot and Tree. Grass has a very short base grow time and is the lowest-priority fertilizer candidate.
+
+### Sunflowers
+
+Resource LB starts with lots of Power, therefore the default LB hypothesis is zero Sunflower tiles/workers.
+
+This recovers:
+
+- one or two crop columns from the measured Main-Run layouts
+- one or two drones
+- all Sunflower plant/measure/harvest actions
+- petal-order bookkeeping
+
+Only reintroduce Sunflowers if an actual leaderboard start-state probe shows that supplied Power is insufficient for the full target workload.
+
+### Pending exact start-state probe
+
+Files:
+
+- `lb_res_probe.py`
+- `lb_probe_run.py`
+
+`lb_probe_run.py` executes failed/diagnostic Wood, Carrots, and Hay leaderboard runs. The probe prints:
+
+- initial item inventory including Power, Water, Fertilizer, and Weird Substance
+- world size and max drones
+- starting water/ground/entity state
+- relevant unlock levels
+- current Carrot/Tree/Bush/Sunflower planting costs
+
+Use these measured values before creating a simulated Resource-LB benchmark. Do not invent undocumented Water/Fertilizer start quantities.
