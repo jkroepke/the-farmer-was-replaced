@@ -58,6 +58,28 @@ Local analysis, corrections, benchmark notes, and warnings belong in `external/<
 
 When a reference materially influences production code or a benchmark, prefer linking the corresponding local `external/<name>/` entry from the mechanic-specific documentation.
 
+
+## Conversation memory
+
+Long-running ChatGPT/agent conversations can exceed their useful context window. Persist durable project knowledge in the repository instead of relying on chat history.
+
+Use:
+
+`memory/<topic>.md`
+
+Rules:
+
+- `<topic>` must be a single word, for example `maze.md`, `carrots.md`, `drones.md`, or `pumpkins.md`.
+- Prefer updating an existing topic file instead of creating another file for closely related knowledge.
+- Keep the number of memory files small. Group related findings under the same stable topic.
+- Persist conclusions that are useful for future work: confirmed mechanics, design decisions, benchmark conclusions, rejected approaches and why they failed, important assumptions, and open research questions.
+- Do not use memory files as raw chat transcripts. Summarize the durable knowledge needed to continue the work later.
+- Clearly distinguish verified facts, measured benchmark results, hypotheses, and unresolved questions.
+- When recording benchmark conclusions, include the benchmark commit SHA required by the benchmark provenance rules.
+- When a conclusion belongs in a canonical mechanic document such as `docs/MAZE.md` or `docs/NORMAL_FARM.md`, update that document as well. Memory is a compact continuation aid, not a replacement for canonical documentation.
+- Update the relevant memory topic during substantial research/optimization work whenever new durable knowledge appears, especially before a long conversation is likely to lose context.
+- Do not store credentials, tokens, private data, or other secrets in `memory/`.
+
 ## Repository architecture
 
 Keep the existing modular design.
