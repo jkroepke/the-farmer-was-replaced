@@ -101,9 +101,6 @@ summary without marking their provenance.
 
 -----
 
-
------
-
 ### sunflower-v2-bounded7
 
 #### Provenance
@@ -199,9 +196,7 @@ faster than `scan-linear-counted`.
 | `tier-linear-no-care` | 561.35 s | 561.17 s | 561.72 s |
 | `equal7-tree-no-care` | 663.30 s | 654.84 s | 671.29 s |
 
-The non-scan controls are now complete for all three seeds. Their low spread
-confirms that the ~372 s scan result is not being compared against an unstable
-control. The final decision still waits for the three seed-3 scan results.
+The non-scan controls are now complete for all three seeds. Their low spread confirms that the scan result in the tables above is not being compared against an unstable control. The final decision still waits for the three seed-3 scan results.
 
 ## Interpretation
 
