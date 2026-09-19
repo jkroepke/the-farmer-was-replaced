@@ -26,8 +26,28 @@ Notable reusable ideas:
 
 ## Validity warnings
 
-Some files claim mutable Python data can be shared between drones through `wait_for()`. That conflicts with the current game model used by this project, where drones have independent memory and arguments are copied.
+The repository contains a historically real but now outdated shared-memory technique based on repeatedly calling `wait_for()` on the same completed source drone.
 
-The repository is therefore an algorithm/data-structure reference, not an authoritative mechanics source.
+Evidence and timeline:
+
+- upstream revision reviewed here: `688325db004607563e59535a15ce94fad092ff9f`, dated 2025-11-01
+- upstream `docs/DRONE_SHARED_MEMORY_DISCOVERY.md` records an experiment from 2025-10-23 where multiple drones call `wait_for(source)` and observe cumulative mutations of the returned list
+- the current game documentation explicitly states that drones have separate memory and that `spawn_drone(function, *args)` copies arguments
+- the game's 2025-12-04 update says: "Fixed shared memory bugs."
+- the game's 2026-02-17 update is even more specific: "Fixed another bug that allowed you to get shared memory between multiple drones."
+
+Current authoritative references:
+
+- https://thefarmerwasreplaced.wiki.gg/wiki/Megafarm
+- https://steamcommunity.com/app/2060160/announcements/
+- https://steamdb.info/patchnotes/21969917/
+
+Therefore the nql1314 shared-`wait_for()` architecture should be treated as a **historical engine exploit/bug that may have worked on the 2025 game build**, not as a valid current game mechanic.
+
+This distinction matters: the upstream repository was not necessarily wrong when the experiment was recorded. The game semantics changed afterward.
+
+A local runtime probe is provided in this repository as `probe_drone_memory.py` / `probe_drone_memory_run.py` to verify the current behavior directly.
+
+The repository remains useful as an algorithm/data-structure reference, but mechanics assumptions must be checked against the current game version.
 
 A full source mirror is intentionally absent until redistribution permission is established.
