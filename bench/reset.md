@@ -16,7 +16,7 @@
 | Run / version | Source commit | Profile | Status |
 | --- | --- | --- | --- |
 | `reset-v2` | `7e58b52cb9d990121b0741a84330a6e0e53263b1` | Empty-state progression; seeds 1, 2, 3 | Invalid harness: first simulation returned `None`, runner crashed on aggregation |
-| `reset-v3` | Pending commit | Empty-state progression; seeds 1, 2, 3; diagnostic checkpoints | Pending measurement |
+| `reset-v3` | `8190fcd5ecb55b9f2286cf98d92fffb1c815603b` | Empty-state progression; seeds 1, 2, 3; diagnostic checkpoints | Pending measurement |
 
 ## Results
 
@@ -37,7 +37,7 @@
 
 | Step | Action |
 | ---: | --- |
-| 1 | Check out the exact `reset-v3` source commit recorded in the benchmark index. |
+| 1 | Check out `8190fcd5ecb55b9f2286cf98d92fffb1c815603b`. |
 | 2 | Run `bench_reset_run.py`. |
 | 3 | Keep requested speedup at 10000 for all compared modes. |
 | 4 | Run seeds 1, 2, 3 with the same 10,000-action watchdog. |
