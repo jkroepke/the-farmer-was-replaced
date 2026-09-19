@@ -15,6 +15,8 @@ Always validate assumptions against:
 ## Generic lookup references
 
 - https://github.com/MateusMarochi/the-farmer-was-replaced-codes
+  - broad MIT-licensed farming reference with persistent column workers, fixed Pumpkin region layouts, parallel Maze wall-followers, Cactus sorting, Polyculture, and Dinosaur restart behavior
+  - complete pinned snapshot and detailed review: `external/mateusmarochi-the-farmer-was-replaced-codes/`
 - https://github.com/juritox/the-farmer-was-replaced
 - https://github.com/ketrab2004/the-farmer-was-replaced
   - original Dinosaur implementation: https://github.com/ketrab2004/the-farmer-was-replaced/blob/main/dinosaur.py
@@ -259,7 +261,7 @@ Prefer a complex algorithm when it measures faster, but never assume complexity 
 
 - `external/j4lc-the-farmer-was-replaced/` — user-supplied source snapshot archived on 2026-09-19; archive SHA-256 `6918c9718f9ef2b1d1ef38918e521a33103adb2ea7b16afea46718d44f7da0d0`
 
-- `external/mateusmarochi-the-farmer-was-replaced-codes/` — complete MIT-licensed source snapshot at `d303d81d6a3eb59887eff75ed0454a6d8f4ff5ad`
+- `external/mateusmarochi-the-farmer-was-replaced-codes/` — complete 21-file MIT-licensed snapshot and detailed algorithm review at `d303d81d6a3eb59887eff75ed0454a6d8f4ff5ad`
 - `external/juritox-the-farmer-was-replaced/` — MIT-licensed source/text snapshot at `544bb832ffcec00aacf2c8dd5278bdb534ab674b`; large binary media is provenance-manifested
 - `external/skysdottir-tfwr/` — complete 8-file source snapshot and Dinosaur analysis at `e15968982e957045c5239e580e2d040a9ac73a52`; source-near behavior is benchmarked locally
 - `external/ketrab2004-the-farmer-was-replaced/` — provenance and analysis at `cdbbcf32ca100237cdfc3b78783cee77722a96fd`; no redistribution license found
