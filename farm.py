@@ -13,6 +13,12 @@ import workers
 _sunflower_petals = []
 
 
+def reset_state():
+    global _sunflower_petals
+
+    _sunflower_petals = []
+
+
 # ==================================================
 # DÜNGER / WEIRD SUBSTANCE
 # ==================================================
@@ -752,7 +758,7 @@ def _make_chunk_task(start_x, end_x, focus_item):
 # Weniger Leerbewegung, keine separaten Spalten-Tasks.
 # ==================================================
 
-def run(focus_item = None):
+def run_legacy(focus_item = None):
     world_size = utils.size()
 
     refresh_energy()
