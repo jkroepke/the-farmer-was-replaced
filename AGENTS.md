@@ -389,6 +389,90 @@ Measured Maze and spawn-locality results live in `bench/maze.md`.
 
 Read those files before modifying `maze.py`, Maze-related Gold production, or Maze benchmarks. Do not duplicate Maze result tables in this file.
 
+## Main-run vs leaderboard-run architecture
+
+Treat normal production and leaderboard submissions as different runtime
+profiles. Do not force both through one defensive hot path.
+
+### Main run
+
+`main.py` is the normal production entry point.
+
+Main-run implementations must remain adaptive and safe across progression:
+
+- resources may be scarce
+- unlock levels may be partial
+- world size may change
+- fewer than the maximum number of drones may be available
+- producer prerequisites may need to be farmed first
+- special jobs must return control to the upgrade-driven production loop
+- affordability and state checks are required where they prevent invalid or
+  wasteful actions
+
+Normal mechanic modules such as `maze.py`, `pumpkin.py`, `cactus.py`, and
+`dinosaur.py` are production implementations unless explicitly documented
+otherwise.
+
+### Leaderboard run
+
+Leaderboard implementations are finite, challenge-specific programs.
+
+Use this naming pattern:
+
+```text
+lb_<mechanic>.py       # optimized leaderboard implementation
+lb_<mechanic>_run.py   # tiny leaderboard_run(...) launcher
+```
+
+A leaderboard implementation may and should exploit start-state guarantees
+that have been verified for that exact leaderboard. Examples include:
+
+- fixed world size
+- fixed drone count
+- all required unlocks already available
+- very large challenge-input inventories
+- fixed success target
+- no requirement to return to the normal production farm
+
+Do not carry Main-run checks into a leaderboard hot path merely for reuse.
+Once a start-state property has been measured/proven for that leaderboard,
+remove checks that cannot affect correctness, for example:
+
+- `utils.can_afford()` for a cost that is guaranteed empty/covered
+- repeated `num_items()` availability guards for effectively unlimited
+  challenge input
+- `get_cost()` / prerequisite planning
+- adaptive world-size or drone-count fallbacks
+- normal-farm restoration
+- production stockpile/reserve logic
+- configuration branches for partially unlocked progression
+
+Keep checks that are part of the algorithm or leaderboard correctness. For
+example:
+
+- the exact leaderboard success condition and prompt termination
+- a `use_item()` result when failure is used to detect a mechanic boundary
+  such as Maze reuse exhaustion
+- entity/state checks needed to decide the next legal action
+- synchronization conditions required to avoid races
+
+Do not assume every leaderboard has "infinite resources". Start inventories
+differ by leaderboard. Use the leaderboard-specific probe/evidence in
+`memory/leaderboards.md`; only specialize away a check after the relevant
+start-state assumption is verified for that exact mode.
+
+### Sharing code
+
+Prefer sharing pure, already-measured helpers only when they do not add
+production checks or abstraction overhead to the leaderboard hot path.
+
+It is acceptable for Main and LB implementations to duplicate a small hot
+loop when the LB version intentionally removes defensive branches. Optimize
+leaderboard code for the fixed challenge contract, not for general reuse.
+
+Benchmark the specialized LB implementation end-to-end at the exact
+leaderboard target before promoting it.
+
 ## Benchmark execution speed
 
 Use the highest standard acceleration for benchmark and leaderboard runners unless the benchmark explicitly studies speedup behavior itself.
