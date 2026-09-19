@@ -15,10 +15,10 @@ BENCH_WORLD_SIZES = [
 ]
 
 BENCH_TARGET_PERCENTS = [
-    25,
-    50,
-    75,
-    95
+    95,
+    97,
+    99,
+    100
 ]
 
 BENCH_SEEDS = [
@@ -34,14 +34,20 @@ BENCH_VERBOSE = False
 # Fixed-target runs isolate path efficiency.
 BENCH_CYCLES = 1
 
+# Only benchmark the two remaining production candidates.
+BENCH_MODES = [
+    0,
+    4
+]
+
 # Sustained runs measure production efficiency across repeated
 # harvest/restart cycles in one simulation.
 SUSTAINED_CYCLES = 3
 SUSTAINED_TARGET_PERCENTS = [
-    25,
-    50,
-    75,
-    95
+    95,
+    97,
+    99,
+    100
 ]
 SUSTAINED_MODES = [
     0,
@@ -146,7 +152,7 @@ def benchmark_case(
     minimums = []
     maximums = []
 
-    for _ in MODE_NAMES:
+    for _ in BENCH_MODES:
         totals.append(0)
         minimums.append(-1)
         maximums.append(0)
@@ -163,9 +169,9 @@ def benchmark_case(
             seed
         )
 
-        for mode in range(
-            len(MODE_NAMES)
-        ):
+        mode_index = 0
+
+        for mode in BENCH_MODES:
             run_time = run_one(
                 mode,
                 world_size,
@@ -174,24 +180,24 @@ def benchmark_case(
                 BENCH_CYCLES
             )
 
-            totals[mode] += (
+            totals[mode_index] += (
                 run_time
             )
 
             if (
-                minimums[mode] < 0
+                minimums[mode_index] < 0
                 or run_time
-                < minimums[mode]
+                < minimums[mode_index]
             ):
-                minimums[mode] = (
+                minimums[mode_index] = (
                     run_time
                 )
 
             if (
                 run_time
-                > maximums[mode]
+                > maximums[mode_index]
             ):
-                maximums[mode] = (
+                maximums[mode_index] = (
                     run_time
                 )
 
@@ -217,6 +223,8 @@ def benchmark_case(
                 bones_per_second * 60
             )
 
+            mode_index += 1
+
     seed_count = len(
         BENCH_SEEDS
     )
@@ -227,11 +235,11 @@ def benchmark_case(
         target_percent
     )
 
-    for mode in range(
-        len(MODE_NAMES)
-    ):
+    mode_index = 0
+
+    for mode in BENCH_MODES:
         average = (
-            totals[mode]
+            totals[mode_index]
             / seed_count
         )
 
@@ -253,9 +261,9 @@ def benchmark_case(
             "avg",
             average,
             "min",
-            minimums[mode],
+            minimums[mode_index],
             "max",
-            maximums[mode],
+            maximums[mode_index],
             "tail",
             target_tail_length(
                 world_size,
@@ -268,6 +276,8 @@ def benchmark_case(
             "bones/min",
             bones_per_second * 60
         )
+
+        mode_index += 1
 
 
 def benchmark_sustained():
