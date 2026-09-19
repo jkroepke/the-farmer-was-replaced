@@ -94,10 +94,13 @@ Measured conclusion:
   - Hay narrowly favors one Sunflower row / pure crop
   - Wood favors two Sunflower columns
   - Carrot favors one Sunflower column
-- two dumb Sunflower columns are selected as the robust persistent production layout:
-  - best measured Wood time
-  - only about 0.40 s behind the best Carrot time
-  - only about 0.40 s behind the best Hay time
+- two dumb Sunflower columns are selected as the robust persistent production layout
+- best measured Wood time
+
+| Crop | Gap behind best (s) |
+| --- | ---: |
+| Carrot | 0.40 |
+| Hay | 0.40 |
 - avoiding layout changes between planner focus switches is expected to be more valuable than chasing those very small isolated per-crop differences
 
 Candidate selection after this isolated cold-start benchmark:
@@ -228,7 +231,12 @@ Derived observations:
 - max mixed: current winner is about 17.3% faster than sync-selected
 - max Carrot: current-two-sun-chunks is about 17.9% faster than sync-selected
 - max Wood: current-two-sun-chunks is about 12.8% faster than sync-selected
-- max Grass is different: sync-selected wins the three-seed average, but has very high seed spread (14.77..23.85 s); current-one-max-pairs is much more stable (22.46..24.34 s)
+- max Grass is different: sync-selected wins the three-seed average, while current-one-max-pairs is more stable
+
+| Max-Grass mode | Seed range (s) | Observation |
+| --- | ---: | --- |
+| `sync-selected` | 14.77–23.85 | Fastest three-seed average, high spread |
+| `current-one-max-pairs` | 22.46–24.34 | Slower average, much tighter spread |
 - pure-crop architecture is therefore crop-specific; do not choose one architecture from the mixed transition benchmark alone
 - the Flekay-inspired one-column seven-petal modes are not competitive at the measured horizons and should not remain in the default screen
 - Poly is not competitive in any of the three pure-focus scenarios and can be removed from future pure-crop screens while remaining in the mixed research suite
