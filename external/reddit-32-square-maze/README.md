@@ -62,19 +62,31 @@ exactly once with no overlap.
 
 ## Benchmark use
 
-Two candidates are added:
+The full-field exact cover is now used as a geometry axis across several solver
+families.
 
-- `packed-4to7-fresh`
-  - full 32-square packing
-  - one drone per square
-  - fresh Maze after every Treasure
-  - closest to the Reddit author's stated no-reuse assumption
+Source-described candidate:
 
-- `packed-4to7-reuse`
-  - identical packing
-  - repository zapakh-style visited-set DFS
-  - reuses each Maze
-  - tests whether the loop-safe visited-set behavior can combine the better
-    packing geometry with Maze reuse
+- `desc-reddit-packed-fresh`
+  - forced corridors
+  - record intersections
+  - choose the branch most aligned with the Treasure
+  - rewind recorded movement on dead ends
+  - no reuse, matching the Reddit author's stated assumption
 
-These are benchmark candidates only until measured in-game.
+Repository mutations include:
+
+- zapakh ranked DFS, fresh and reused
+- reuse-cap sweep 1 / 2 / 4 / 8 / 16 / 300
+- Reddit intersection solver plus a visited set for loop-safe reuse
+- unranked DFS, fresh and reused
+- right-hand map + BFS, fresh and reused
+
+Uniform 4x4 and 5x5 layouts are benchmarked alongside the exact cover so the
+effect of geometry can be separated from the solver.
+
+The extended benchmark code state is:
+
+`b51873132eec90ee623e513f5b8479b1e86f0997`
+
+These candidates remain unmeasured until an in-game benchmark run is recorded.
