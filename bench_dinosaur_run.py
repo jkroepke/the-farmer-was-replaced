@@ -1,3 +1,5 @@
+import main
+
 # Dinosaur simulation benchmark controller.
 #
 # All implementations live in bench_dinosaur.py.
@@ -400,7 +402,7 @@ def benchmark_sustained():
     )
 
 
-def main():
+def run_benchmarks():
     quick_print(
         "DINOSAUR BENCH START"
     )
@@ -419,4 +421,12 @@ def main():
     benchmark_sustained()
 
 
-main()
+if __name__ == "__main__":
+    run_benchmarks()
+
+    quick_print(
+        "DINOSAUR BENCHMARKS COMPLETE",
+        "STARTING MAIN LOOP"
+    )
+
+    main.main()
