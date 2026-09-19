@@ -85,6 +85,9 @@ def neighbor(
 
 
 def target_tail_length():
+    # This is the number that the Bone reward uses: tail segments only.
+    # The Dinosaur's occupied length is one larger because it also has
+    # a head. CURRENT_TAIL_LENGTH historically tracked occupied length.
     board = (
         get_world_size()
         * get_world_size()
@@ -96,13 +99,20 @@ def target_tail_length():
         // 100
     )
 
-    if target < 2:
-        target = 2
+    if target < 1:
+        target = 1
 
     if target >= board:
         target = board - 1
 
     return target
+
+
+def target_snake_length():
+    return (
+        target_tail_length()
+        + 1
+    )
 
 
 def harvest_tail():
@@ -142,7 +152,7 @@ def baseline_move(direction):
 def baseline_reached_target():
     return (
         CURRENT_TAIL_LENGTH
-        >= target_tail_length()
+        >= target_snake_length()
     )
 
 
@@ -773,7 +783,7 @@ def shortcut_step():
 def run_shortcuts():
     while (
         CURRENT_TAIL_LENGTH
-        < target_tail_length()
+        < target_snake_length()
     ):
         if not shortcut_step():
             return False
@@ -1268,7 +1278,7 @@ def ref_dino_iter():
 def run_skysdottir_reference():
     while (
         REF_ACTUAL_TAIL_LENGTH
-        < target_tail_length()
+        < target_snake_length()
     ):
         result = ref_dino_iter()
 
@@ -1502,7 +1512,7 @@ def run_indexed_path():
 
     while (
         CURRENT_TAIL_LENGTH
-        < target_tail_length()
+        < target_snake_length()
     ):
         if (
             get_entity_type()
@@ -1529,7 +1539,7 @@ def run_indexed_path():
 def run_hilbert_path_only():
     while (
         REF_ACTUAL_TAIL_LENGTH
-        < target_tail_length()
+        < target_snake_length()
     ):
         here = coord()
 
@@ -1961,7 +1971,7 @@ def run_flekay_axis_greedy():
 
     while (
         CURRENT_TAIL_LENGTH
-        < target_tail_length()
+        < target_snake_length()
         and loops < BENCH_MAX_MOVES
     ):
         loops += 1
@@ -2007,7 +2017,7 @@ def run_flekay_axis_greedy():
 
     return (
         CURRENT_TAIL_LENGTH
-        >= target_tail_length()
+        >= target_snake_length()
     )
 
 
@@ -2016,7 +2026,7 @@ def run_flekay_parity_greedy():
 
     while (
         CURRENT_TAIL_LENGTH
-        < target_tail_length()
+        < target_snake_length()
         and loops < BENCH_MAX_MOVES
     ):
         loops += 1
@@ -2091,7 +2101,7 @@ def run_flekay_parity_greedy():
 
     return (
         CURRENT_TAIL_LENGTH
-        >= target_tail_length()
+        >= target_snake_length()
     )
 
 
@@ -2144,7 +2154,7 @@ def coil_move_to(
 
         if (
             CURRENT_TAIL_LENGTH
-            >= target_tail_length()
+            >= target_snake_length()
         ):
             return True
 
@@ -2156,7 +2166,7 @@ def coil_move_to(
 
         if (
             CURRENT_TAIL_LENGTH
-            >= target_tail_length()
+            >= target_snake_length()
         ):
             return True
 
@@ -2168,7 +2178,7 @@ def coil_move_to(
 
         if (
             CURRENT_TAIL_LENGTH
-            >= target_tail_length()
+            >= target_snake_length()
         ):
             return True
 
@@ -2180,7 +2190,7 @@ def coil_move_to(
 
         if (
             CURRENT_TAIL_LENGTH
-            >= target_tail_length()
+            >= target_snake_length()
         ):
             return True
 
@@ -2192,7 +2202,7 @@ def run_coil_safe_finish():
 
     while (
         CURRENT_TAIL_LENGTH
-        < target_tail_length()
+        < target_snake_length()
     ):
         for column in range(
             world_size
@@ -2212,7 +2222,7 @@ def run_coil_safe_finish():
 
             if (
                 CURRENT_TAIL_LENGTH
-                >= target_tail_length()
+                >= target_snake_length()
             ):
                 return True
 
@@ -2225,7 +2235,7 @@ def run_coil_safe_finish():
 
                 if (
                     CURRENT_TAIL_LENGTH
-                    >= target_tail_length()
+                    >= target_snake_length()
                 ):
                     return True
 
@@ -2236,7 +2246,7 @@ def run_coil_safe_finish():
 
         if (
             CURRENT_TAIL_LENGTH
-            >= target_tail_length()
+            >= target_snake_length()
         ):
             return True
 
@@ -2280,7 +2290,7 @@ def run_reddit_coil_strike():
 
     while (
         CURRENT_TAIL_LENGTH
-        < target_tail_length()
+        < target_snake_length()
         and loops < BENCH_MAX_MOVES
     ):
         loops += 1
@@ -2465,7 +2475,7 @@ def run_reddit_coil_strike():
 
     return (
         CURRENT_TAIL_LENGTH
-        >= target_tail_length()
+        >= target_snake_length()
     )
 
 
@@ -2631,6 +2641,10 @@ def main():
             )
             return
 
+        bones_before = num_items(
+            Items.Bone
+        )
+
         success = run_one_cycle()
 
         if not success:
@@ -2639,6 +2653,9 @@ def main():
                 BENCH_MODE,
                 BENCH_WORLD_SIZE,
                 BENCH_TARGET_PERCENT,
+                "tail",
+                CURRENT_TAIL_LENGTH - 1,
+                "occupied",
                 CURRENT_TAIL_LENGTH,
                 "cycle",
                 completed_cycles
@@ -2648,6 +2665,40 @@ def main():
             return
 
         harvest_tail()
+
+        bones_after = num_items(
+            Items.Bone
+        )
+
+        expected_cycle_bones = (
+            target_tail_length()
+            * target_tail_length()
+            * 32
+        )
+
+        if (
+            bones_after
+            - bones_before
+            != expected_cycle_bones
+        ):
+            quick_print(
+                "DINOSAUR BENCH INVALID",
+                "bone-gain",
+                BENCH_MODE,
+                "setup",
+                BENCH_SETUP_MODE,
+                "target",
+                BENCH_TARGET_PERCENT,
+                "tail",
+                target_tail_length(),
+                "actual_gain",
+                bones_after - bones_before,
+                "expected_gain",
+                expected_cycle_bones
+            )
+
+            return
+
         completed_cycles += 1
 
         # For the one-cycle board-1 diagnostic, validate the exact
@@ -2711,6 +2762,8 @@ def main():
         "target",
         BENCH_TARGET_PERCENT,
         "tail",
+        CURRENT_TAIL_LENGTH - 1,
+        "occupied",
         CURRENT_TAIL_LENGTH,
         "cycles",
         completed_cycles,
