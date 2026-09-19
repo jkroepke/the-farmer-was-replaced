@@ -16,7 +16,12 @@ MODE_NAMES = [
     "sparse-8x4-tail",
     "tree-1x32-tail",
     "tree-4x8-tail",
-    "tree-8x4-tail"
+    "tree-8x4-tail",
+    "persistent-1x32-tail",
+    "persistent-4x8-tail",
+    "persistent-8x4-tail",
+    "persistent-tree-4x8-tail",
+    "persistent-tree-8x4-tail"
 ]
 
 TAIL_LIMIT = 3
@@ -472,6 +477,242 @@ def _run_sparse(
     )
 
 
+def _persistent_region_worker(
+    index,
+    width,
+    height,
+    tail_boost,
+    cycles
+):
+    gains = []
+
+    for _ in range(cycles):
+        cycle_start = 0
+
+        if index == 0:
+            cycle_start = num_items(
+                Items.Pumpkin
+            )
+
+        if not _run_region_index(
+            index,
+            width,
+            height,
+            tail_boost
+        ):
+            if index == 0:
+                return []
+
+            return False
+
+        if index == 0:
+            while not pumpkin.is_full_map_pumpkin():
+                pumpkin.wait_seconds(
+                    0.02
+                )
+
+            if not harvest():
+                return []
+
+            gains.append(
+                num_items(
+                    Items.Pumpkin
+                )
+                - cycle_start
+            )
+        else:
+            world_size = utils.size()
+            columns = (
+                world_size
+                // width
+            )
+            origin_x = (
+                index
+                % columns
+                * width
+            )
+            origin_y = (
+                index
+                // columns
+                * height
+            )
+
+            utils.move_to(
+                origin_x,
+                origin_y
+            )
+
+            # The merged Pumpkin remains a Pumpkin until worker 0
+            # harvests it. Its disappearance is a global, observable
+            # cycle barrier that does not require shared Python memory.
+            while (
+                get_entity_type()
+                == Entities.Pumpkin
+            ):
+                pass
+
+    if index == 0:
+        return gains
+
+    return True
+
+
+def _persistent_tree_worker(
+    index,
+    width,
+    height,
+    tail_boost,
+    cycles
+):
+    count = _region_count(
+        width,
+        height
+    )
+    handles = []
+
+    left = index * 2 + 1
+    right = left + 1
+
+    if left < count:
+        handle = spawn_drone(
+            _persistent_tree_worker,
+            left,
+            width,
+            height,
+            tail_boost,
+            cycles
+        )
+
+        if handle == None:
+            if index == 0:
+                return []
+
+            return False
+
+        handles.append(handle)
+
+    if right < count:
+        handle = spawn_drone(
+            _persistent_tree_worker,
+            right,
+            width,
+            height,
+            tail_boost,
+            cycles
+        )
+
+        if handle == None:
+            if index == 0:
+                return []
+
+            return False
+
+        handles.append(handle)
+
+    result = _persistent_region_worker(
+        index,
+        width,
+        height,
+        tail_boost,
+        cycles
+    )
+
+    success = True
+
+    if index == 0:
+        success = len(result) == cycles
+    else:
+        success = result
+
+    for handle in handles:
+        child = wait_for(handle)
+
+        if not child:
+            success = False
+
+    if index == 0:
+        if success:
+            return result
+
+        return []
+
+    return success
+
+
+def _run_persistent_sparse(
+    width,
+    height,
+    tail_boost,
+    tree_spawn,
+    cycles
+):
+    world_size = utils.size()
+
+    if (
+        world_size % width != 0
+        or world_size % height != 0
+    ):
+        return []
+
+    count = _region_count(
+        width,
+        height
+    )
+
+    if count > max_drones():
+        return []
+
+    clear()
+
+    if tree_spawn:
+        return _persistent_tree_worker(
+            0,
+            width,
+            height,
+            tail_boost,
+            cycles
+        )
+
+    handles = []
+
+    for index in range(1, count):
+        handle = spawn_drone(
+            _persistent_region_worker,
+            index,
+            width,
+            height,
+            tail_boost,
+            cycles
+        )
+
+        if handle == None:
+            return []
+
+        handles.append(handle)
+
+    gains = _persistent_region_worker(
+        0,
+        width,
+        height,
+        tail_boost,
+        cycles
+    )
+
+    success = (
+        len(gains)
+        == cycles
+    )
+
+    for handle in handles:
+        if not wait_for(handle):
+            success = False
+
+    if success:
+        return gains
+
+    return []
+
+
 def _run_legacy():
     if not pumpkin.can_start():
         return False
@@ -586,12 +827,106 @@ def run_mode(
             True
         )
 
-    return _run_sparse(
-        8,
-        4,
-        True,
-        True
-    )
+    if mode == 12:
+        return _run_sparse(
+            8,
+            4,
+            True,
+            True
+        )
+
+    return False
+
+
+def run_benchmark_mode(
+    mode,
+    cycles
+):
+    if mode == 13:
+        return _run_persistent_sparse(
+            1,
+            32,
+            True,
+            False,
+            cycles
+        )
+
+    if mode == 14:
+        return _run_persistent_sparse(
+            4,
+            8,
+            True,
+            False,
+            cycles
+        )
+
+    if mode == 15:
+        return _run_persistent_sparse(
+            8,
+            4,
+            True,
+            False,
+            cycles
+        )
+
+    if mode == 16:
+        return _run_persistent_sparse(
+            4,
+            8,
+            True,
+            True,
+            cycles
+        )
+
+    if mode == 17:
+        return _run_persistent_sparse(
+            8,
+            4,
+            True,
+            True,
+            cycles
+        )
+
+    gains = []
+
+    for _ in range(cycles):
+        cycle_start = num_items(
+            Items.Pumpkin
+        )
+
+        if not run_mode(mode):
+            return []
+
+        gains.append(
+            num_items(
+                Items.Pumpkin
+            )
+            - cycle_start
+        )
+
+    return gains
+
+
+def _valid_gains(
+    gains,
+    cycles
+):
+    if (
+        len(gains) != cycles
+        or cycles < 1
+    ):
+        return False
+
+    expected = gains[0]
+
+    if expected <= 0:
+        return False
+
+    for gain in gains:
+        if gain != expected:
+            return False
+
+    return True
 
 
 def main():
@@ -623,8 +958,14 @@ def main():
         get_time()
     )
 
-    success = run_mode(
-        BENCH_MODE
+    gains = run_benchmark_mode(
+        BENCH_MODE,
+        BENCH_CYCLES
+    )
+
+    success = _valid_gains(
+        gains,
+        BENCH_CYCLES
     )
 
     elapsed = (
@@ -665,10 +1006,12 @@ def main():
         )
     )
 
-    valid = (
-        success
-        and gain > 0
-    )
+    valid = success
+
+    cycle_gain = 0
+
+    if len(gains) > 0:
+        cycle_gain = gains[0]
 
     quick_print(
         "PUMPKIN RESULT",
@@ -678,8 +1021,14 @@ def main():
         ],
         "success",
         success,
+        "completed",
+        len(gains),
+        "cycles",
+        BENCH_CYCLES,
         "gain",
         gain,
+        "cycle gain",
+        cycle_gain,
         "ticks",
         ticks,
         "elapsed",
