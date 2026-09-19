@@ -1795,6 +1795,8 @@ def run_reference():
 # 9 = two independent 4x4 mazes, 16 stationary drones each
 # 10 = 32 independent 4x4 mazes using a source-near zapakh ranked DFS
 # 11 = 32 independent 4x4 mazes using the Jan-2026 Steam route/path solver
+# 12 = 32 packed 4..7 mazes, fresh Maze for every Treasure
+# 13 = 32 packed 4..7 mazes, zapakh DFS with Maze reuse
 
 
 SPEC_DIRECTIONS = [
@@ -3307,8 +3309,18 @@ def run_special():
     elif BENCH_MODE == 10:
         spec_run_32x4()
 
-    else:
+    elif BENCH_MODE == 11:
         spec_run_steam_32x4()
+
+    elif BENCH_MODE == 12:
+        spec_run_packed_32(
+            False
+        )
+
+    else:
+        spec_run_packed_32(
+            True
+        )
 
     spec_report_result(
         start_gold
