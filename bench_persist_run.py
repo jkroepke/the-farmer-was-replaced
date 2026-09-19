@@ -1,6 +1,8 @@
 import main
 
 
+BENCH_VERSION = "persist-v1"
+
 BENCH_WORLD_SIZE = 32
 BENCH_SPEEDUP = 64
 
@@ -363,6 +365,11 @@ def benchmark_profile(
 
 
 def run_benchmarks():
+    quick_print(
+        "BENCHMARK VERSION",
+        BENCH_VERSION
+    )
+
     quick_print(
         "PERSIST BENCH SUITE START"
     )
