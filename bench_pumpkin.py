@@ -2427,6 +2427,17 @@ def main():
             / elapsed
         )
 
+    completed = len(gains)
+    requested_cycles = BENCH_CYCLES
+
+    if throughput_mode:
+        requested_cycles = 1
+
+        if valid:
+            completed = 1
+        else:
+            completed = 0
+
     cycle_gain = 0
 
     if len(gains) > 0:
@@ -2440,10 +2451,12 @@ def main():
         ],
         "success",
         success,
+        "throughput",
+        throughput_mode,
         "completed",
-        len(gains),
+        completed,
         "cycles",
-        BENCH_CYCLES,
+        requested_cycles,
         "gain",
         gain,
         "target",
