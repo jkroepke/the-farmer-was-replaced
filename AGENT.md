@@ -365,6 +365,10 @@ Rules:
 
 This makes benchmark conclusions reproducible for future agents and prevents numbers from becoming detached from the code that produced them.
 
+## Game file-name limit
+
+Game-facing Python files must use names of at most 20 characters including `.py`. Keep benchmark, probe, and runner names short enough to be created directly in the in-game editor.
+
 ## Benchmark layout
 
 For every benchmark topic, use exactly:
