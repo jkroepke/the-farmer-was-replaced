@@ -162,6 +162,49 @@ def stockpile_required():
     )
 
 
+def relocation_budget():
+    current = plan()
+
+    if current == None:
+        return 0
+
+    maze_size = current[0]
+    workers = current[1]
+
+    round_cost = (
+        substance_required(
+            maze_size
+        )
+        * workers
+    )
+
+    if round_cost <= 0:
+        return 0
+
+    # One complete round is reserved for Maze creation. Every additional
+    # complete round can fund one relocation per worker.
+    relocations = (
+        num_items(
+            Items.Weird_Substance
+        )
+        // round_cost
+        - 1
+    )
+
+    if (
+        relocations
+        > config.MAZE_REUSE_LIMIT
+    ):
+        relocations = (
+            config.MAZE_REUSE_LIMIT
+        )
+
+    if relocations < 0:
+        return 0
+
+    return relocations
+
+
 def can_start():
     current = plan()
 
@@ -534,15 +577,27 @@ def run():
     planned_workers = current[1]
     blocks_per_row = current[2]
 
+    relocations = relocation_budget()
+
+    if (
+        relocations
+        < config.MAZE_PARALLEL_RELOCATIONS
+    ):
+        return False
+
     quick_print(
         "MAZE PARALLEL",
         maze_size,
         "workers",
         planned_workers,
         "relocations",
-        config.MAZE_PARALLEL_RELOCATIONS,
-        "substance",
-        stockpile_required()
+        relocations,
+        "minimum substance",
+        stockpile_required(),
+        "available substance",
+        num_items(
+            Items.Weird_Substance
+        )
     )
 
     clear()
@@ -570,7 +625,7 @@ def run():
             origin[0],
             origin[1],
             maze_size,
-            config.MAZE_PARALLEL_RELOCATIONS,
+            relocations,
             start_substance
         )
 
@@ -619,7 +674,7 @@ def run():
 
     success = _solve(
         maze_size,
-        config.MAZE_PARALLEL_RELOCATIONS
+        relocations
     )
 
     for drone in drones:
