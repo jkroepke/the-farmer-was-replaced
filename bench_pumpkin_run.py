@@ -3,6 +3,7 @@ import main
 
 BENCH_VERSION = "pumpkin-v1"
 
+BENCH_VERSION = "pumpkin-v3-spawn-locality"
 BENCH_WORLD_SIZE = 32
 BENCH_SPEEDUP = 64
 
@@ -33,13 +34,17 @@ MODE_NAMES = [
     "persistent-tree-8x4-tail",
     "ring-reuse",
     "persistent-ring",
-    "persistent-tree-ring"
+    "persistent-tree-ring",
+    "persistent-placed-ring",
+    "persistent-spatial-tree-ring"
 ]
 
 PRIMARY_MODES = [
     0,
     19,
-    20
+    20,
+    21,
+    22
 ]
 
 CONTROL_MODES = [
@@ -50,7 +55,9 @@ AMORTIZED_MODES = [
     0,
     18,
     19,
-    20
+    20,
+    21,
+    22
 ]
 
 AMORTIZED_CYCLES = 3
