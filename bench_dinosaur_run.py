@@ -1,7 +1,7 @@
 import main
 
 
-BENCH_VERSION = "dinosaur-v4"
+BENCH_VERSION = "dinosaur-v5"
 
 # Primary Dinosaur benchmark:
 #
@@ -10,6 +10,10 @@ BENCH_VERSION = "dinosaur-v4"
 # - speedup 10000
 # - many route/shortcut variants
 # - fixed-tail diagnostic targets plus the exact board-1 leaderboard target
+#
+# v5 fixes an off-by-one exposed by the first v4 preview: the child tracked
+# occupied Dinosaur length (head + tail), while Bone rewards use tail segments
+# only. Every successful cycle now validates its exact expected Bone gain.
 #
 # IMPORTANT: simulate() returns elapsed time, not the child script's validity.
 # Always correlate summary rows with "DINOSAUR BENCH VALID" / "INVALID" lines.
