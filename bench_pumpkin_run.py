@@ -1,7 +1,7 @@
 import main
 
 
-BENCH_VERSION = "pumpkin-v4-spawn-locality"
+BENCH_VERSION = "pumpkin-v5-spatial-barrier"
 BENCH_WORLD_SIZE = 32
 BENCH_SPEEDUP = 10000
 
