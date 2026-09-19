@@ -107,3 +107,36 @@ wait_for(completed_source) -> fresh copy per call, not a shared mutable referenc
 This directly disproves the historical nql1314 shared-`wait_for()` queue/list mechanism on the tested current runtime.
 
 Keep the probe suite as a regression test after future game updates. The result proves the tested mutable list/dict semantics; do not generalize it to every possible engine-internal value type without a dedicated probe.
+
+
+## Spawn locality hypothesis 2026-09-19
+
+Current `builtins.py` documents a critical property of `spawn_drone()`:
+
+> the new drone starts at the same position as the drone that called `spawn_drone()`
+
+This creates a second optimization axis beyond spawn count:
+
+- **spawn topology**: who spawns whom and how much spawning can overlap
+- **spawn locality**: where the parent is standing when each child is created
+
+For a uniformly distributed set of 32 column targets on a wrapping 32-wide ring, moving one fixed launcher from x=0 to x=16 does not reduce the aggregate shortest-path distance. Translation symmetry gives every fixed launch column the same distance multiset.
+
+The potentially useful optimization is therefore not "spawn everything from the center", but **move parents before spawning spatially local children**.
+
+Two benchmarkable forms:
+
+1. sequential placed launch
+   - parent walks to each worker's target column
+   - spawns the worker directly on its owned column
+   - removes child positioning but serializes parent movement
+
+2. spatial spawn tree
+   - parent moves to the midpoint of its assigned region
+   - spawns children from there
+   - children repeat recursively for their subregions
+   - combines parallel spawning with progressively better locality
+
+For spatial workloads such as Pumpkin columns or independent Maze blocks, the second topology is the stronger general hypothesis.
+
+Do not assume locality wins automatically: a parent move costs a physical action too, and sequential placement may lengthen the critical launch path. Measure cold start and amortized repeated-work throughput separately.
