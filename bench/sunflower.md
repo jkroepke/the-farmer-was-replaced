@@ -119,83 +119,45 @@ summary without marking their provenance.
 | --- | --- |
 | Fix commit | `f962b8615880d92b573beaa3c30389b817e32dc0` |
 | Version bump commit | `689c8e20a44f6d24a46521ba1130360c5b5acbc5` |
-| Benchmark/version | `sunflower-v2-bounded7` |
-| Status | Complete. All seven modes valid across seeds 1, 2, and 3. |
+| Target | 100000 Power |
+| Status | Complete. All seven modes reported `valid True` across all three seeds. |
 
+##### Per-seed results
 
-#### Complete results
+| Mode | Seed 1 | Seed 2 | Seed 3 |
+| --- | ---: | ---: | ---: |
+| `tier-tree-no-care` | 504.77 s | 505.90 s | 503.52 s |
+| `equal7-tree-no-care` | 663.78 s | 654.84 s | 671.29 s |
+| `dumb-tree-no-care` | 507.34 s | 503.16 s | 509.10 s |
+| `tier-linear-no-care` | 561.17 s | 561.72 s | 561.17 s |
+| `scan-tree-bounded7` | 377.89 s | 376.60 s | 376.87 s |
+| `scan-tree-counted` | **372.15 s** | **372.42 s** | **370.04 s** |
+| `scan-linear-counted` | 424.92 s | 426.60 s | 426.20 s |
 
-Status: **complete**. All seven modes completed and reported `valid True` for
-all three seeds.
+##### Final summary
 
-##### Seed 1
+| Mode | Avg time | Min | Max | Avg ticks |
+| --- | ---: | ---: | ---: | ---: |
+| `scan-tree-counted` | **371.54 s** | **370.04 s** | **372.42 s** | **2,223,888** |
+| `scan-tree-bounded7` | 377.12 s | 376.60 s | 377.89 s | 2,257,843 |
+| `scan-linear-counted` | 425.91 s | 424.92 s | 426.60 s | 2,551,904 |
+| `tier-tree-no-care` | 504.73 s | 503.52 s | 505.90 s | 3,017,477 |
+| `dumb-tree-no-care` | 506.54 s | 503.16 s | 509.10 s | 3,055,109 |
+| `tier-linear-no-care` | 561.35 s | 561.17 s | 561.72 s | 3,359,582 |
+| `equal7-tree-no-care` | 663.31 s | 654.84 s | 671.29 s | 3,753,577 |
 
-| Mode | Time | Ticks | Final Power | Valid |
-| --- | ---: | ---: | ---: | --- |
-| `tier-tree-no-care` | 504.77 s | 3,017,721 | 100,468.30 | yes |
-| `equal7-tree-no-care` | 663.78 s | 3,776,706 | 103,035.43 | yes |
-| `dumb-tree-no-care` | 507.34 s | 3,059,239 | 100,006.83 | yes |
-| `tier-linear-no-care` | 561.17 s | 3,358,793 | 100,466.30 | yes |
-| `scan-tree-bounded7` | 377.89 s | 2,262,596 | 100,513.07 | yes |
-| `scan-tree-counted` | **372.15 s** | **2,227,645** | 100,486.21 | yes |
-| `scan-linear-counted` | 424.92 s | 2,545,856 | 100,220.57 | yes |
-
-Seed-1 observations:
+`scan-tree-counted` is the measured winner.
 
 | Comparison | Result |
 | --- | ---: |
-| `scan-tree-counted` vs `tier-tree-no-care` | 26.27% less wall-clock time |
-| `scan-tree-bounded7` vs `tier-tree-no-care` | 25.14% less wall-clock time |
-| `scan-tree-counted` vs `scan-tree-bounded7` | 1.52% less wall-clock time |
-| `scan-tree-counted` vs `scan-linear-counted` | 12.42% less wall-clock time |
+| vs `tier-tree-no-care` | 26.39% less wall-clock time |
+| vs `dumb-tree-no-care` | 26.65% less wall-clock time |
+| vs `scan-tree-bounded7` | 1.48% less wall-clock time |
+| vs `scan-linear-counted` | 12.77% less wall-clock time |
 
-The scan family therefore has a strong first-seed lead, and the binary-tree
-spawn topology also remains beneficial inside the scan algorithm. This is only
-a preview; no winner should be promoted until all three seeds finish.
-
-##### Seed 2
-
-| Mode | Time | Ticks | Final Power | Valid |
-| --- | ---: | ---: | ---: | --- |
-| `tier-tree-no-care` | 505.90 s | 3,024,491 | 100,459.09 | yes |
-| `equal7-tree-no-care` | 654.84 s | 3,699,816 | 103,174.14 | yes |
-| `dumb-tree-no-care` | 503.16 s | 3,034,224 | 100,004.88 | yes |
-| `tier-linear-no-care` | 561.72 s | 3,362,057 | 100,409.31 | yes |
-| `scan-tree-bounded7` | 376.60 s | 2,254,714 | 100,630.53 | yes |
-| `scan-tree-counted` | **372.42 s** | **2,229,249** | 100,592.43 | yes |
-| `scan-linear-counted` | 426.60 s | 2,555,771 | 100,268.47 | yes |
-
-##### Two-seed scan preview
-
-| Mode | Avg time | Min | Max |
-| --- | ---: | ---: | ---: |
-| `scan-tree-counted` | **372.29 s** | 372.15 s | 372.42 s |
-| `scan-tree-bounded7` | 377.25 s | 376.60 s | 377.89 s |
-| `scan-linear-counted` | 425.76 s | 424.92 s | 426.60 s |
-
-Across the same first two seeds, `scan-tree-counted` is 26.33% faster than
-`tier-tree-no-care`, 1.31% faster than `scan-tree-bounded7`, and 12.56%
-faster than `scan-linear-counted`.
-
-##### Seed 3 partial
-
-| Mode | Time | Ticks | Final Power | Valid |
-| --- | ---: | ---: | ---: | --- |
-| `tier-tree-no-care` | 503.52 s | 3,010,220 | 100,482.18 | yes |
-| `equal7-tree-no-care` | 671.29 s | 3,784,208 | 103,045.48 | yes |
-| `dumb-tree-no-care` | 509.10 s | 3,071,864 | 100,005.46 | yes |
-| `tier-linear-no-care` | 561.17 s | 3,357,896 | 100,284.81 | yes |
-
-##### Complete control averages
-
-| Mode | Avg time | Min | Max |
-| --- | ---: | ---: | ---: |
-| `tier-tree-no-care` | **504.73 s** | 503.52 s | 505.90 s |
-| `dumb-tree-no-care` | 506.53 s | 503.16 s | 509.10 s |
-| `tier-linear-no-care` | 561.35 s | 561.17 s | 561.72 s |
-| `equal7-tree-no-care` | 663.30 s | 654.84 s | 671.29 s |
-
-The non-scan controls are now complete for all three seeds. Their low spread confirms that the scan result in the tables above is not being compared against an unstable control. The final decision still waits for the three seed-3 scan results.
+The final Power values for `scan-tree-counted` were 100486.21, 100592.43,
+and 100475.86 for seeds 1, 2, and 3 respectively, so all three runs satisfied
+the target and terminated successfully.
 
 ## Interpretation
 
