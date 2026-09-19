@@ -1,4 +1,4 @@
-BENCH_VERSION = "spawn-v4"
+BENCH_VERSION = "spawn-v5"
 
 BENCH_WORLD_SIZE = 32
 BENCH_SPEEDUP = 10000
@@ -17,7 +17,21 @@ MODE_NAMES = [
     "nearest-slots-precomputed-rowmajor",
     "nearest-slots-precomputed-farthest-parent-near",
     "binary-tree-rowmajor-origin00",
-    "binary-tree-nearest-origin00"
+    "binary-tree-nearest-origin00",
+    "dual-spawner-rowmajor",
+    "flekay-powers-rowmajor",
+    "jarvan-powers-rowmajor"
+]
+
+# Topology shootout keeps the final 32 target origins identical.
+# Mode 7 remains the measured locality+binary winner but is not a topology-only
+# comparison because it uses the alternate NEAREST_ORIGINS layout.
+TOPOLOGY_MODES = [
+    0,
+    8,
+    9,
+    10,
+    6
 ]
 
 
@@ -100,9 +114,15 @@ def main():
             seed
         )
 
-        mode = 0
+        mode_index = 0
 
-        while mode < len(MODE_NAMES):
+        while mode_index < len(
+            TOPOLOGY_MODES
+        ):
+            mode = TOPOLOGY_MODES[
+                mode_index
+            ]
+
             run_time = run_one(
                 mode,
                 seed
@@ -124,16 +144,22 @@ def main():
                 run_time
             )
 
-            mode += 1
+            mode_index += 1
 
     quick_print(
         "SPAWN BENCH SUMMARY"
     )
 
-    mode = 0
+    mode_index = 0
     count = len(BENCH_SEEDS)
 
-    while mode < len(MODE_NAMES):
+    while mode_index < len(
+        TOPOLOGY_MODES
+    ):
+        mode = TOPOLOGY_MODES[
+            mode_index
+        ]
+
         quick_print(
             MODE_NAMES[mode],
             "avg",
@@ -144,7 +170,7 @@ def main():
             maximums[mode]
         )
 
-        mode += 1
+        mode_index += 1
 
     quick_print(
         "SPAWN BENCH DONE"
