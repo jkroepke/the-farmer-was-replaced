@@ -1,7 +1,7 @@
 import main
 
 
-BENCH_VERSION = "pumpkin-v6-patch-throughput"
+BENCH_VERSION = "pumpkin-v7-patch-sizes"
 BENCH_WORLD_SIZE = 32
 BENCH_SPEEDUP = 10000
 
@@ -39,17 +39,16 @@ MODE_NAMES = [
     "persistent-power-ring-tail3",
     "patch16-6x6-power",
     "patch16-6x6-power-tail3",
-    "patch16-7x7-power-tail3"
+    "patch16-7x7-power-tail3",
+    "patch9-9x9-power-tail3",
+    "patch4-15x15-power-tail3",
+    "power-wave-ring-tail3"
 ]
 
 PRIMARY_MODES = [
     0,
     19,
-    20,
-    21,
-    22,
-    23,
-    24
+    23
 ]
 
 CONTROL_MODES = [
@@ -60,11 +59,7 @@ AMORTIZED_MODES = [
     0,
     18,
     19,
-    20,
-    21,
-    22,
-    23,
-    24
+    23
 ]
 
 AMORTIZED_CYCLES = 3
@@ -81,12 +76,14 @@ THROUGHPUT_TARGET = (
 )
 
 THROUGHPUT_MODES = [
-    20,
+    0,
+    19,
     23,
-    24,
-    25,
+    30,
     26,
-    27
+    27,
+    28,
+    29
 ]
 
 THROUGHPUT_CONTROL_CYCLES = 6
