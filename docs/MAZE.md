@@ -389,6 +389,66 @@ The posted implementation runs one independent 4x4 Maze per drone. It first reco
 
 The benchmark keeps that architecture while adding the repository's fixed-Gold stopping condition and safe current-API handling.
 
+### Reddit 32-square full-field packing follow-up
+
+A September 2026 Reddit thread adds a new geometry optimization:
+
+https://www.reddit.com/r/TheFarmerWasReplaced/comments/1wjxxhx/my_best_attempt_at_mazes_524_leaderboard_as_of/
+
+The author runs one square Maze per drone and reports that lowering the maximum
+individual Maze size improves leaderboard performance. A comment points out
+that a complete 32-square tiling of the 32x32 field exists with integer side
+lengths from 4 through 7. The author tried the linked alternative layout and
+reported improving from leaderboard position #524 to #514.
+
+The repository independently reconstructed and verified a full exact cover:
+
+```text
+12 x 4x4
+ 4 x 5x5
+ 4 x 6x6
+12 x 7x7
+```
+
+The 32 squares cover all 1024 cells exactly once. The concrete coordinates are
+stored in `bench_maze.py::SPEC_PACKED_32`.
+
+This geometry is interesting because the current measured
+`zapakh-32x4x4` strategy only occupies 32 * 16 = 512 cells of the farm.
+A full packed solve covers 1024 cells while still using exactly 32 drones.
+
+The thread also suggests handling loops in reused Mazes by treating a
+currently-visited cell as blocked for the rest of that solve. The repository's
+zapakh DFS already does this through its per-solve `visited` set, so reuse is
+a meaningful extension even though the Reddit author describes a fresh-only
+solver.
+
+New benchmark modes:
+
+- `packed-4to7-fresh`
+  - mode 12
+  - full 32-square exact-cover layout
+  - one fresh Maze per Treasure
+  - closest to the Reddit author's stated no-reuse behavior
+- `packed-4to7-reuse`
+  - mode 13
+  - identical layout
+  - zapakh visited-set DFS
+  - reuses each Maze
+
+The active runner now compares only:
+
+- `zapakh-32x4x4` — current measured winner/control
+- `packed-4to7-fresh`
+- `packed-4to7-reuse`
+
+The previously measured modes are not rerun automatically.
+
+Packed experiment code state: `e6e1d5b16120ca56329463fcc65d8ffc55fb5650`.
+
+Local provenance:
+`external/reddit-32-square-maze/README.md`.
+
 ### Results
 
 Final 200000-Gold special benchmark, tested against code commit `55734c855dd464dd846deef280d8a65d9f2c3bf7`.
