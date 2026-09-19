@@ -2823,7 +2823,35 @@ def spec_run_steam_32x4():
     )
 
 
+def spec_report_result(
+    start_gold
+):
+    gained = (
+        num_items(Items.Gold)
+        - start_gold
+    )
+
+    status = "FAIL"
+
+    if gained >= BENCH_GOLD_TARGET:
+        status = "PASS"
+
+    quick_print(
+        "MAZE SPECIAL RESULT",
+        BENCH_MODE,
+        "gold gained",
+        gained,
+        "target",
+        BENCH_GOLD_TARGET,
+        status
+    )
+
+
 def run_special():
+    start_gold = num_items(
+        Items.Gold
+    )
+
     if BENCH_MODE == 6:
         spec_run_reference_target()
 
@@ -2847,6 +2875,10 @@ def run_special():
 
     else:
         spec_run_steam_32x4()
+
+    spec_report_result(
+        start_gold
+    )
 
 
 # ==================================================
