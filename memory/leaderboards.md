@@ -65,6 +65,21 @@ Do not assume that the normal production policy is leaderboard-optimal. Fastest 
 
 ## Maze
 
+Current dedicated launcher:
+
+```python
+leaderboard_run(Leaderboards.Maze, "lb_maze", 64)
+```
+
+Files:
+
+- `lb_maze_run.py` — leaderboard launcher
+- `lb_maze.py` — finite Maze leaderboard implementation
+
+The current implementation uses the strongest measured long-run candidate so far,
+uniform 5x5 map+BFS reuse300, and exits at the exact 9863168-Gold target. The
+exact-target cold-start finalist benchmark remains the final selection criterion.
+
 Leaderboard:
 
 ```python
