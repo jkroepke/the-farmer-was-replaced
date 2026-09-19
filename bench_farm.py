@@ -1096,6 +1096,12 @@ def main():
         gained,
         "rate",
         rate,
+        "start-power",
+        start_power,
+        "end-power",
+        num_items(
+            Items.Power
+        ),
         "power-delta",
         power_delta
     )
