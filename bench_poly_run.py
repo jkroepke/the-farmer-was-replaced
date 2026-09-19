@@ -1,10 +1,10 @@
 import main
 
 
-BENCH_VERSION = "farmx-v1"
+BENCH_VERSION = "farmx-v2"
 
 BENCH_WORLD_SIZE = 32
-BENCH_SPEEDUP = 64
+BENCH_SPEEDUP = 10000
 
 HORIZON_NAMES = [
     "cold-short",
