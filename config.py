@@ -6,17 +6,10 @@
 # Unter 0.75 wird jeweils ein Tank (+0.25) verwendet.
 WATER_LIMIT = 0.75
 
-# Sonnenblumen bleiben als permanentes L am linken und oberen Rand.
-#
-# Bei 16x16 und Breite 1:
-#   linke Spalte + obere Reihe = 31 Sonnenblumen.
-#
-# Durch Wrap-around ist die obere Reihe von y=0 aus nur
-# einen Schritt South entfernt.
+# Legacy-L benchmark configuration.
+# Production uses adaptive Sunflower columns; these widths remain only
+# for farm.run_legacy() and historical benchmark reproduction.
 SUNFLOWER_EDGE_WIDTH = 1
-
-# Direkt neben dem Sonnenblumen-L liegt ein Karotten-L,
-# damit dauerhaft Nachschub für neue Sonnenblumen vorhanden ist.
 CARROT_SUPPORT_EDGE_WIDTH = 1
 
 ENABLE_POLYCULTURE = True
