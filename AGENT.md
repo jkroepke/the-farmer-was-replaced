@@ -164,7 +164,7 @@ Important repository rule:
 
 Hats may be reused. `max_drones()` determines the useful upper bound.
 
-The worker pool in `workers.py` intentionally cycles through hats and uses as many drones as available. Preserve that behavior.
+The worker pool in `workers.py` intentionally avoids cosmetic hat changes and uses as many drones as available. Preserve that behavior.
 
 Other drone rules:
 
@@ -273,7 +273,7 @@ Sunflower harvesting has special rules.
 - After every harvest, recompute the current maximum before harvesting another sunflower.
 - Power speeds drone execution.
 
-Production uses two benchmark-selected normal-farm regimes. Below full Megafarm (`max_drones() < world_size`) production currently keeps the legacy L because the persistent transition benchmark did not show an improvement from the production-shaped max-petal column implementation. At full Megafarm (`max_drones() == world_size`) production uses adaptive one-worker-per-column ownership with the final two columns reserved for simple Sunflowers. See `docs/NORMAL_FARM.md` and its benchmark commit references before changing normal farming or Sunflower placement.
+Production no longer uses the legacy L. Below full Megafarm (`max_drones() < world_size`) production uses the best previously measured non-L fallback: one dedicated max-petal Sunflower column plus crop chunks. At full Megafarm (`max_drones() == world_size`) production currently uses synchronous column ownership with the final two columns reserved for simple Sunflowers. Persistent-worker variants are under benchmark; see `docs/NORMAL_FARM.md` and its benchmark commit references before changing normal farming or Sunflower placement.
 
 Do not assume the current global petal-cache/L design is optimal. Benchmark modes intentionally test integrated Sunflower rows/columns and dedicated workers without shared memory. Production changes must follow measured results from `bench_farm_run.py`.
 
