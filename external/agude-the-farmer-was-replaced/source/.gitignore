@@ -1,0 +1,13 @@
+# Game-generated state
+*.json
+!game-api.json
+__builtins__.py
+__pycache__/
+*.py[cod]
+
+# Temporary research and agent notes
+tmp/
+/parallel_plan.md
+/plan.md
+/fixes.md
+/fix.md

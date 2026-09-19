@@ -44,6 +44,9 @@ Always validate assumptions against:
 - https://github.com/guiteixeira-io/the-farmer-was-replaced
   - small educational/classroom repository; useful mainly as provenance and simple beginner baselines rather than an optimization source
   - complete pinned snapshot and review: `external/guiteixeira-io-the-farmer-was-replaced/`
+- https://github.com/agude/the-farmer-was-replaced
+  - current September 2026 CC0 reference with test-driven Top Hat automation, live cost planning, dependency-cycle detection, adaptive Power hysteresis, phase-separated Cactus, sparse Pumpkin repair, and regression tests for game-compatible code
+  - complete pinned snapshot and detailed review: `external/agude-the-farmer-was-replaced/`
 - https://github.com/sciencejiho/TFWR-Solutions
   - current September 2026 strategy architecture with isolated copied drone jobs, asynchronous persistent column lanes, sparse Pumpkin/Cactus revisits, inventory-relative scheduling, and persistent Maze graph/station planning
   - complete pinned snapshot and detailed review: `external/sciencejiho-tfwr-solutions/`
@@ -281,6 +284,7 @@ Prefer a complex algorithm when it measures faster, but never assume complexity 
 - `external/nql1314-the-farmer-was-replaced-ai-code/` — complete 78-file source snapshot at `688325db004607563e59535a15ce94fad092ff9f`; detailed review distinguishes reusable algorithms from the historical shared-`wait_for()` exploit
 - `external/flekay-the-farmer-was-replaced/` — complete 283-file GPL-3.0 snapshot at `567e0ab6f96305cd6c9a05fd5eea2917449c2407`; includes tick-cost tests, benchmark tables, movement libraries, and strategy variants across major mechanics
 - `external/guiteixeira-io-the-farmer-was-replaced/` — complete 12-file educational snapshot at `58bd5c5ba928548bc21035006551ca93854f16b9`; only two non-empty game scripts, both minimal harvest loops
+- `external/agude-the-farmer-was-replaced/` — complete 82-file CC0-1.0 snapshot at `15a68276c998039bcb90c0f6cbbdb006a6ce1065`; includes a heavily tested Top Hat resource planner and current September 2026 farming implementations
 - `external/sciencejiho-tfwr-solutions/` — complete 23-file snapshot at `e0f22263d8de76691407bbcb314c0b41c3eea82e`; current-runtime architecture designed around copied drone jobs rather than shared Python memory
 
 

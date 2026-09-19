@@ -1,0 +1,499 @@
+{
+  "enums": {
+    "Entities": [
+      "Apple",
+      "Bush",
+      "Cactus",
+      "Carrot",
+      "Dead_Pumpkin",
+      "Dinosaur",
+      "Grass",
+      "Hedge",
+      "Pumpkin",
+      "Sunflower",
+      "Treasure",
+      "Tree"
+    ],
+    "Grounds": [
+      "Grassland",
+      "Soil"
+    ],
+    "Hats": [
+      "Brown_Hat",
+      "Cactus_Hat",
+      "Carrot_Hat",
+      "Dinosaur_Hat",
+      "Gold_Hat",
+      "Gold_Trophy_Hat",
+      "Golden_Cactus_Hat",
+      "Golden_Carrot_Hat",
+      "Golden_Gold_Hat",
+      "Golden_Pumpkin_Hat",
+      "Golden_Sunflower_Hat",
+      "Golden_Tree_Hat",
+      "Gray_Hat",
+      "Green_Hat",
+      "Pumpkin_Hat",
+      "Purple_Hat",
+      "Silver_Trophy_Hat",
+      "Straw_Hat",
+      "Sunflower_Hat",
+      "The_Farmers_Remains",
+      "Top_Hat",
+      "Traffic_Cone",
+      "Traffic_Cone_Stack",
+      "Tree_Hat",
+      "Wizard_Hat",
+      "Wood_Trophy_Hat"
+    ],
+    "Items": [
+      "Bone",
+      "Cactus",
+      "Carrot",
+      "Fertilizer",
+      "Gold",
+      "Hay",
+      "Piggy",
+      "Power",
+      "Pumpkin",
+      "Water",
+      "Weird_Substance",
+      "Wood"
+    ],
+    "Leaderboards": [
+      "Cactus",
+      "Cactus_Single",
+      "Carrots",
+      "Carrots_Single",
+      "Dinosaur",
+      "Fastest_Reset",
+      "Hay",
+      "Hay_Single",
+      "Maze",
+      "Maze_Single",
+      "Pumpkins",
+      "Pumpkins_Single",
+      "Sunflowers",
+      "Sunflowers_Single",
+      "Wood",
+      "Wood_Single"
+    ],
+    "Unlocks": [
+      "Auto_Unlock",
+      "Cactus",
+      "Carrots",
+      "Costs",
+      "Debug",
+      "Debug_2",
+      "Dictionaries",
+      "Dinosaurs",
+      "Expand",
+      "Fertilizer",
+      "Functions",
+      "Grass",
+      "Hats",
+      "Import",
+      "Leaderboard",
+      "Lists",
+      "Loops",
+      "Mazes",
+      "Megafarm",
+      "Operators",
+      "Plant",
+      "Polyculture",
+      "Pumpkins",
+      "Senses",
+      "Simulation",
+      "Speed",
+      "Sunflowers",
+      "The_Farmers_Remains",
+      "Timing",
+      "Top_Hat",
+      "Trees",
+      "Utilities",
+      "Variables",
+      "Watering"
+    ]
+  },
+  "functions": {
+    "abs": [
+      {
+        "max_positional": 1,
+        "min_positional": 1
+      }
+    ],
+    "add": [
+      {
+        "max_positional": 2,
+        "min_positional": 2
+      }
+    ],
+    "append": [
+      {
+        "max_positional": 2,
+        "min_positional": 2
+      }
+    ],
+    "can_harvest": [
+      {
+        "max_positional": 0,
+        "min_positional": 0
+      }
+    ],
+    "can_move": [
+      {
+        "max_positional": 1,
+        "min_positional": 1
+      }
+    ],
+    "change_hat": [
+      {
+        "max_positional": 1,
+        "min_positional": 1
+      }
+    ],
+    "clear": [
+      {
+        "max_positional": 0,
+        "min_positional": 0
+      }
+    ],
+    "do_a_flip": [
+      {
+        "max_positional": 0,
+        "min_positional": 0
+      }
+    ],
+    "get_companion": [
+      {
+        "max_positional": 0,
+        "min_positional": 0
+      }
+    ],
+    "get_cost": [
+      {
+        "max_positional": 2,
+        "min_positional": 1
+      }
+    ],
+    "get_entity_type": [
+      {
+        "max_positional": 0,
+        "min_positional": 0
+      }
+    ],
+    "get_ground_type": [
+      {
+        "max_positional": 0,
+        "min_positional": 0
+      }
+    ],
+    "get_pos_x": [
+      {
+        "max_positional": 0,
+        "min_positional": 0
+      }
+    ],
+    "get_pos_y": [
+      {
+        "max_positional": 0,
+        "min_positional": 0
+      }
+    ],
+    "get_tick_count": [
+      {
+        "max_positional": 0,
+        "min_positional": 0
+      }
+    ],
+    "get_time": [
+      {
+        "max_positional": 0,
+        "min_positional": 0
+      }
+    ],
+    "get_water": [
+      {
+        "max_positional": 0,
+        "min_positional": 0
+      }
+    ],
+    "get_world_size": [
+      {
+        "max_positional": 0,
+        "min_positional": 0
+      }
+    ],
+    "harvest": [
+      {
+        "max_positional": 0,
+        "min_positional": 0
+      }
+    ],
+    "has_finished": [
+      {
+        "max_positional": 1,
+        "min_positional": 1
+      }
+    ],
+    "insert": [
+      {
+        "max_positional": 3,
+        "min_positional": 3
+      }
+    ],
+    "leaderboard_run": [
+      {
+        "max_positional": 3,
+        "min_positional": 3
+      }
+    ],
+    "len": [
+      {
+        "max_positional": 1,
+        "min_positional": 1
+      }
+    ],
+    "max": [
+      {
+        "max_positional": null,
+        "min_positional": 0
+      }
+    ],
+    "max_drones": [
+      {
+        "max_positional": 0,
+        "min_positional": 0
+      }
+    ],
+    "measure": [
+      {
+        "max_positional": 1,
+        "min_positional": 0
+      }
+    ],
+    "min": [
+      {
+        "max_positional": null,
+        "min_positional": 0
+      }
+    ],
+    "move": [
+      {
+        "max_positional": 1,
+        "min_positional": 1
+      }
+    ],
+    "num_drones": [
+      {
+        "max_positional": 0,
+        "min_positional": 0
+      }
+    ],
+    "num_items": [
+      {
+        "max_positional": 1,
+        "min_positional": 1
+      }
+    ],
+    "num_unlocked": [
+      {
+        "max_positional": 1,
+        "min_positional": 1
+      }
+    ],
+    "pet_the_piggy": [
+      {
+        "max_positional": 0,
+        "min_positional": 0
+      }
+    ],
+    "plant": [
+      {
+        "max_positional": 1,
+        "min_positional": 1
+      }
+    ],
+    "pop": [
+      {
+        "max_positional": 2,
+        "min_positional": 2
+      }
+    ],
+    "print": [
+      {
+        "max_positional": null,
+        "min_positional": 0
+      }
+    ],
+    "quick_print": [
+      {
+        "max_positional": null,
+        "min_positional": 0
+      }
+    ],
+    "random": [
+      {
+        "max_positional": 0,
+        "min_positional": 0
+      }
+    ],
+    "range": [
+      {
+        "max_positional": 1,
+        "min_positional": 1
+      },
+      {
+        "max_positional": 2,
+        "min_positional": 2
+      },
+      {
+        "max_positional": 3,
+        "min_positional": 3
+      }
+    ],
+    "remove": [
+      {
+        "max_positional": 2,
+        "min_positional": 2
+      }
+    ],
+    "set_execution_speed": [
+      {
+        "max_positional": 1,
+        "min_positional": 1
+      }
+    ],
+    "set_world_size": [
+      {
+        "max_positional": 1,
+        "min_positional": 1
+      }
+    ],
+    "simulate": [
+      {
+        "max_positional": 6,
+        "min_positional": 6
+      }
+    ],
+    "spawn_drone": [
+      {
+        "max_positional": null,
+        "min_positional": 1
+      }
+    ],
+    "str": [
+      {
+        "max_positional": 1,
+        "min_positional": 1
+      }
+    ],
+    "swap": [
+      {
+        "max_positional": 1,
+        "min_positional": 1
+      }
+    ],
+    "till": [
+      {
+        "max_positional": 0,
+        "min_positional": 0
+      }
+    ],
+    "unlock": [
+      {
+        "max_positional": 1,
+        "min_positional": 1
+      }
+    ],
+    "use_item": [
+      {
+        "max_positional": 2,
+        "min_positional": 1
+      }
+    ],
+    "wait_for": [
+      {
+        "max_positional": 1,
+        "min_positional": 1
+      }
+    ]
+  },
+  "globals": [
+    "Any",
+    "AnyIterable",
+    "Direction",
+    "Drone",
+    "East",
+    "Entities",
+    "Entity",
+    "Enums",
+    "Ground",
+    "Grounds",
+    "Hashable",
+    "Hat",
+    "Hats",
+    "Item",
+    "Items",
+    "Leaderboard",
+    "Leaderboards",
+    "North",
+    "Primitive",
+    "SimulateUnlocks",
+    "South",
+    "Unlock",
+    "Unlocks",
+    "West",
+    "abs",
+    "add",
+    "append",
+    "can_harvest",
+    "can_move",
+    "change_hat",
+    "clear",
+    "do_a_flip",
+    "get_companion",
+    "get_cost",
+    "get_entity_type",
+    "get_ground_type",
+    "get_pos_x",
+    "get_pos_y",
+    "get_tick_count",
+    "get_time",
+    "get_water",
+    "get_world_size",
+    "harvest",
+    "has_finished",
+    "insert",
+    "leaderboard_run",
+    "len",
+    "max",
+    "max_drones",
+    "measure",
+    "min",
+    "move",
+    "num_drones",
+    "num_items",
+    "num_unlocked",
+    "pet_the_piggy",
+    "plant",
+    "pop",
+    "print",
+    "quick_print",
+    "random",
+    "range",
+    "remove",
+    "set_execution_speed",
+    "set_world_size",
+    "simulate",
+    "spawn_drone",
+    "str",
+    "swap",
+    "till",
+    "unlock",
+    "use_item",
+    "wait_for"
+  ],
+  "schema_version": 1,
+  "source": "__builtins__.py"
+}
