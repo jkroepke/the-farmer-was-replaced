@@ -127,60 +127,100 @@ def choose_focus_from_cost(cost, multiplier = 1):
 # NEXT UNLOCK
 # ==================================================
 #
-# We do not blindly max the first entry in AUTO_UNLOCKS.
+# config.UNLOCK_PLANS combines:
+#
+# - a hard progression frontier (list order)
+# - a relative priority inside the reached frontier
 #
 # Candidate set:
 #
-# - every upgrade line that has already been unlocked at least once
-# - plus the first upgrade line in AUTO_UNLOCKS that has never been
-#   unlocked yet
+# - every upgrade line already unlocked at least once
+# - plus the first never-unlocked entry
 #
-# This preserves the configured progression/frontier while allowing
-# cheap levels of Speed/Expand/etc. to compete with each other.
+# Nothing beyond the first never-unlocked entry is considered.
 #
-# Within that candidate set:
+# Candidate comparison uses weighted remaining cost:
 #
-# 1. lowest remaining total resource cost wins
-# 2. lower nominal total cost wins ties
-# 3. AUTO_UNLOCKS order wins remaining ties
+#   remaining / priority
+#
+# To avoid division/float work, compare candidates by cross product:
+#
+#   candidate_remaining * best_priority
+#   <
+#   best_remaining * candidate_priority
+#
+# Lower weighted remaining cost wins. Nominal remaining/total cost and
+# list order provide deterministic tie-breakers.
 # ==================================================
 
 def next_target():
     best_feature = None
+    best_priority = 1
     best_remaining = -1
     best_total = -1
 
     reached_frontier = False
 
-    for feature in config.AUTO_UNLOCKS:
+    for plan in config.UNLOCK_PLANS:
         if reached_frontier:
             break
 
+        feature = plan["unlock"]
+        priority = plan["priority"]
         cost = get_cost(feature)
 
-        # Current game docs return {} for an upgradeable unlock at
-        # maximum level. Keep None compatibility for older behavior.
+        # Current docs return {} for an upgradeable unlock at max.
+        # Keep None compatibility for older behavior.
         if cost != None and len(cost) > 0:
             remaining = remaining_total(cost)
             total = cost_total(cost)
 
             if best_feature == None:
                 best_feature = feature
+                best_priority = priority
                 best_remaining = remaining
                 best_total = total
 
-            elif remaining < best_remaining:
-                best_feature = feature
-                best_remaining = remaining
-                best_total = total
+            else:
+                candidate_weight = (
+                    remaining
+                    * best_priority
+                )
 
-            elif (
-                remaining == best_remaining
-                and total < best_total
-            ):
-                best_feature = feature
-                best_remaining = remaining
-                best_total = total
+                best_weight = (
+                    best_remaining
+                    * priority
+                )
+
+                if candidate_weight < best_weight:
+                    best_feature = feature
+                    best_priority = priority
+                    best_remaining = remaining
+                    best_total = total
+
+                elif (
+                    candidate_weight
+                    == best_weight
+                    and remaining
+                    < best_remaining
+                ):
+                    best_feature = feature
+                    best_priority = priority
+                    best_remaining = remaining
+                    best_total = total
+
+                elif (
+                    candidate_weight
+                    == best_weight
+                    and remaining
+                    == best_remaining
+                    and total
+                    < best_total
+                ):
+                    best_feature = feature
+                    best_priority = priority
+                    best_remaining = remaining
+                    best_total = total
 
         if num_unlocked(feature) == 0:
             reached_frontier = True
