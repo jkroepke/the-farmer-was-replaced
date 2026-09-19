@@ -1,3 +1,6 @@
+import utils
+
+
 MODE_NAMES = [
     "carrot-lean",
     "carrot-water25",
@@ -120,9 +123,9 @@ def service_safe(mode):
             harvest()
 
     if get_entity_type() == None:
-        if get_cost(
+        if utils.can_afford(
             Entities.Carrot
-        ) != None:
+        ):
             plant(
                 Entities.Carrot
             )
