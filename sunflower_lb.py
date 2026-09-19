@@ -24,7 +24,7 @@ MODE_NAMES = [
     "dumb-tree-water",
     "dumb-tree-water-fertilizer",
     "tier-linear-water",
-    "scan-tree-leave7",
+    "scan-tree-bounded7",
     "scan-tree-counted",
     "scan-linear-counted",
     "dumb-tree-no-care",
@@ -35,6 +35,12 @@ MODE_NAMES = [
 MIN_PETALS = 7
 MAX_PETALS = 15
 MIN_REMAINING = 9
+
+# Bounded low-tier control: preserve at most one world-width worth of
+# seven-petal flowers. The old leave-all-7 strategy accumulated new random
+# seven-petal replants every cycle and could converge to a field with nothing
+# harvestable above tier 7.
+MAX_SEVEN_RESERVE = 0
 
 TARGET_POWER = 100000
 WORLD_SIZE = 0
@@ -1517,7 +1523,7 @@ def scan_harvest_tier(
 
 
 def run_scan(
-    prefer_leave7
+    bounded7
 ):
     if not scan_collect_field(
         True
@@ -1527,16 +1533,35 @@ def run_scan(
     while num_items(
         Items.Power
     ) < TARGET_POWER:
-        use_leave7 = (
-            prefer_leave7
-            and scan_total_for_petals(
-                MIN_PETALS
-            ) >= MIN_REMAINING
+        cycle_power = num_items(
+            Items.Power
         )
 
-        if use_leave7:
-            floor = MIN_PETALS + 1
-            floor_quotas = scan_zero_quotas()
+        seven_count = scan_total_for_petals(
+            MIN_PETALS
+        )
+
+        if bounded7 and seven_count >= MIN_REMAINING:
+            # Keep a bounded seven-petal reserve rather than every seven.
+            # If random replants push the reserve above the cap, tier 7 is
+            # included and only the configured quota survives.
+            keep_count = seven_count
+
+            if keep_count > MAX_SEVEN_RESERVE:
+                keep_count = MAX_SEVEN_RESERVE
+
+            if keep_count < MIN_REMAINING:
+                keep_count = MIN_REMAINING
+
+            if seven_count > keep_count:
+                floor = MIN_PETALS
+                floor_quotas = scan_keep_quotas(
+                    floor,
+                    keep_count
+                )
+            else:
+                floor = MIN_PETALS + 1
+                floor_quotas = scan_zero_quotas()
         else:
             floor, keep_count = scan_choose_floor()
             floor_quotas = scan_keep_quotas(
@@ -1565,6 +1590,20 @@ def run_scan(
                 return True
 
             tier -= 1
+
+        if num_items(
+            Items.Power
+        ) <= cycle_power:
+            quick_print(
+                "SUNFLOWER SCAN NO PROGRESS",
+                "power",
+                cycle_power,
+                "seven",
+                seven_count,
+                "floor",
+                floor
+            )
+            return False
 
         if not scan_collect_field(
             False
@@ -1649,11 +1688,13 @@ def run(
     global WORLD_SIZE
     global PETALS
     global COUNTS
+    global MAX_SEVEN_RESERVE
 
     TARGET_POWER = target
     WORLD_SIZE = get_world_size()
     PETALS = []
     COUNTS = []
+    MAX_SEVEN_RESERVE = WORLD_SIZE
 
     if WORLD_SIZE * WORLD_SIZE < 10:
         return False
