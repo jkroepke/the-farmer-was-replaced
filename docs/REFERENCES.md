@@ -36,3 +36,165 @@ When looking for an optimization:
 - prefer measured behavior over shorter or more elegant code
 - preserve a source-near benchmark mode when adapting an external implementation
 - do not copy outdated assumptions about tick costs or game mechanics without re-checking them
+
+
+## Review notes for newer generic references
+
+### g.j4.lc optimized-script collection
+
+Reference:
+
+- https://g.j4.lc/general-stuff/the-farmer-was-replaced
+
+Status:
+
+- registered as a generic optimization reference
+- the current research environment could not fetch the page contents directly
+- do not infer or copy algorithms from the URL alone; inspect the actual source when it is reachable
+
+### Pastebin source references
+
+References:
+
+- https://pastebin.com/raw/i9kVXysm
+- https://pastebin.com/raw/ugCFADtN
+- https://pastebin.com/raw/ZkBRZv3P
+
+Status:
+
+- registered as generic source references
+- the current research environment could not retrieve the raw Pastebin contents
+- keep them as lookup sources, but do not document behavioral claims until their code has actually been read
+
+### nql1314/The-Farmer-Was-Replaced-AI-Code
+
+Reference:
+
+- https://github.com/nql1314/The-Farmer-Was-Replaced-AI-Code
+
+This repository is broad and contains useful optimization experiments for multiple mechanics, including:
+
+- precomputed traversal/path tables
+- fixed-region and grid-based drone partitioning
+- parallel row/column Cactus sorting
+- repeated phase-level tick measurement with `get_tick_count()`
+- persistent worker-loop experiments
+- Pumpkin region specialization
+- Maze map caching + BFS
+- Dinosaur Hamiltonian/safe-target and A* experiments
+
+Useful files include:
+
+- `cactus_farm_mega.py`
+- `resource_farm_mega.py`
+- `sunflower_farm_mega.py`
+- `pumpkin_v10.py`
+- `rank/pumpkin_v*.py`
+- `maze_solver_ultra.py`
+- `snakeV2.py`
+- `.cursor/rules/dinosaur_farm_astar.py`
+- `docs/PERSISTENT_DRONE_POOL.md`
+
+#### Important validity warning: drone memory
+
+Do **not** copy the repository's "shared memory through `wait_for()`" architecture.
+
+Some files/docs claim that a dictionary returned by one drone can be shared mutably by other drones. That conflicts with current game semantics:
+
+- arguments to `spawn_drone()` are copied
+- `wait_for()` returns the completed drone's return value
+- drones have independent variable memory
+
+The external repository is internally inconsistent here as well: its general Mega Farm documentation correctly states that drones do not share memory, while its persistent-pool documentation claims the opposite.
+
+Therefore treat all synchronization based on patterns such as:
+
+```text
+shared = wait_for(shared_source)
+shared["priority"] = ...
+```
+
+as invalid until proven otherwise in the current game.
+
+The **persistent-worker idea itself** is still worth benchmarking. A long-lived drone can avoid repeated `spawn_drone()` cost, but any dynamic coordination must be redesigned around actual shared game state, independent worker decisions, or explicit task lifetimes rather than shared Python objects.
+
+#### Cactus
+
+`cactus_farm_mega.py` independently reinforces a pattern already used by this repository:
+
+1. parallelize rows only with other rows
+2. wait for the row phase to finish
+3. parallelize columns only with other columns
+4. trigger one chain harvest afterward
+
+This is useful corroboration for phase-separated Cactus mutation. It does not justify running row and column swaps concurrently.
+
+The implementation uses repeated bubble passes and substantial movement/debug output, so keep it as a structural reference rather than assuming its exact implementation is optimal.
+
+#### Resource farming
+
+`resource_farm_mega.py` has two useful general ideas:
+
+- partition the farm into stable spatial regions so workers keep good locality
+- keep workers alive for repeated work instead of paying `spawn_drone()` every cycle
+
+Its dynamic priority broadcast and cross-worker companion map rely on the invalid shared-memory assumption, so those portions are not directly reusable.
+
+A valid version of persistent workers would need workers to derive their own current priority from globally visible game state such as inventory, or use a deliberately static assignment during their lifetime.
+
+#### Pumpkin
+
+The repository contains many increasingly specialized Pumpkin variants, including hand-partitioned 32x32 layouts and precomputed 6x6/8x8 traversal paths.
+
+The reusable optimization idea is:
+
+> trade code/data size for lower hot-path computation and less repositioning.
+
+This is especially relevant to the custom interpreter because precomputed direction tables can be cheaper than repeatedly deriving routes.
+
+However, several variants also rely on mutable data supposedly shared between drones. Preserve the path/layout ideas separately from their synchronization mechanism.
+
+#### Maze
+
+`maze_solver_ultra.py` maintains a discovered wall/passability map, uses BFS over known passages, and falls back to greedy DFS-style exploration when the cached route fails.
+
+This is a useful generic map-caching reference, but it is not a better production baseline than the separately benchmarked Maze tree-rebalancing strategy in this repository.
+
+It also copies complete path lists during BFS (`path + [direction]`), which is expensive in the game's tick model. Use it as an algorithmic reference, not a performance reference.
+
+#### Dinosaur
+
+The repository contains at least two distinct Dinosaur references:
+
+- `snakeV2.py`: Hamiltonian-index/safe-target approach with custom direct path construction
+- `.cursor/rules/dinosaur_farm_astar.py`: A* + tail-following/survivability checks
+
+Potentially useful concepts:
+
+- precompute coordinate -> Hamiltonian index
+- derive safe target positions from body length
+- target an Apple directly only when cycle/body ordering permits it
+- fall back toward the moving tail when a direct Apple route is unsafe
+
+But the implementations should not be copied directly:
+
+- the A* material assumes shared mutable drone state
+- its documented Manhattan heuristic includes farm-edge wrapping, which is not valid while wearing the Dinosaur Hat
+- generic A* decision cost can dominate physical movement
+- `snakeV2.py` performs costly front insertion/body-list maintenance and contains source-level rough edges, so benchmark the idea rather than treating the file as an optimized oracle
+
+For Dinosaur production, source-near benchmark modes remain mandatory before adopting any of these ideas.
+
+## General lesson from these references
+
+External code labeled "optimized", "mega", "ultra", or leaderboard-oriented is still only a candidate.
+
+When reviewing a community implementation, separate:
+
+1. the algorithmic idea
+2. the data structure
+3. assumptions about current game mechanics
+4. interpreter/tick cost
+5. actual measured throughput
+
+Prefer a complex algorithm when it measures faster, but never assume complexity or a performance-oriented filename implies better runtime.
