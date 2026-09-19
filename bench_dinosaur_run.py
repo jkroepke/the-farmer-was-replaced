@@ -1,6 +1,6 @@
 import main
 
-BENCH_VERSION = "dinosaur-v1"
+BENCH_VERSION = "dinosaur-v2"
 
 # Dinosaur simulation benchmark controller.
 #
@@ -31,7 +31,7 @@ BENCH_SEEDS = [
     3
 ]
 
-BENCH_SPEEDUP = 64
+BENCH_SPEEDUP = 10000
 
 BENCH_VERBOSE = False
 
