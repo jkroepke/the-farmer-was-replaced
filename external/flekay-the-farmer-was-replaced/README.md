@@ -602,6 +602,37 @@ Its benchmark table and circle strategy independently support the occupancy-depe
 - aggressive routing is strongest earlier
 - safe deterministic cycles dominate near full occupancy
 
+#### Benchmark/source history caveat
+
+The published Dinosaur README table is older than the current `drone.py`.
+
+The README entered the repository during the October 5, 2025 clean-upload history. On October 18, 2025, commit `d3a0fc555d5e78466fd1eb39e608b9ef0627b6b6` ("Simplify drone's dino movement logic") replaced the complete `drone.py` with the currently mirrored three-phase skeleton whose `phase_two()` is deliberately not implemented.
+
+Therefore the reported `drone.py = 18.741s` result cannot be reproduced from the current source file.
+
+The predecessor can still be inspected from parent revision `fe4df71ae877a484b091c2fa276cae0a6f0e2039`. It used:
+
+- parity-based aggressive Apple routing for the early phase
+- a transition after roughly 50 collected Apples
+- dynamic construction of an "almighty" continuation
+- fixed assumptions associated with a roughly 100-cell / 10x10-era board
+
+Other source files reinforce the fixed-size history:
+
+- `circle.py` encodes positions 0..9 directly and transitions near 38
+- `timon.py` encodes y positions through 9 and comments that 34 was fastest
+- `hybrid.py` transitions around 18 and 34
+
+Treat 18/34/38/50 as historical tuning points, not current 32x32 constants.
+
+#### Related benchmark caveats
+
+The generic `Movement/pathfinding/README.md` contains result rows for `divinepath`, but the pinned/current pathfinding directory has no corresponding implementation and `benchmark.py` does not import one. Those rows are not reproducible from this snapshot.
+
+The non-wrapping movement benchmark also shows that `runto_local.py` pays a very large all-pairs precomputation cost for only a small warm-path improvement over direct `goto.py`; this makes it a poor Dinosaur Apple-routing candidate.
+
+Current local Dinosaur v4 re-tests the reusable ideas rather than copying the stale benchmark ranking. See `docs/DINOSAUR.md` and `memory/dinosaurs.md`.
+
 ### Sunflowers
 
 Its coordinate-binned nearest-neighbor approach independently converges on the same idea as the msmith93 simulator series.
