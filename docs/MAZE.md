@@ -82,7 +82,7 @@ Each parallel worker uses the zapakh-style ranked iterative DFS from the winning
 
 A production burst is fully funded before it starts.
 
-`config.MAZE_PARALLEL_RELOCATIONS = 25` means every worker reserves enough Weird Substance for:
+`config.MAZE_PARALLEL_RELOCATIONS = 25` is the minimum start threshold. If more Weird Substance is already available, production automatically raises the relocation budget for all workers, capped at `MAZE_REUSE_LIMIT`. The minimum reserve funds:
 
 1. one Maze creation
 2. 25 Treasure relocations
@@ -103,7 +103,7 @@ At 32x32, 32 drones, 4x4 Mazes, and the full x32 Maze multiplier:
 4 * 32 * 32 * 26 = 106496 Weird Substance
 ```
 
-That burst produces approximately:
+The minimum 25-relocation burst produces approximately:
 
 ```text
 16 * 32 * 32 * 26 = 425984 Gold
@@ -121,11 +121,15 @@ Workers use the tested start barrier:
 6. every worker creates and solves its own Maze
 7. the parent waits for all spawned workers before returning to the main loop
 
-Production prints a compact diagnostic such as:
+Production prints the chosen dynamic budget, minimum reserve, and currently available stock. With exactly the minimum reserve this is approximately:
 
 ```text
-MAZE PARALLEL 4 workers 32 relocations 25 substance 106496
+MAZE PARALLEL 4 workers 32 relocations 25 minimum substance 106496 available substance 106496
 ```
+
+With about 186000 Weird Substance on the same 32x4x4 plan, the dynamic budget is about 44 relocations per worker, consuming about 184320 substance and producing roughly 737280 Gold before final harvest completion.
+
+If Gold production cannot start, `production.py` prints `MAZE WAIT bushes ...` or `MAZE WAIT substance ...` so the blocking prerequisite is visible.
 
 ### Fallback path: reference full Maze
 
