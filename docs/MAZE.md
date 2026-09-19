@@ -256,7 +256,7 @@ Add new strategies as additional modes in `bench_maze.py`.
 
 ---
 
-## Current benchmark modes
+## Historical benchmark modes (preserved results)
 
 | Mode | Name | Description |
 | ---: | --- | --- |
@@ -267,7 +267,7 @@ Add new strategies as additional modes in `bench_maze.py`.
 | 4 | `reuse-tree-greedy-full-reindex` | Generic tree plus Greedy/reparenting and approximate full reindex |
 | 5 | `reference-tree-rebalancing` | Behavioral port of the Pastebin reference implementation |
 
-Benchmark matrix:
+Historical benchmark matrix:
 
 ```text
 world sizes: 8, 16, 32
@@ -282,6 +282,21 @@ The benchmark intentionally starts with oversized resources so pathing/algorithm
 
 ---
 
+## Amount-based 32x32 special benchmark
+
+The active Maze benchmark runner now focuses only on the small-Maze / multi-drone question. The historical 8x8, 16x16, and 32x32 matrix above remains preserved as prior evidence, but `bench_maze_run.py` no longer reruns it by default.
+
+Critical benchmark rule:
+
+> Keep the farm at its real 32x32 size. Do not create 3x3 or 4x4 cases with `set_world_size()`. Create smaller Mazes only by changing the amount passed to `use_item(Items.Weird_Substance, amount)`.
+
+Current Maze mechanics document that, before the Maze-upgrade multiplier, using `n` Weird Substance on a Bush creates an `nx n` Maze. With Maze upgrades the amount used by the benchmark is:
+
+```text
+maze_size * 2 ** (num_unlocked(Unlocks.Mazes) - 1)
+```
+
+The runner requires a 32x32 world and 32 available drones, then compares all modes against the same fixed Gold target (`20000ÿÿÿäÕ±Ð¤¹Ñ¡ÍµÍÌ¸()ð5½ð9µðÍÉ¥ÁÑ¥½¸ð)ð´´´èð´´´ð´´´ð)ðØðÕÉÉ¹ÐµÉÉ¹´ÌÉðÕÉÉ¹ÐÍ¥¹±µÉ½¹ÉÉ¹ÑÉµÉ±¹¥¹ÍÑÉÑä½¸½¹Õ±°ÌÉàÌÈ5é°ÉÑä]¥ÉµMÕÍÑ¹µ½Õ¹Ð½¹±äð)ðÜð½ÙÈ´ÍàÍð=¹ÍàÌ5éìL¥ÍÑÉ¥ÕÑÌ½¹ÍÑÑ¥½¹ÉäÉ½¹½¹Ñ¼ÙÉä5é±°Í¼QÉÍÕÉ±½½­ÕÀ½µÌµ½Ùµ¹ÐµÉð)ðàð½ÙÈ´ÑàÑð=¹ÑàÐ5éÝ¥Ñ ½¹ÍÑÑ¥½¹ÉäÉ½¹ÁÈ5é±°ð)ðäð½ÙÈ´ÉàÑàÑðQÝ¼¥¹Á¹¹ÐÑàÐ5éÌ° Õ±±ä½ÙÉäÄØÍÑÑ¥½¹ÉäÉ½¹Ìð)ðÄÀðéÁ­ ´ÌÉàÑàÑþÂ3"æFWVæFVçBGBÖ¦W2W6ær6÷W&6RÖæV"÷'Böb¦¶w2&æ¶VBâ×6GRDe2À§ÂÂ7FVÒÓ3'GFÂ3"æFWVæFVçBGBÖ¦W2W6ærFR¦çV'##b7FVÒ&÷WFRÖÖòF×6V&6×ÆVÖVçFFöâÀ ¥FR6÷fW&vRÖöFW2FVÆ&W&FVÇF7G&'WFRG&öæW2'G&fW'6ærFR7GVÂg&W6ÇÖ7&VFVBÖ¦R&FW"Fâ77VÖærv6v÷&ÆB6ö÷&FæFW26ÖÆÂÖ¦Rö67WW2âF2föG2&VÇæröâFR¶æ÷vâæöâÖö'f÷W2Æ6VÖVçB&Vf÷"öb×VÇFÆR6ÖÆÂÖ¦W2à ¢222¦¶v7B&VfW&Væ6P ¥6÷W&6S  ¢ÒGG3¢òöv7BævFV"æ6öÒ÷¦¶ó#3scF&&C#v#6&CV63SS¢Ò7&VFVB##BÓRÓ# ¢ÒÆö6Â&÷fVææ6S¢WFW&æÂ÷¦¶ÖÖ¦RÖFg2ö  ¥FRv7BW6W2âFW&FfRâ×6GRDe2âV67F6²VçG'7F÷&W2&VÖæærF&V7Föç2ÇW2FR&6·G&6¶ærF&V7FöâÂæBÆFW"F&V7Föç2&R&æ¶VBF÷v&BFRÖV7W&VBG&V7W&R÷6Föâà ¥FR6÷W&6R&VFFW2FR7W'&VçBvV&BÕ7V'7Fæ6RÖ¦RæBW6W2fW'FÆ¦W"Fò7&VFR÷&V76ÆRÖ¦W2âFR&Væ6Ö&²&W6W'fW2FRDe2÷6V&6&Vf÷"'WBFG2Ö¦R7&VFöâæBG&V7W&R&VÆö6FöâFòFR7W'&VçBFV×2åvV&Eõ7V'7Fæ6VâF22FW&Vf÷&R6÷W&6RÖæV"Æv÷&FÒ&Væ6Ö&²Âæ÷B'FRÖf÷"Ö'FRWV7WFöâöbFR##B67&Bà ¢222¦çV'##b3'GB7FVÒ&VfW&Væ6P ¥6÷W&6S  ¢ÒGG3¢ò÷7FVÖ6öÖ×VæGæ6öÒöó#ccöF67W76öç2óó#cS3sS#S#Rð¢ÒÆö6Â&÷fVææ6S¢WFW&æÂ÷7FVÒÓ3'GBö  ¥FR÷7FVB×ÆVÖVçFFöâ'Vç2öæRæFWVæFVçBGBÖ¦RW"G&öæRâBf'7B&V6÷&G2&÷WFRæBÆö6Â6öææV7FfGÂW&f÷&×2&WVFVB&÷WFR7vVW2vÆRvÆÇ2÷VâÂFVâW6W2FRF66÷fW&VBw&f÷"F6V&6âFR&Væ6Ö&²&W6W'fW2FB&6FV7GW&RvÆRFFærfVBÔvöÆB7F÷ær6öæFFöâæB6fR&V76ÆRÖÆÖBæFÆærà ¢222&W7VÇG0 ¥&W7VÇG2&RçFVçFöæÆÇVæFærVçFÂFRæWrÖ÷VçBÖ&6VB7VFR2'VââÖvÖRâFòæ÷BæfW"vææW"g&öÒ7F÷&6ÂgVÆÂ×v÷&ÆB&Væ6Ö&·2÷"6öÖ×VæGF&÷VvWB6Æ×2à ¢ÒÒÐ  ÿ
 # Benchmark results
 
 Lower is better. Values are simulation runtime returned by `simulate()`.

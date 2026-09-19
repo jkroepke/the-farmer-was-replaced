@@ -1011,7 +1011,7 @@ def ref_coord():
 
 def ref_substance():
     return (
-        get_world_size()
+        REF_MAZE_SIZE
         * 2**(
             num_unlocked(Unlocks.Mazes)
             - 1
@@ -1192,8 +1192,8 @@ def ref_explore(
 
             if (
                 len(REF_VISITED)
-                != get_world_size()
-                * get_world_size()
+                != REF_MAZE_SIZE
+                * REF_MAZE_SIZE
             ):
                 move(
                     ref_back(direction)
@@ -1259,8 +1259,8 @@ def ref_map():
 
             if (
                 len(REF_VISITED)
-                == get_world_size()
-                * get_world_size()
+                == REF_MAZE_SIZE
+                * REF_MAZE_SIZE
             ):
                 break
 
@@ -1705,10 +1705,13 @@ def run_reference():
     global REF_NODES
     global REF_SOLVED
     global REF_TARGET
+    global REF_MAZE_SIZE
 
     set_world_size(
         BENCH_WORLD_SIZE
     )
+
+    REF_MAZE_SIZE = BENCH_WORLD_SIZE
 
     REF_ROOT = None
     REF_VISITED = {}
@@ -1776,13 +1779,1016 @@ def run_reference():
 
 
 
+# ------------------------------------------------------------------
+# 32x32 AMOUNT-BASED SMALL-MAZE BENCHMARKS
+# ------------------------------------------------------------------
+#
+# These modes deliberately keep the real/simulated world at 32x32.
+# Small mazes are created only by changing the amount passed to
+# use_item(Items.Weird_Substance, amount). Do not use set_world_size()
+# in this benchmark path.
+#
+# Modes:
+# 6 = current full-field reference strategy, fixed Gold target
+# 7 = one 3x3 maze covered by one stationary drone per maze cell
+# 8 = one 4x4 maze covered by one stationary drone per maze cell
+# 9 = two independent 4x4 mazes, 16 stationary drones each
+# 10 = 32 independent 4x4 mazes using a source-near zapakh ranked DFS
+# 11 = 32 independent 4x4 mazes using the Jan-2026 Steam route/path solver
+
+
+SPEC_DIRECTIONS = [
+    North,
+    East,
+    South,
+    West
+]
+
+
+def spec_back(direction):
+    if direction == North:
+        return South
+
+    if direction == South:
+        return North
+
+    if direction == East:
+        return West
+
+    return East
+
+
+def spec_neighbor(coord, direction):
+    x, y = coord
+
+    if direction == North:
+        return (x, y + 1)
+
+    if direction == East:
+        return (x + 1, y)
+
+    if direction == South:
+        return (x, y - 1)
+
+    return (x - 1, y)
+
+
+def spec_move_to(x, y):
+    while get_pos_x() != x:
+        move(East)
+
+    while get_pos_y() != y:
+        move(North)
+
+
+def spec_substance(maze_size):
+    return (
+        maze_size
+        * 2**(
+            num_unlocked(Unlocks.Mazes)
+            - 1
+        )
+    )
+
+
+def spec_gold_done(start_gold):
+    return (
+        num_items(Items.Gold)
+        - start_gold
+        >= BENCH_GOLD_TARGET
+    )
+
+
+def spec_create_maze(maze_size):
+    plant(
+        Entities.Bush
+    )
+
+    use_item(
+        Items.Weird_Substance,
+        spec_substance(maze_size)
+    )
+
+
+def spec_relocate(maze_size):
+    return use_item(
+        Items.Weird_Substance,
+        spec_substance(maze_size)
+    )
+
+
+# ==================================================
+# CURRENT 32x32 REFERENCE, FIXED GOLD TARGET
+# ==================================================
+
+
+def spec_reset_reference():
+    global REF_ROOT
+    global REF_VISITED
+    global REF_TOTAL_STEPS
+    global REF_NODES
+    global REF_SOLVED
+    global REF_TARGET
+    global REF_MAZE_SIZE
+
+    REF_ROOT = None
+    REF_VISITED = {}
+    REF_TOTAL_STEPS = 0
+    REF_NODES = {}
+    REF_SOLVED = 0
+    REF_TARGET = None
+    REF_MAZE_SIZE = get_world_size()
+
+
+def spec_run_reference_target():
+    global REF_SOLVED
+    global REF_TARGET
+
+    clear()
+
+    start_gold = num_items(
+        Items.Gold
+    )
+
+    while not spec_gold_done(
+        start_gold
+    ):
+        spec_reset_reference()
+
+        ref_create_or_relocate()
+        ref_map()
+
+        optimize_pathing = False
+
+        while (
+            REF_SOLVED < 300
+            and not spec_gold_done(
+                start_gold
+            )
+        ):
+            REF_TARGET = measure()
+
+            ref_path_to(
+                REF_TARGET,
+                optimize_pathing
+            )
+
+            if REF_SOLVED == 40:
+                center = ref_find_tree_center()
+
+                ref_reroot(
+                    center
+                )
+
+            if (
+                REF_SOLVED > 40
+                and REF_SOLVED < 80
+            ):
+                optimize_pathing = True
+
+            else:
+                optimize_pathing = False
+
+            ref_create_or_relocate()
+            REF_SOLVED += 1
+
+        if spec_gold_done(
+            start_gold
+        ):
+            return
+
+        REF_TARGET = measure()
+
+        ref_path_to(
+            REF_TARGET,
+            False
+        )
+
+        harvest()
+
+
+# ==================================================
+# STATIONARY FULL-COVERAGE SMALL MAZES
+# ==================================================
+
+
+def spec_cover_worker(
+    maze_size,
+    start_gold,
+    creator
+):
+    while not spec_gold_done(
+        start_gold
+    ):
+        entity = get_entity_type()
+
+        if entity == Entities.Treasure:
+            before = measure()
+
+            spec_relocate(
+                maze_size
+            )
+
+            after = measure()
+
+            if (
+                after == None
+                or after == before
+            ):
+                harvest()
+
+        elif (
+            creator
+            and entity == Entities.Grass
+        ):
+            spec_create_maze(
+                maze_size
+            )
+
+
+def spec_cover_dfs(
+    maze_size,
+    start_gold,
+    visited,
+    root
+):
+    coord = (
+        get_pos_x(),
+        get_pos_y()
+    )
+
+    visited.add(
+        coord
+    )
+
+    if coord != root:
+        spawn_drone(
+            spec_cover_worker,
+            maze_size,
+            start_gold,
+            False
+        )
+
+    for direction in SPEC_DIRECTIONS:
+        if not can_move(
+            direction
+        ):
+            continue
+
+        next_coord = spec_neighbor(
+            coord,
+            direction
+        )
+
+        if next_coord in visited:
+            continue
+
+        move(
+            direction
+        )
+
+        spec_cover_dfs(
+            maze_size,
+            start_gold,
+            visited,
+            root
+        )
+
+        move(
+            spec_back(direction)
+        )
+
+
+def spec_cover_maze(
+    maze_size,
+    start_gold
+):
+    root = (
+        get_pos_x(),
+        get_pos_y()
+    )
+
+    spec_create_maze(
+        maze_size
+    )
+
+    visited = set()
+
+    spec_cover_dfs(
+        maze_size,
+        start_gold,
+        visited,
+        root
+    )
+
+    spec_cover_worker(
+        maze_size,
+        start_gold,
+        True
+    )
+
+
+def spec_run_single_cover(
+    maze_size
+):
+    clear()
+
+    start_gold = num_items(
+        Items.Gold
+    )
+
+    spec_move_to(
+        16,
+        16
+    )
+
+    spec_cover_maze(
+        maze_size,
+        start_gold
+    )
+
+
+def spec_cover_wait_start(
+    maze_size,
+    start_gold,
+    start_water
+):
+    while (
+        num_items(Items.Water)
+        == start_water
+    ):
+        pass
+
+    spec_cover_maze(
+        maze_size,
+        start_gold
+    )
+
+
+def spec_run_double_cover():
+    clear()
+
+    start_gold = num_items(
+        Items.Gold
+    )
+
+    start_water = num_items(
+        Items.Water
+    )
+
+    spec_move_to(
+        8,
+        8
+    )
+
+    spawn_drone(
+        spec_cover_wait_start,
+        4,
+        start_gold,
+        start_water
+    )
+
+    spec_move_to(
+        24,
+        24
+    )
+
+    use_item(
+        Items.Water
+    )
+
+    spec_cover_maze(
+        4,
+        start_gold
+    )
+
+
+# ==================================================
+# ZAPAKH GIST: SOURCE-NEAR RANKED IN-SITU DFS
+# ==================================================
+
+
+def spec_ranked_dirs(
+    pos_x,
+    pos_y,
+    goal_x,
+    goal_y,
+    exclude
+):
+    if goal_x == None:
+        all_dirs = [
+            (1, North),
+            (2, East),
+            (3, South),
+            (4, West)
+        ]
+
+    else:
+        all_dirs = [
+            (
+                goal_y - pos_y + 0.1,
+                North
+            ),
+            (
+                goal_x - pos_x + 0.2,
+                East
+            ),
+            (
+                pos_y - goal_y + 0.3,
+                South
+            ),
+            (
+                pos_x - goal_x + 0.4,
+                West
+            )
+        ]
+
+    ranked_dirs = []
+
+    for _ in range(
+        len(all_dirs)
+    ):
+        worst_dir = min(
+            all_dirs
+        )
+
+        all_dirs.remove(
+            worst_dir
+        )
+
+        if worst_dir[1] != exclude:
+            ranked_dirs.append(
+                worst_dir[1]
+            )
+
+    return ranked_dirs
+
+
+def spec_zapakh_find(
+    goal_x,
+    goal_y
+):
+    x = get_pos_x()
+    y = get_pos_y()
+
+    stack = [
+        (
+            [
+                North,
+                East,
+                South,
+                West
+            ],
+            None
+        )
+    ]
+
+    visited = {
+        (x, y)
+    }
+
+    while (
+        get_entity_type()
+        != Entities.Treasure
+    ):
+        dirs, back = stack[
+            len(stack) - 1
+        ]
+
+        old_x = x
+        old_y = y
+        direction = None
+
+        while len(dirs) > 0:
+            direction = dirs.pop()
+
+            next_coord = spec_neighbor(
+                (old_x, old_y),
+                direction
+            )
+
+            if (
+                next_coord in visited
+                or not move(direction)
+            ):
+                direction = None
+                continue
+
+            x = get_pos_x()
+            y = get_pos_y()
+            break
+
+        if direction == None:
+            stack.pop()
+
+            if back == None:
+                return False
+
+            move(
+                back
+            )
+
+            x = get_pos_x()
+            y = get_pos_y()
+
+        else:
+            visited.add(
+                (x, y)
+            )
+
+            back = spec_back(
+                direction
+            )
+
+            stack.append(
+                (
+                    spec_ranked_dirs(
+                        x,
+                        y,
+                        goal_x,
+                        goal_y,
+                        back
+                    ),
+                    back
+                )
+            )
+
+    return True
+
+
+def spec_zapakh_worker(
+    origin_x,
+    origin_y,
+    start_gold,
+    start_water
+):
+    while (
+        num_items(Items.Water)
+        == start_water
+    ):
+        pass
+
+    while not spec_gold_done(
+        start_gold
+    ):
+        spec_create_maze(
+            4
+        )
+
+        solved = 0
+        goal = measure()
+
+        while (
+            solved < 300
+            and not spec_gold_done(
+                start_gold
+            )
+        ):
+            goal_x, goal_y = goal
+
+            if not spec_zapakh_find(
+                goal_x,
+                goal_y
+            ):
+                return
+
+            before = measure()
+
+            spec_relocate(
+                4
+            )
+
+            solved += 1
+            goal = measure()
+
+            if (
+                goal == None
+                or goal == before
+            ):
+                break
+
+        if spec_gold_done(
+            start_gold
+        ):
+            return
+
+        if (
+            get_entity_type()
+            != Entities.Treasure
+        ):
+            goal = measure()
+
+            if goal != None:
+                goal_x, goal_y = goal
+
+                spec_zapakh_find(
+                    goal_x,
+                    goal_y
+                )
+
+        if (
+            get_entity_type()
+            == Entities.Treasure
+        ):
+            harvest()
+
+        spec_move_to(
+            origin_x,
+            origin_y
+        )
+
+
+# ==================================================
+# JAN-2026 STEAM: 32 INDEPENDENT 4x4 MAZES
+# ==================================================
+
+
+def spec_steam_next_move(
+    heading
+):
+    for offset in [
+        1,
+        0,
+        3,
+        2
+    ]:
+        direction = SPEC_DIRECTIONS[
+            (heading + offset) % 4
+        ]
+
+        if can_move(
+            direction
+        ):
+            return direction
+
+    return None
+
+
+def spec_steam_move(
+    heading
+):
+    for offset in [
+        1,
+        0,
+        3,
+        2
+    ]:
+        next_heading = (
+            heading + offset
+        ) % 4
+
+        if move(
+            SPEC_DIRECTIONS[
+                next_heading
+            ]
+        ):
+            return next_heading
+
+    return heading
+
+
+def spec_steam_moves():
+    moves = {}
+
+    current = (
+        get_pos_x(),
+        get_pos_y()
+    )
+
+    for direction in SPEC_DIRECTIONS:
+        if can_move(
+            direction
+        ):
+            moves[
+                spec_neighbor(
+                    current,
+                    direction
+                )
+            ] = direction
+
+    return moves
+
+
+def spec_steam_path_move(
+    paths,
+    from_loc,
+    to_loc,
+    depth,
+    visited
+):
+    if to_loc in visited:
+        return False
+
+    visited[to_loc] = True
+
+    for loc in paths[to_loc]:
+        if loc == from_loc:
+            move(
+                paths[loc][to_loc]
+            )
+
+            return True
+
+        if depth > 0:
+            if spec_steam_path_move(
+                paths,
+                from_loc,
+                loc,
+                depth - 1,
+                visited
+            ):
+                move(
+                    paths[loc][to_loc]
+                )
+
+                return True
+
+    return False
+
+
+def spec_steam_distance(
+    location
+):
+    return (
+        abs(
+            get_pos_x()
+            - location[0]
+        )
+        + abs(
+            get_pos_y()
+            - location[1]
+        )
+    )
+
+
+def spec_steam_hunt(
+    start_gold
+):
+    heading = 0
+
+    start_x = get_pos_x()
+    start_y = get_pos_y()
+
+    paths = {}
+    route = []
+
+    while (
+        spec_steam_distance(
+            (start_x, start_y)
+        ) > 0
+        or len(paths) < 16
+    ):
+        route.append(
+            spec_steam_next_move(
+                heading
+            )
+        )
+
+        paths[
+            (
+                get_pos_x(),
+                get_pos_y()
+            )
+        ] = spec_steam_moves()
+
+        heading = spec_steam_move(
+            heading
+        )
+
+    found = 0
+
+    while (
+        found < 200
+        and not spec_gold_done(
+            start_gold
+        )
+    ):
+        for direction in route:
+            if (
+                get_entity_type()
+                == Entities.Treasure
+            ):
+                spec_relocate(
+                    4
+                )
+
+                found += 1
+
+                if spec_gold_done(
+                    start_gold
+                ):
+                    return found
+
+            move(
+                direction
+            )
+
+        for direction in route:
+            paths[
+                (
+                    get_pos_x(),
+                    get_pos_y()
+                )
+            ] = spec_steam_moves()
+
+            move(
+                direction
+            )
+
+    while (
+        found < 300
+        and not spec_gold_done(
+            start_gold
+        )
+    ):
+        target = measure()
+
+        depth = spec_steam_distance(
+            target
+        )
+
+        while not spec_steam_path_move(
+            paths,
+            (
+                get_pos_x(),
+                get_pos_y()
+            ),
+            target,
+            depth,
+            {}
+        ):
+            depth += 1
+
+        spec_relocate(
+            4
+        )
+
+        found += 1
+
+    return found
+
+
+def spec_steam_worker(
+    origin_x,
+    origin_y,
+    start_gold,
+    start_water
+):
+    while (
+        num_items(Items.Water)
+        == start_water
+    ):
+        pass
+
+    while not spec_gold_done(
+        start_gold
+    ):
+        spec_create_maze(
+            4
+        )
+
+        found = spec_steam_hunt(
+            start_gold
+        )
+
+        if spec_gold_done(
+            start_gold
+        ):
+            return
+
+        if found >= 300:
+            target = measure()
+
+            depth = spec_steam_distance(
+                target
+            )
+
+            # The source algorithm already owns the graph inside
+            # spec_steam_hunt(). Reaching 300 is rare in a target run;
+            # use ranked DFS for the final harvest rather than carrying
+            # the local graph across the function boundary.
+            goal_x, goal_y = target
+
+            spec_zapakh_find(
+                goal_x,
+                goal_y
+            )
+
+        if (
+            get_entity_type()
+            == Entities.Treasure
+        ):
+            harvest()
+
+        spec_move_to(
+            origin_x,
+            origin_y
+        )
+
+
+# ==================================================
+# 32-WORKER GRID LAUNCHER
+# ==================================================
+
+
+def spec_run_32x4(
+    worker
+):
+    clear()
+
+    start_gold = num_items(
+        Items.Gold
+    )
+
+    start_water = num_items(
+        Items.Water
+    )
+
+    worker_index = 0
+    last_x = 30
+    last_y = 14
+
+    for row in range(4):
+        for column in range(8):
+            x = column * 4 + 2
+            y = row * 4 + 2
+
+            if worker_index < 31:
+                spec_move_to(
+                    x,
+                    y
+                )
+
+                spawn_drone(
+                    worker,
+                    x,
+                    y,
+                    start_gold,
+                    start_water
+                )
+
+            else:
+                last_x = x
+                last_y = y
+
+            worker_index += 1
+
+    spec_move_to(
+        last_x,
+        last_y
+    )
+
+    use_item(
+        Items.Water
+    )
+
+    worker(
+        last_x,
+        last_y,
+        start_gold,
+        start_water
+    )
+
+
+def run_special():
+    if BENCH_MODE == 6:
+        spec_run_reference_target()
+
+    elif BENCH_MODE == 7:
+        spec_run_single_cover(
+            3
+        )
+
+    elif BENCH_MODE == 8:
+        spec_run_single_cover(
+            4
+        )
+
+    elif BENCH_MODE == 9:
+        spec_run_double_cover()
+
+    elif BENCH_MODE == 10:
+        spec_run_32x4(
+            spec_zapakh_worker
+        )
+
+    else:
+        spec_run_32x4(
+            spec_steam_worker
+        )
+
+
 # ==================================================
 # SHARED BENCH ENTRYPOINT
 # ==================================================
 
 def main():
-    if BENCH_MODE == 5:
+    if BENCH_MODE >= 6:
+        run_special()
+
+    elif BENCH_MODE == 5:
         run_reference()
+
     else:
         run_standard()
 

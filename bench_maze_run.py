@@ -1,25 +1,11 @@
-# Maze simulation benchmark controller.
+# Amount-based Maze benchmark controller for a real 32x32 farm.
 #
-# Run this file on the real farm. simulate() restores the real farm
-# after every benchmark run.
+# This runner intentionally does NOT call set_world_size(). The farm must
+# already be 32x32. Small mazes are created by changing only the amount passed
+# to use_item(Items.Weird_Substance, amount).
 #
-# Runtime returned by simulate() is the primary metric because every
-# strategy solves the same number of treasures with the same seed.
-#
-# All modes are implemented in bench_maze.py.
-
-
-BENCH_WORLD_SIZES = [
-    8,
-    16,
-    32
-]
-
-BENCH_SOLVE_COUNTS = [
-    25,
-    100,
-    300
-]
+# Historical 8/16/32 x 25/100/300 results remain documented in docs/MAZE.md,
+# but this runner no longer executes that old matrix.
 
 BENCH_SEEDS = [
     1,
@@ -28,32 +14,36 @@ BENCH_SEEDS = [
 ]
 
 BENCH_SPEEDUP = 64
-
-# Community tree/greedy code begins greedy path attempts after ~30 solves.
-BENCH_GREEDY_AFTER = 30
-
-# The referenced rebalancing implementation only rotates early/mid run.
-# Its source uses solved < 140.
-BENCH_REBALANCE_UNTIL = 140
-
-# Set True when you also want each simulated worker to quick_print
-# its final get_tick_count()/get_time() values.
+BENCH_GOLD_TARGET = 200000
 BENCH_VERBOSE = False
 
+# Keep the historical reference thresholds unchanged for the current-method
+# control mode.
+BENCH_GREEDY_AFTER = 30
+BENCH_REBALANCE_UNTIL = 140
+BENCH_SOLVES = 300
+BENCH_WORLD_SIZE = 32
+
+MODE_IDS = [
+    6,
+    7,
+    8,
+    9,
+    10,
+    11
+]
 
 MODE_NAMES = [
-    "fresh-right-hand",
-    "reuse-bfs",
-    "reuse-tree-greedy",
-    "reuse-tree-greedy-lazy-rebalance",
-    "reuse-tree-greedy-full-reindex",
-    "reference-tree-rebalancing"
+    "current-reference-32",
+    "cover-3x3",
+    "cover-4x4",
+    "cover-2x4x4",
+    "zapakh-32x4x4",
+    "steam-32x4x4"
 ]
 
 
 def simulation_items():
-    # Deliberately oversized resource pool so benchmarks measure maze
-    # pathing rather than resource acquisition.
     return {
         Items.Hay: 1000000000,
         Items.Wood: 1000000000,
@@ -71,14 +61,13 @@ def simulation_items():
 
 def run_one(
     mode,
-    world_size,
-    solves,
     seed
 ):
     globals = {
         "BENCH_MODE": mode,
-        "BENCH_WORLD_SIZE": world_size,
-        "BENCH_SOLVES": solves,
+        "BENCH_SOLVES": BENCH_SOLVES,
+        "BENCH_WORLD_SIZE": BENCH_WORLD_SIZE,
+        "BENCH_GOLD_TARGET": BENCH_GOLD_TARGET,
         "BENCH_GREEDY_AFTER": BENCH_GREEDY_AFTER,
         "BENCH_REBALANCE_UNTIL": BENCH_REBALANCE_UNTIL,
         "BENCH_VERBOSE": BENCH_VERBOSE
@@ -94,10 +83,27 @@ def run_one(
     )
 
 
-def benchmark_case(
-    world_size,
-    solves
-):
+def main():
+    if get_world_size() != 32:
+        quick_print(
+            "MAZE BENCH NEEDS 32x32 WORLD",
+            get_world_size()
+        )
+        return
+
+    if max_drones() < 32:
+        quick_print(
+            "MAZE BENCH NEEDS 32 DRONES",
+            max_drones()
+        )
+        return
+
+    quick_print(
+        "MAZE SPECIAL BENCH START",
+        "gold target",
+        BENCH_GOLD_TARGET
+    )
+
     totals = []
     minimums = []
     maximums = []
@@ -107,43 +113,37 @@ def benchmark_case(
         minimums.append(-1)
         maximums.append(0)
 
-    quick_print(
-        "CASE",
-        world_size,
-        solves
-    )
-
     for seed in BENCH_SEEDS:
         quick_print(
             "SEED",
             seed
         )
 
-        for mode in range(
-            len(MODE_NAMES)
-        ):
+        mode_index = 0
+
+        while mode_index < len(MODE_IDS):
             run_time = run_one(
-                mode,
-                world_size,
-                solves,
+                MODE_IDS[mode_index],
                 seed
             )
 
-            totals[mode] += run_time
+            totals[mode_index] += run_time
 
             if (
-                minimums[mode] < 0
-                or run_time < minimums[mode]
+                minimums[mode_index] < 0
+                or run_time < minimums[mode_index]
             ):
-                minimums[mode] = run_time
+                minimums[mode_index] = run_time
 
-            if run_time > maximums[mode]:
-                maximums[mode] = run_time
+            if run_time > maximums[mode_index]:
+                maximums[mode_index] = run_time
 
             quick_print(
-                MODE_NAMES[mode],
+                MODE_NAMES[mode_index],
                 run_time
             )
+
+            mode_index += 1
 
     seed_count = len(
         BENCH_SEEDS
@@ -151,43 +151,27 @@ def benchmark_case(
 
     quick_print(
         "SUMMARY",
-        world_size,
-        solves
+        "gold target",
+        BENCH_GOLD_TARGET
     )
 
-    for mode in range(
-        len(MODE_NAMES)
-    ):
-        average = (
-            totals[mode]
-            / seed_count
-        )
+    mode_index = 0
 
+    while mode_index < len(MODE_NAMES):
         quick_print(
-            MODE_NAMES[mode],
+            MODE_NAMES[mode_index],
             "avg",
-            average,
+            totals[mode_index] / seed_count,
             "min",
-            minimums[mode],
+            minimums[mode_index],
             "max",
-            maximums[mode]
+            maximums[mode_index]
         )
 
-
-def main():
-    quick_print(
-        "MAZE BENCH START"
-    )
-
-    for world_size in BENCH_WORLD_SIZES:
-        for solves in BENCH_SOLVE_COUNTS:
-            benchmark_case(
-                world_size,
-                solves
-            )
+        mode_index += 1
 
     quick_print(
-        "MAZE BENCH DONE"
+        "MAZE SPECIAL BENCH DONE"
     )
 
 
