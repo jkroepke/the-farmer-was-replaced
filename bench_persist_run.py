@@ -107,12 +107,10 @@ def run_one(
     )
 
 
-def screen_architecture(
-    profile
+def screen_layout(
+    profile,
+    layout
 ):
-    # Two dumb Sunflower columns are the existing full-Megafarm
-    # production layout and a useful neutral architecture screen.
-    layout = 3
     seed = 1
     best_arch = 0
     best_time = -1
@@ -145,6 +143,9 @@ def screen_architecture(
         )
 
         quick_print(
+            LAYOUT_NAMES[
+                layout
+            ],
             ARCH_NAMES[
                 architecture
             ],
@@ -163,6 +164,9 @@ def screen_architecture(
         PROFILE_NAMES[
             profile
         ],
+        LAYOUT_NAMES[
+            layout
+        ],
         ARCH_NAMES[
             best_arch
         ],
@@ -174,7 +178,7 @@ def screen_architecture(
 
 def benchmark_profile(
     profile,
-    architecture
+    architectures
 ):
     mode_count = (
         len(
@@ -204,10 +208,6 @@ def benchmark_profile(
         "PERSIST FINAL CASE",
         PROFILE_NAMES[
             profile
-        ],
-        "architecture",
-        ARCH_NAMES[
-            architecture
         ]
     )
 
@@ -221,7 +221,7 @@ def benchmark_profile(
             profile,
             0,
             0,
-            architecture,
+            0,
             seed,
             FINAL_CARROT_GAIN,
             FINAL_HAY_GAIN,
@@ -249,6 +249,10 @@ def benchmark_profile(
                 LAYOUT_NAMES
             )
         ):
+            architecture = architectures[
+                layout
+            ]
+
             run_time = run_one(
                 profile,
                 1,
@@ -296,6 +300,9 @@ def benchmark_profile(
                 LAYOUT_NAMES[
                     layout
                 ],
+                ARCH_NAMES[
+                    architecture
+                ],
                 run_time
             )
 
@@ -307,10 +314,6 @@ def benchmark_profile(
         "PERSIST FINAL SUMMARY",
         PROFILE_NAMES[
             profile
-        ],
-        "architecture",
-        ARCH_NAMES[
-            architecture
         ]
     )
 
@@ -333,10 +336,16 @@ def benchmark_profile(
             layout
             + 1
         )
+        architecture = architectures[
+            layout
+        ]
 
         quick_print(
             LAYOUT_NAMES[
                 layout
+            ],
+            ARCH_NAMES[
+                architecture
             ],
             "avg",
             totals[
@@ -363,13 +372,23 @@ def run_benchmarks():
             PROFILE_NAMES
         )
     ):
-        architecture = screen_architecture(
-            profile
-        )
+        architectures = []
+
+        for layout in range(
+            len(
+                LAYOUT_NAMES
+            )
+        ):
+            architectures.append(
+                screen_layout(
+                    profile,
+                    layout
+                )
+            )
 
         benchmark_profile(
             profile,
-            architecture
+            architectures
         )
 
     quick_print(
