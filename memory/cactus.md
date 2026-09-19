@@ -518,6 +518,8 @@ testing directly in the Cactus workload.
 
 Runner version is now `cactus-v3`.
 
+Benchmark commit: `05ee0dbd2ff6483dec93c1707a0e957b25185c5f`.
+
 The new `CACTUS TARGET COLD` matrix runs one 32x32 cycle from
 `Items.Cactus: 0` on seeds 1, 2, and 3. Other resources remain oversized so
 this matrix measures Cactus execution rather than resource starvation. This
