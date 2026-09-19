@@ -312,3 +312,70 @@ cold benchmark confirms the gain.
 - Benchmark adaptive 3x3 zapakh production and reduced-drone layouts separately.
 - Revisit `MAZE_PARALLEL_RELOCATIONS = 25` after the reuse-cap sweep identifies
   the best lifecycle.
+
+
+## Spawn locality research
+
+Verified game/API behavior:
+
+- `clear()` moves the controlling drone to `(0,0)`.
+- `spawn_drone(task, *args)` creates the child on the caller's current tile.
+- successful `move()` costs about 200 ticks.
+- successful `spawn_drone()` costs about 200 ticks.
+
+Current `maze_parallel.run()` does:
+
+1. `clear()`, leaving the parent at `(0,0)`
+2. spawn every child at that same tile
+3. each child independently calls `utils.move_to(origin_x, origin_y)`
+4. parent later moves to its own Maze origin
+
+This makes spawn position a real setup variable.
+
+Important geometry correction:
+
+Because normal movement wraps, the visual center of the 32x32 farm is not inherently a globally better fixed spawn point. A useful spawn anchor must be chosen against the actual worker-origin set.
+
+For the current 32-worker uniform 4x4 production layout, the first 32 row-major block centers occupy only part of the 64 possible 4x4 slots. Therefore `(0,0)`, `(16,16)`, and a band-centered anchor such as `(0,8)` are meaningfully different for this exact origin set even though the full toroidal farm has no privileged center.
+
+Potential setup optimizations to benchmark:
+
+- one common anchor, then children self-position
+- choose a better 32-slot subset from the 64 possible 4x4 blocks
+- spawn the farthest children first so their travel overlaps later spawn calls
+- reserve the nearest Maze origin for the parent because it only starts its own positioning after child launch
+- controller `spawn_at`: move parent to each origin, spawn there, then continue
+- hierarchical spawning if a later benchmark shows sequential parent spawning is the bottleneck
+
+ScienceJiho's current-memory-compatible reference already contains a generic `spawn_at()` helper that moves the controller to a worker start before spawning. Its own documentation warns that controller repositioning becomes setup cost, so this must be measured rather than assumed faster.
+
+### Spawn locality microbenchmark
+
+Benchmark version: `spawn-v1`
+
+Benchmark commit: `c15c9f3ea47970cbbc6a4677bf5301a3a831b15e`
+
+Files:
+
+- `bench_spawn.py`
+- `bench_spawn_run.py`
+
+The benchmark isolates the 32-worker / 4x4-Maze setup and compares:
+
+```text
+baseline-origin00-rowmajor
+center-anchor-rowmajor
+band-anchor-rowmajor
+band-anchor-farthest-parent-near
+nearest-slots-origin00
+nearest-slots-farthest-parent-near
+spawn-at-rowmajor-origins
+```
+
+It deliberately does not run a Maze solver. Every worker only reaches its assigned origin and plants its initial Bush. This establishes whether spawn geometry has enough effect to justify adding the best topology as a mode to the expensive exact-9863168-Gold leaderboard benchmark.
+
+Run:
+
+`bench_spawn_run.py`
+
+Do not change `maze_parallel.py` production spawn topology until this microbenchmark is measured and the promising candidate is validated end-to-end in the Maze benchmark.
