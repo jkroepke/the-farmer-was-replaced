@@ -337,3 +337,82 @@ The primary Wood-LB benchmark family should be separate from Main Run and start 
 7. explicit finite termination at `num_items(Items.Wood) >= 10_000_000_000`
 
 Do not generalize the Wood initial inventory to Carrots or Hay until their leaderboard probes are measured separately.
+
+
+## Dedicated Wood / Carrot / Hay leaderboard benchmark suites
+
+Resource leaderboard research is split by target resource. Do not create or use a generic `bench_lb_farm.py`.
+
+Files:
+
+| Resource | Benchmark | Runner | Version | Start-state status |
+| --- | --- | --- | --- | --- |
+| Wood | `bench_lb_wood.py` | `bench_wood_run.py` | `lbwood-v1` | measured Wood-LB inventory |
+| Carrot | `bench_lb_carrot.py` | `bench_car_run.py` | `lbcar-v1` | synthetic support inventory until Carrot probe |
+| Hay | `bench_lb_hay.py` | `bench_hay_run.py` | `lbhay-v1` | Wood Power start used provisionally until Hay probe |
+
+All benchmark runners request simulation speedup 10000.
+
+### Wood v1
+
+Measured Wood-LB state is used directly:
+
+- 32x32
+- 32 drones
+- Power 1,000,000,000
+- Water 0
+- Fertilizer 0
+- all target/support resource inventories 0
+
+Screen target: 100,000,000 Wood.
+
+Final target: exact leaderboard target 10,000,000,000 Wood across seeds 1/2/3 for the three fastest screen modes.
+
+Modes:
+
+- checkerboard Tree/Grass lean
+- checkerboard Tree/Bush lean
+- water-0.75 variants
+- Fertilizer variants
+- Water+Fertilizer
+- full-Tree controls
+- defensive/safe control including affordability checks
+
+No mode uses Sunflowers.
+
+### Hay v1
+
+Screen target: 50,000,000 Hay.
+
+Final target: exact leaderboard target 2,000,000,000 Hay across seeds 1/2/3.
+
+Modes compare lean Grass harvesting, water thresholds 0.25/0.50/0.75, Fertilizer, Water+Fertilizer, and a defensive safe control.
+
+No mode uses Sunflowers or planting.
+
+The current v1 runner uses Power=1,000,000,000 as a provisional hypothesis copied from the measured Wood-LB environment. Do not treat this as measured Hay state until `lb_hay_probe.py` is run.
+
+### Carrot v1
+
+Screen target: 50,000,000 Carrot.
+
+Final target: exact leaderboard target 2,000,000,000 Carrot across seeds 1/2/3.
+
+Modes compare lean direct harvest/replant, water thresholds 0.25/0.50/0.75, Fertilizer, Water+Fertilizer, and a defensive safe control with affordability checks.
+
+No mode uses Sunflowers.
+
+The Carrot start inventory has not yet been measured. `bench_car_run.py` intentionally supplies 10,000,000,000 Hay and 10,000,000,000 Wood as synthetic support so v1 measures hot-path behavior rather than starvation. This is not a claim about the real Carrot leaderboard start state.
+
+### Probe launchers
+
+A real `leaderboard_run()` does not continue to subsequent leaderboard calls in the same launcher. The original combined probe therefore produced only Wood.
+
+Use separate launchers:
+
+- `lb_car_probe.py`
+- `lb_hay_probe.py`
+
+Both run the shared `lb_res_probe.py` diagnostic inside the respective real leaderboard environment.
+
+After those are measured, bump the affected benchmark version before replacing provisional/synthetic start-state inputs.
