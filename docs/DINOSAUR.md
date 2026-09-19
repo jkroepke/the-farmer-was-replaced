@@ -907,11 +907,57 @@ That is very close to the single-run 75% Hamiltonian result of 279.48 Bones/s, s
 
 Finish the remaining sustained 75% and 95% cases before making the final production choice.
 
+## Final near-full benchmark results
+
+The production-focused near-full sweep compared only the two remaining candidates on 32x32.
+
+### Single-run throughput
+
+| Target | Tail | Hamiltonian Bones/s | Reference Bones/s |
+| ---: | ---: | ---: | ---: |
+| 95% | 972 | **426.66** | 381.66 |
+| 97% | 993 | **444.66** | 397.55 |
+| 99% | 1013 | **462.43** | 413.33 |
+| 100% / board - 1 | 1023 | **464.86** | 417.96 |
+
+Single-run Hamiltonian throughput continues increasing up to the maximum safe target.
+
+### Sustained throughput, 3 cycles
+
+| Target | Hamiltonian Bones/s | Hamiltonian Bones/min | Reference Bones/s | Reference Bones/min |
+| ---: | ---: | ---: | ---: | ---: |
+| 95% | **410.13** | **24,607.87** | 376.21 | 22,572.82 |
+| 97% | **434.59** | **26,075.21** | 390.80 | 23,448.29 |
+| 99% | **447.85** | **26,870.79** | 405.28 | 24,316.92 |
+| 100% / board - 1 | **453.57** | **27,214.07** | 415.31 | 24,918.30 |
+
+The sustained winner is therefore:
+
+```text
+strategy: hamiltonian-skyscraper
+target: board - 1
+tail: 1023 on 32x32
+throughput: 453.57 Bones/s
+throughput: 27,214.07 Bones/min
+```
+
+At the same target, Hamiltonian is about **9.2% higher sustained throughput** than the skysdottir reference.
+
+The 100% benchmark is not a literal full 1024-cell tail. The benchmark clamps the target to `board - 1`, so on 32x32 it stops at tail length 1023.
+
+The near-full sweep also resolves the target question: throughput did not peak at 95%, 97%, or 99%; the highest tested sustained throughput is at the maximum safe target.
+
+For steady-state Bone production, the current benchmark evidence therefore favors:
+
+> **plain Hamiltonian skyscraper, harvested at board - 1**
+
+The skysdottir reference remains useful only for short targeted runs, where its early shortcut phase is substantially faster.
+
 ## Current benchmark conclusion
 
 Do not promote the current skyscraper shortcut variants.
 
-For 32x32 at 25%, the source-near reference is decisively best. At 50%, Hamiltonian and reference are effectively tied on Bone throughput. The 75% and 95% results will therefore decide whether long production runs should favor one whole-run strategy over the other.
+For short 32x32 runs, the source-near reference is best, but the final near-full sweep resolves steady-state production in favor of plain Hamiltonian skyscraper. At board - 1, Hamiltonian reaches 453.57 sustained Bones/s versus 415.31 for the reference.
 
 This makes target-aware Bone production more important: if the planner needs only a modest Bone amount, stopping around a short tail target can exploit the reference algorithm's strongest phase instead of paying for a long late-game traversal.
 
