@@ -422,6 +422,8 @@ Do not silently add rerolling to an existing mode.
 
 ## First screening prune
 
+Benchmark commit: `c2518979299857284b44fdd2dc87ce00e1f5e05c`
+
 The first completed 32x32 / 8-drone Hay screening produced:
 
 ```text
@@ -561,6 +563,8 @@ Keep source-near external modes unchanged. Add all-Soil and rerolling as separat
 
 ## Cold-start benchmark results
 
+Benchmark commit: `610e0e082d110c30a42d4ef900ef8a68efdb7405`
+
 The production decision is based on the completed 32x32 benchmark with:
 
 ```text
@@ -666,6 +670,8 @@ The old L benchmark remains available as `legacy-l`.
 
 ## Persistent transition benchmark
 
+Benchmark commit: `a359f8b3fbbad02a26ebe10a9450b7296405e8c3`
+
 Files:
 
 - `bench_transition.py`
@@ -704,3 +710,50 @@ bench_transition_run.py
 ```
 
 After the suite it automatically starts `main.main()`.
+
+### Completed transition results
+
+Benchmark commit: `a359f8b3fbbad02a26ebe10a9450b7296405e8c3`
+
+Persistent workload:
+
+```text
+Carrot -> Hay -> Wood -> Carrot
+```
+
+No `clear()` and no Power reset occur between phases.
+
+Average total simulated runtime:
+
+| Profile | legacy-l | adaptive-production | Relative result |
+| --- | ---: | ---: | ---: |
+| partial Megafarm, 8 drones | 358.48 s | 361.39 s | adaptive ~0.8% slower |
+| max Megafarm, 32 drones | 128.63 s | 63.88 s | adaptive ~50.3% faster |
+
+Partial-Megafarm interpretation:
+
+- the production-shaped adaptive max-petal implementation did **not** reproduce the isolated cold-start win
+- adaptive production ended every completed 8-drone transition run at 0 Power
+- the legacy L remained effectively tied/slightly faster over the persistent workload and retained positive Power
+- therefore production below full Megafarm currently uses `run_legacy()`
+- the dedicated max-petal column remains a benchmark candidate, not the production default
+
+Maximum-Megafarm interpretation:
+
+- the adaptive two-Sunflower-column layout is decisively faster
+- average transition time drops from 128.63 s to 63.88 s
+- therefore the 32-drone production path keeps the adaptive one-worker-per-column layout with two simple Sunflower columns
+
+Current production decision after both benchmark stages:
+
+```text
+max_drones() < world_size
+    legacy L for now
+
+max_drones() == world_size
+    adaptive column ownership
+    final two columns = dumb Sunflowers
+```
+
+The isolated cold-start benchmark remains useful for identifying candidate algorithms, but persistent transition behavior takes precedence for the production path.
+
