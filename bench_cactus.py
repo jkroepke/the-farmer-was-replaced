@@ -11,7 +11,8 @@ MODE_NAMES = [
     "tstambaugh-reference-32",
     "nql1314-reference",
     "tstambaugh-placed-generalized",
-    "adaptive-placed-pool"
+    "adaptive-placed-pool",
+    "persistent-mateus"
 ]
 
 
@@ -1108,6 +1109,9 @@ def run_cycle(mode, cycle):
         return run_adaptive_placed(
             cycle
         )
+
+    if mode == 9:
+        return run_mateus_persistent()
 
     return False
 
