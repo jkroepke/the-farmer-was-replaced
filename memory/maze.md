@@ -54,6 +54,15 @@ The root worker is the fixed Maze creator. After the final Treasure is harvested
   - exact layout is `bench_maze.py::SPEC_PACKED_32`
   - loop-handling comment matches the zapakh per-solve `visited` behavior
   - provenance in `external/reddit-32-square-maze/README.md`
+- February 2026 Reddit 32x5x5 map+BFS:
+  https://www.reddit.com/r/TheFarmerWasReplaced/comments/1ra25ta/my_solution_for_the_maze_33mil_goldmin/
+  - source-described 32 independent 5x5 Mazes
+  - right-hand mapping of each fresh Maze
+  - BFS to measured Treasure
+  - update graph when reuse opens walls
+  - reuse 300, harvest, remap
+  - no code published; benchmark is behavioral reconstruction
+  - provenance in `external/reddit-5x5-bfs/README.md`
 - zapakh Gist: https://gist.github.com/zapakh/9a9b39a07964bbd27ab8cbd05ca35501
   - created 2024-05-22
   - iterative in-situ DFS with target-directed direction ranking
@@ -135,8 +144,41 @@ Current production rules:
 
 Production integration commits begin at `b07d95a870252df2f093c250137b909557183f4c`; benchmark provenance remains `55734c855dd464dd846deef280d8a65d9f2c3bf7`.
 
+## Extended Maze benchmark
+
+Current unmeasured benchmark code state:
+`b51873132eec90ee623e513f5b8479b1e86f0997`.
+
+The extended matrix contains 22 modes:
+
+- code/source-near controls: zapakh, Steam, msmith93
+- source-described Reddit controls: September packed fresh intersection solver,
+  February 32x5x5 right-hand map+BFS reuse
+- exact-cover packed 4..7 geometry
+- reuse-cap sweep: 0/fresh, 1, 2, 4, 8, 16, 300
+- ranked vs unranked DFS
+- Reddit branch solver with visited-set reuse mutation
+- uniform 4x4 and 5x5 geometry controls
+- map+BFS on uniform4, uniform5, and packed geometry
+
+Benchmark groups:
+
+- MAZE CORE: 200k Gold, seeds 1/2/3
+- MAZE MAP: 200k Gold, seeds 1/2/3
+- MAZE SUSTAINED: 1M Gold, seeds 1/2
+- MAZE LEGACY REF: msmith93 last, 200k Gold, seeds 1/2/3
+
+Every result prints Gold gained, Weird Substance used, tick count, target, and
+PASS/FAIL.
+
+Keep the old measured result separate: `zapakh-32x4x4` at 13.51 average
+belongs to benchmark commit `55734c855dd464dd846deef280d8a65d9f2c3bf7`.
+
 ## Open questions
 
-- Benchmark `packed-4to7-fresh` and `packed-4to7-reuse` against `zapakh-32x4x4` using code state `e6e1d5b16120ca56329463fcc65d8ffc55fb5650`.
+- Run the extended matrix and record only results from code state `b51873132eec90ee623e513f5b8479b1e86f0997`.
+- Promote a new production geometry/solver only after both 200k and sustained
+  results are known.
 - Benchmark adaptive 3x3 zapakh production and reduced-drone layouts separately.
-- Revisit `MAZE_PARALLEL_RELOCATIONS = 25` if Weird-Substance production becomes the dominant bottleneck.
+- Revisit `MAZE_PARALLEL_RELOCATIONS = 25` after the reuse-cap sweep identifies
+  the best lifecycle.
