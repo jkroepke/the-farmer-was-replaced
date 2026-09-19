@@ -1975,12 +1975,8 @@ def spec_run_reference_target():
 def spec_cover_worker(
     maze_size,
     start_gold,
-    creator,
-    ready_drones
+    creator
 ):
-    while num_drones() < ready_drones:
-        pass
-
     while not spec_gold_done(
         start_gold
     ):
@@ -2004,91 +2000,92 @@ def spec_cover_worker(
             )
 
 
-def spec_cover_dfs(
-    maze_size,
-    start_gold,
-    visited,
-    root,
-    ready_drones
-):
-    coord = (
-        get_pos_x(),
-        get_pos_y()
-    )
-
-    visited.add(
-        coord
-    )
-
-    if coord != root:
-        spawn_drone(
-            spec_cover_worker,
-            maze_size,
-            start_gold,
-            False,
-            ready_drones
-        )
-
-    for direction in SPEC_DIRECTIONS:
-        if not can_move(
-            direction
-        ):
-            continue
-
-        next_coord = spec_neighbor(
-            coord,
-            direction
-        )
-
-        if next_coord in visited:
-            continue
-
-        move(
-            direction
-        )
-
-        spec_cover_dfs(
-            maze_size,
-            start_gold,
-            visited,
-            root,
-            ready_drones
-        )
-
-        move(
-            spec_back(direction)
-        )
-
-
-def spec_cover_maze(
-    maze_size,
-    start_gold,
-    ready_drones
+def spec_cover_prepare(
+    maze_size
 ):
     root = (
         get_pos_x(),
         get_pos_y()
     )
 
+    # First build a temporary Maze with no coverage workers. Mapping must
+    # stay single-drone so Treasure relocation cannot mutate walls while
+    # the set of Maze cells is still being discovered.
     spec_create_maze(
         maze_size
     )
 
-    visited = set()
+    graph, parent = map_fresh_maze()
 
-    spec_cover_dfs(
-        maze_size,
-        start_gold,
-        visited,
-        root,
-        ready_drones
+    target = measure()
+
+    if target != None:
+        move_bfs(
+            graph,
+            target
+        )
+
+    if (
+        get_entity_type()
+        == Entities.Treasure
+    ):
+        harvest()
+
+    # The temporary Maze is gone. Return to its fixed root while the farm
+    # is open, then place one waiting worker on every other discovered cell.
+    spec_move_to(
+        root[0],
+        root[1]
+    )
+
+    for coord in graph:
+        if coord == root:
+            continue
+
+        spec_move_to(
+            coord[0],
+            coord[1]
+        )
+
+        spawn_drone(
+            spec_cover_worker,
+            maze_size,
+            0,
+            False
+        )
+
+    spec_move_to(
+        root[0],
+        root[1]
+    )
+
+    return root
+
+
+def spec_cover_maze(
+    maze_size,
+    start_gold
+):
+    root = spec_cover_prepare(
+        maze_size
+    )
+
+    # Workers were spawned with a dummy Gold baseline while the temporary
+    # Maze was absent. They cannot collect anything before this Maze exists.
+    # Replace them with correctly-baselined workers by using the shared real
+    # Gold target directly in the worker loop below.
+    #
+    # Existing children are already sitting on all non-root Maze cells. The
+    # creator owns the root cell and recreates the Maze after its final
+    # Treasure is harvested.
+    spec_create_maze(
+        maze_size
     )
 
     spec_cover_worker(
         maze_size,
         start_gold,
-        True,
-        ready_drones
+        True
     )
 
 
@@ -2108,8 +2105,7 @@ def spec_run_single_cover(
 
     spec_cover_maze(
         maze_size,
-        start_gold,
-        maze_size * maze_size
+        start_gold
     )
 
 
@@ -2126,8 +2122,7 @@ def spec_cover_wait_start(
 
     spec_cover_maze(
         maze_size,
-        start_gold,
-        32
+        start_gold
     )
 
 
@@ -2165,8 +2160,7 @@ def spec_run_double_cover():
 
     spec_cover_maze(
         4,
-        start_gold,
-        32
+        start_gold
     )
 
 
