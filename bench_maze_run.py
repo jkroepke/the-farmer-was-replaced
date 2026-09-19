@@ -24,24 +24,16 @@ BENCH_REBALANCE_UNTIL = 140
 BENCH_SOLVES = 300
 BENCH_WORLD_SIZE = 32
 
+# The previous 6..11 matrix is already recorded in docs/MAZE.md.
+# New experiments compare only against the current measured winner.
 MODE_IDS = [
-    6,
-    7,
-    8,
-    9,
     10,
-    11,
     12,
     13
 ]
 
 MODE_NAMES = [
-    "current-reference-32",
-    "cover-3x3",
-    "cover-4x4",
-    "cover-2x4x4",
     "zapakh-32x4x4",
-    "steam-32x4x4",
     "packed-4to7-fresh",
     "packed-4to7-reuse"
 ]
