@@ -41,6 +41,9 @@ Always validate assumptions against:
 - https://github.com/Flekay/The-Farmer-Was-Replaced
   - large GPL-3.0 strategy/benchmark collection with measured TFWR tick costs, reusable movement libraries, Cactus sort comparisons, Maze flow-field research, Dinosaur strategy benchmarks, Pumpkin multi-drone layouts, and Sunflower pathing experiments
   - complete pinned snapshot and detailed review: `external/flekay-the-farmer-was-replaced/`
+- https://github.com/guiteixeira-io/the-farmer-was-replaced
+  - small educational/classroom repository; useful mainly as provenance and simple beginner baselines rather than an optimization source
+  - complete pinned snapshot and review: `external/guiteixeira-io-the-farmer-was-replaced/`
 - https://github.com/msmith93/thefarmerwasreplaced
   - broad main-branch reference covering single-drone leaderboards, Megafarm/multi-drone experiments, resource planners, and a simulator-backed Sunflowers_Single optimization series
   - complete pinned snapshot and detailed review: `external/msmith93-thefarmerwasreplaced/`
@@ -274,6 +277,7 @@ Prefer a complex algorithm when it measures faster, but never assume complexity 
 - `external/msmith93-thefarmerwasreplaced/` — complete main-branch source snapshot at `7fef7c327e8d0b6ef34af2fafc3e5aeaf0b89823`; includes the Sunflowers_Single simulator/iteration series and multi-drone reference implementations
 - `external/nql1314-the-farmer-was-replaced-ai-code/` — complete 78-file source snapshot at `688325db004607563e59535a15ce94fad092ff9f`; detailed review distinguishes reusable algorithms from the historical shared-`wait_for()` exploit
 - `external/flekay-the-farmer-was-replaced/` — complete 283-file GPL-3.0 snapshot at `567e0ab6f96305cd6c9a05fd5eea2917449c2407`; includes tick-cost tests, benchmark tables, movement libraries, and strategy variants across major mechanics
+- `external/guiteixeira-io-the-farmer-was-replaced/` — complete 12-file educational snapshot at `58bd5c5ba928548bc21035006551ca93854f16b9`; only two non-empty game scripts, both minimal harvest loops
 
 
 ### msmith93/thefarmerwasreplaced full_reset

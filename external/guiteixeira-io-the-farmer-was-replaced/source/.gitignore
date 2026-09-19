@@ -1,0 +1,15 @@
+# Tudo na raiz, exceto o que é explicitamente permitido
+/*
+!Saves/
+!.gitignore
+!README.md
+
+# Pasta de save pessoal do professor
+Saves/Meu/
+
+# Arquivos gerados automaticamente pelo jogo em cada pasta de turma
+Saves/**/__builtins__.py
+Saves/**/save.json
+
+# Arquivos de save das turmas (gerenciados pelo jogo)
+Saves/*.json
