@@ -1237,7 +1237,7 @@ Current benchmark version: `spawn-v4`
 
 Structural benchmark commit before the speedup-only bump: `2a217d6b4a42ea403c292fbc2e19428fd561b25b`.
 
-`spawn-v4` keeps the same precomputed locality/binary-tree topology as `spawn-v3` and changes the simulation request to `BENCH_SPEEDUP = 10000`. No `spawn-v4` result has been recorded yet.
+`spawn-v4` keeps the same precomputed locality/binary-tree topology as `spawn-v3` and changes the simulation request to `BENCH_SPEEDUP = 10000`.
 
 Modes:
 
@@ -1260,4 +1260,44 @@ Run `bench_spawn_run.py` and require the first line to be:
 BENCHMARK VERSION spawn-v4
 ```
 
-Do not promote spawn topology to production from the setup microbenchmark alone. If a v3 mode materially beats the 2.10-second baseline, add that exact topology to the full cold Maze leaderboard benchmark at 9863168 Gold before changing production.
+Do not promote spawn topology directly from the setup microbenchmark. The measured winner is now included in the full cold Maze leaderboard benchmark at 9863168 Gold.
+
+
+Measured `spawn-v4` result, repository code state `7c66b8422554d109e90220705e3841ea49081eca`:
+
+```text
+baseline-origin00-rowmajor                        2.10 s / 11832 ticks
+origin00-parent-near                             2.07 s / 11662 ticks
+band-anchor-rowmajor                             2.10 s / 11836 ticks
+band-precomputed-farthest-parent-near            1.68 s /  9201 ticks
+nearest-slots-precomputed-rowmajor               1.56 s /  8671 ticks
+nearest-slots-precomputed-farthest-parent-near   1.40 s /  7605 ticks
+binary-tree-rowmajor-origin00                    1.29 s /  6892 ticks
+binary-tree-nearest-origin00                     0.90 s /  4498 ticks
+```
+
+All three seeds were identical.
+
+Measured conclusions:
+
+- `binary-tree-nearest-origin00` reduced outer simulation runtime from 2.10 s to 0.90 s: about 57.1% less setup time, or 2.33x faster
+- tick count fell from 11832 to 4498: about 62.0% fewer ticks
+- binary spawning alone, keeping the row-major slot set, reached 1.29 s and therefore accounts for a large part of the gain
+- precomputed nearest-slot selection without the binary tree reached 1.56 s
+- combining both optimizations is materially better than either one alone
+- visual farm-center placement remains disproven as an optimization for this workload
+
+This is sufficient to promote the topology into the exact leaderboard benchmark, but not directly into production.
+
+The exact 9863168-Gold follow-up is now `maze-v3`, code state `7faabfb9bf3593837ac191a7b198c1ba30f41e68`.
+
+New exact-target modes:
+
+```text
+lb-uniform4-map-bfs-tree-spawn
+lb-nearest4-map-bfs-tree-spawn
+```
+
+The persistent tree variant cannot reuse the setup-only `wait_for()` design because Maze workers must remain alive. Instead every branch recursively spawns descendants, every leaf becomes a persistent Maze worker, and the root waits for the globally visible Bush planting cost to be consumed by all 32 Bushes before releasing the Weird-Substance barrier. This avoids a second full readiness walk in the normal case.
+
+Production `maze_parallel.py` remains unchanged until `maze-v3` proves the topology on the real leaderboard target.
