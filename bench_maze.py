@@ -2126,7 +2126,8 @@ def spec_cover_wait_start(
 
     spec_cover_maze(
         maze_size,
-        start_gold
+        start_gold,
+        32
     )
 
 
