@@ -409,3 +409,26 @@ For all leaderboard candidates:
 `bench_reset.py` / `bench_reset_run.py` compare three Fastest Reset planner policies from empty unlock/item state to `Unlocks.Leaderboard`, all using the same current production backend: dynamic frontier, Agude-inspired sticky bounded target, and the pinned msmith93 static unlock order with live cost resampling. Runner version: `reset-v1`; seeds 1/2/3; action watchdog 10000. No result has been measured yet.
 
 `bench_ticks.py` / `bench_ticks_run.py` re-measure Flekay-inspired interpreter hot-path claims (dict key shape, membership structures, queue front-pop vs cursor, append vs concatenation). Runner version: `ticks-v1`. Treat upstream January 2026 tick values as hypotheses until this current-runtime suite is run.
+
+
+## Main farm vs Resource-LB execution policy
+
+Wood/Carrots/Hay leaderboards should use dedicated finite implementations rather than the normal endless production farm.
+
+Reason:
+
+- the official Resource-LB environment starts with all unlocks and lots of Power
+- normal Main-Run code must bootstrap and preserve Power itself
+- normal Main-Run Fertilizer usage is partly motivated by Weird Substance production, while infected plants lose half of their target-resource yield
+- normal Main-Run affordability/state checks may be unnecessary overhead in a fixed LB environment
+
+Default LB hypotheses to benchmark:
+
+1. no Sunflower workers or tiles
+2. full target-crop farm area
+3. lean planting without repeated affordability checks when the measured start inventory proves this safe
+4. water-policy ablation
+5. fertilizer off by default; only explicit ablation
+6. explicit finite target checks and worker termination
+
+Before writing the final LB simulator, run `lb_probe_run.py` to capture the exact Wood/Carrots/Hay starting inventories because the public leaderboard description does not publish those amounts.
