@@ -1,85 +1,40 @@
-# Runtime, spawn, and movement benchmarks
+# Benchmark: Runtime / Spawn / Movement
 
-This file is the canonical home for measured benchmark results for this topic.
+## Scope
 
 | Field | Value |
 | --- | --- |
-| Migrated from | `memory/flekay.md` |
-| Result rule | Every canonical run must name the full Git source commit that pins runner and implementation. |
-| Separation | Use `-----` between runs produced from different code states or materially different setups. |
-| Interpretation | Keep measured facts separate from conclusions and open questions. |
+| Topic | Runtime / Spawn / Movement |
+| Purpose | Measure runtime semantics and reusable low-level costs for drone memory, spawn topology, movement, and interpreter-sensitive hot paths. |
+| Implementation | `drone_mem_probe.py`, `bench_spawn.py`, `bench_move.py`, `bench_ticks.py` |
+| Runner | `drone_mem_run.py`, `bench_spawn_run.py`, `bench_move_run.py`, `bench_ticks_run.py` |
+| Primary metric | Ticks and elapsed simulation time; semantic PASS/FAIL for memory probes. |
+| Success condition | Runtime probes must pass; performance candidates must preserve equivalent work and setup. |
 
-## Referenced commits in migrated history
+## Benchmark index
 
-| Referenced commit | `cba75a7c26fd11da30408c8706deb8d8bf09d66a` |
-| Referenced commit | `f309a1a6ab4423d22f9be26e41539ee8eed3aa21` |
+| Run / version | Source commit | Profile | Status |
+| --- | --- | --- | --- |
+| Drone memory semantics | `2fc84603c5566ecf17ea6ee8135ad394d1cfceb0` | Mutable-state isolation | Measured 12/12 PASS |
+| `spawn-v5` | `cba75a7c26fd11da30408c8706deb8d8bf09d66a` | 32-worker topology | Measured |
+| `move-v2` | `f309a1a6ab4423d22f9be26e41539ee8eed3aa21` | 32x32 movement | Measured |
+| `ticks-v1` | Unknown / not recorded | Interpreter hot-path microbenchmarks | Pending |
 
-A referenced commit is not automatically a benchmark source commit. Each result block must explicitly identify which commit produced it. If an older block lacks that mapping, treat it as historical/non-canonical and rerun it before using it for a production decision.
+## Results
 
------
-## Current benchmark implementation status
+### drone memory semantics 2026-09-19
 
-### spawn-v5 ready
+#### Provenance
 
-`bench_spawn.py` / `bench_spawn_run.py` now contain a topology-only shootout
-using the same `CURRENT_ORIGINS` target set and the same root/parent target
-(`CURRENT_ORIGINS[0]`) for every candidate:
+| Field | Value |
+| --- | --- |
+| Source commit | `2fc84603c5566ecf17ea6ee8135ad394d1cfceb0` |
+| Benchmark/version | Not versioned in this record |
+| Requested speedup | Not recorded |
+| Seeds | See recorded setup |
+| Canonical status | Source state recorded |
 
-- serial control: `origin00-parent-near`
-- dual-spawner
-- Flekay precomputed powers-of-two fan-out
-- Jarvan dynamic powers-of-two fan-out
-- local balanced binary tree
-
-This deliberately excludes `binary-tree-nearest-origin00` from the topology
-comparison because that mode changes both topology and target geometry.
-
-Benchmark version: `spawn-v5`
-Requested speedup: `10000`
-Benchmark code state: `cba75a7c26fd11da30408c8706deb8d8bf09d66a`.
-
-### move-v2 ready
-
-New files:
-
-- `bench_move.py`
-- `bench_move_run.py`
-
-32x32 movement modes:
-
-- current `utils.move_to()` arithmetic control
-- static signed-delta table
-- static direction/count table
-- runtime-built dict lookup
-- runtime-built list lookup
-- static delta table while carrying known current coordinates, avoiding
-  `get_pos_x()/get_pos_y()` in the hot route loop
-
-Cold counts:
-
-- 1
-- 10
-- 100 targets
-
-Warm counts:
-
-- 10
-- 100
-- 1000 targets
-
-For warm comparisons, use the internal `run ticks` from `MOVE RESULT`.
-The outer `simulate()` time still includes table setup because every
-simulation starts from a fresh file execution.
-
-Benchmark version: `move-v2`
-Requested speedup: `10000`
-Benchmark code state: `f309a1a6ab4423d22f9be26e41539ee8eed3aa21`.
-
------
-
-## Run: drone memory semantics 2026-09-19
-
-### Provenance
+#### Measurements and observations
 
 | Field | Value |
 | --- | --- |
@@ -89,28 +44,22 @@ Benchmark code state: `f309a1a6ab4423d22f9be26e41539ee8eed3aa21`.
 | Purpose | Verify mutable state and `wait_for()` isolation semantics across drones. |
 | Validity | 12/12 checks passed in the recorded in-game run. |
 
-## Expanded probe suite
 
-`drone_mem_probe.py` now tests the semantics independently:
+-----
 
-- global mutation isolation
-- mutable list arguments passed to spawned drones
-- nested mutable argument copying
-- closure-captured list isolation
-- normal worker return-value communication
-- repeated `wait_for(source)` calls in the parent
-- repeated `wait_for(source)` calls inside one worker
-- parent mutation -> worker visibility
-- worker mutation -> parent visibility
-- worker mutation -> later worker visibility
-- nested source-return isolation
-- the historical producer/consumer queue pattern
+### Verified current-runtime result
 
-The cross-worker tests are intentionally sequential. That removes scheduler races and makes any cumulative mutable state evidence much stronger.
+#### Provenance
 
-The parent/worker repeated-wait tests accept and report either `copy-per-wait` or `same-drone-alias` for calls made by the same drone. The critical invariant is cross-drone isolation.
+| Field | Value |
+| --- | --- |
+| Source commit | **Unknown / not recorded** |
+| Benchmark/version | Not versioned in this record |
+| Requested speedup | Not recorded |
+| Seeds | See recorded setup |
+| Canonical status | Historical/non-canonical until rerun from a committed state |
 
-## Verified current-runtime result
+#### Measurements and observations
 
 Executed in-game on 2026-09-19 via `drone_mem_run.py`.
 
@@ -140,18 +89,46 @@ DRONE_MEMORY RUN DONE 1.5
 
 -----
 
-## Run: move-v2 and spawn-v5 2026-09-19
 
-### Provenance
+-----
+
+### move-v2 and spawn-v5 2026-09-19
+
+#### Provenance
+
+| Field | Value |
+| --- | --- |
+| Source commit | **Unknown / not recorded** |
+| Benchmark/version | `move-v2`, `spawn-v5` |
+| Requested speedup | Not recorded |
+| Seeds | See recorded setup |
+| Canonical status | Historical/non-canonical until rerun from a committed state |
+
+#### Measurements and observations
 
 | Suite | Source commit | Requested speedup |
 | --- | --- | ---: |
 | `spawn-v5` | `cba75a7c26fd11da30408c8706deb8d8bf09d66a` | 10000 |
 | `move-v2` | `f309a1a6ab4423d22f9be26e41539ee8eed3aa21` | 10000 |
 
-## Measured current-runtime results
 
-### move-v2 measured
+-----
+
+### Measured current-runtime results
+
+#### Provenance
+
+| Field | Value |
+| --- | --- |
+| Source commit | **Unknown / not recorded** |
+| Benchmark/version | `move-v2`, `spawn-v5` |
+| Requested speedup | 10000 |
+| Seeds | See recorded setup |
+| Canonical status | Historical/non-canonical until rerun from a committed state |
+
+#### Measurements and observations
+
+#### move-v2 measured
 
 Measured on 32x32 with requested simulation speedup 10000.
 
@@ -186,7 +163,7 @@ Durable conclusion:
 - Flekay's historical 10x10 navigation ranking does not transfer materially to
   the current 32x32 runtime
 
-### spawn-v5 measured
+#### spawn-v5 measured
 
 Topology-only comparison on the same 32 row-major origins and the same parent
 target:
@@ -228,3 +205,100 @@ Durable conclusion:
 - optimize worker origin/locality before micro-optimizing binary vs powers-of-two
 - use hard-coded Flekay fan-out only if a domain benchmark shows a real
   end-to-end advantage, not from the 6-tick setup microbenchmark alone
+
+## Interpretation
+
+| Kind | Statement | Evidence |
+| --- | --- | --- |
+| Open question | No separate interpretation section was present in the migrated record. | Review result groups and Notes. |
+
+## Reproduction
+
+| Step | Action |
+| ---: | --- |
+| 1 | Check out the source commit listed for the result group. |
+| 2 | Run the matching benchmark runner from Scope. |
+| 3 | Preserve complete output and update this file without changing historical values. |
+
+## Notes
+
+### Current benchmark implementation status
+
+#### spawn-v5 ready
+
+`bench_spawn.py` / `bench_spawn_run.py` now contain a topology-only shootout
+using the same `CURRENT_ORIGINS` target set and the same root/parent target
+(`CURRENT_ORIGINS[0]`) for every candidate:
+
+- serial control: `origin00-parent-near`
+- dual-spawner
+- Flekay precomputed powers-of-two fan-out
+- Jarvan dynamic powers-of-two fan-out
+- local balanced binary tree
+
+This deliberately excludes `binary-tree-nearest-origin00` from the topology
+comparison because that mode changes both topology and target geometry.
+
+Benchmark version: `spawn-v5`
+Requested speedup: `10000`
+Benchmark code state: `cba75a7c26fd11da30408c8706deb8d8bf09d66a`.
+
+#### move-v2 ready
+
+New files:
+
+- `bench_move.py`
+- `bench_move_run.py`
+
+32x32 movement modes:
+
+- current `utils.move_to()` arithmetic control
+- static signed-delta table
+- static direction/count table
+- runtime-built dict lookup
+- runtime-built list lookup
+- static delta table while carrying known current coordinates, avoiding
+  `get_pos_x()/get_pos_y()` in the hot route loop
+
+Cold counts:
+
+- 1
+- 10
+- 100 targets
+
+Warm counts:
+
+- 10
+- 100
+- 1000 targets
+
+For warm comparisons, use the internal `run ticks` from `MOVE RESULT`.
+The outer `simulate()` time still includes table setup because every
+simulation starts from a fresh file execution.
+
+Benchmark version: `move-v2`
+Requested speedup: `10000`
+Benchmark code state: `f309a1a6ab4423d22f9be26e41539ee8eed3aa21`.
+
+-----
+
+### Expanded probe suite
+
+`drone_mem_probe.py` now tests the semantics independently:
+
+- global mutation isolation
+- mutable list arguments passed to spawned drones
+- nested mutable argument copying
+- closure-captured list isolation
+- normal worker return-value communication
+- repeated `wait_for(source)` calls in the parent
+- repeated `wait_for(source)` calls inside one worker
+- parent mutation -> worker visibility
+- worker mutation -> parent visibility
+- worker mutation -> later worker visibility
+- nested source-return isolation
+- the historical producer/consumer queue pattern
+
+The cross-worker tests are intentionally sequential. That removes scheduler races and makes any cumulative mutable state evidence much stronger.
+
+The parent/worker repeated-wait tests accept and report either `copy-per-wait` or `same-drone-alias` for calls made by the same drone. The critical invariant is cross-drone isolation.
