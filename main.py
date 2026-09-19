@@ -28,6 +28,10 @@ def main():
     # This avoids rebuilding the legacy L only to replace it immediately.
     farm.reset_state()
 
+    last_target = None
+    last_focus = None
+    have_plan = False
+
     while True:
         # =================================================
         # CHOOSE NEXT UPGRADE
@@ -42,6 +46,30 @@ def main():
         # =================================================
 
         target = unlocks.next_target()
+
+        focus_item = None
+
+        if target != None:
+            focus_item = unlocks.focus_item(
+                target
+            )
+
+        if (
+            not have_plan
+            or target != last_target
+            or focus_item != last_focus
+        ):
+            quick_print(
+                "PLAN",
+                "goal",
+                target,
+                "focus",
+                focus_item
+            )
+
+            last_target = target
+            last_focus = focus_item
+            have_plan = True
 
         # Everything configured is maxed:
         # keep the mixed farm productive.
@@ -77,10 +105,6 @@ def main():
         # Thorrdu/parameters.py, but the target quantities are
         # the real get_cost(target) values.
         # =================================================
-
-        focus_item = unlocks.focus_item(
-            target
-        )
 
         production.run(
             focus_item
