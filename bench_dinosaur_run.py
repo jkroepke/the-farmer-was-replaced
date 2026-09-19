@@ -2,14 +2,15 @@
 #
 # All implementations live in bench_dinosaur.py.
 #
-# This benchmark measures time to reach fixed tail occupancy targets.
-# That is more informative than only measuring a full board because
-# shortcutting is expected to matter mainly in the early/mid run.
+# This benchmark measures time to reach fixed tail occupancy targets,
+# but production decisions must be based on Bone throughput.
+#
+# For the same target tail, lower runtime means higher throughput.
+# Across different tail targets, compare Bones/second or Bones/minute
+# because Dinosaur yield grows quadratically with tail length.
 
 
 BENCH_WORLD_SIZES = [
-    8,
-    16,
     32
 ]
 
@@ -38,6 +39,45 @@ MODE_NAMES = [
     "safe-shortcuts-hard-50",
     "skysdottir-tfwr-reference"
 ]
+
+
+def target_tail_length(
+    world_size,
+    target_percent
+):
+    board = (
+        world_size
+        * world_size
+    )
+
+    target = (
+        board
+        * target_percent
+        // 100
+    )
+
+    if target < 2:
+        target = 2
+
+    if target >= board:
+        target = board - 1
+
+    return target
+
+
+def expected_bones(
+    world_size,
+    target_percent
+):
+    tail = target_tail_length(
+        world_size,
+        target_percent
+    )
+
+    return (
+        tail
+        * tail
+    )
 
 
 def simulation_items():
@@ -135,9 +175,23 @@ def benchmark_case(
                     run_time
                 )
 
+            bones = expected_bones(
+                world_size,
+                target_percent
+            )
+
+            bones_per_second = (
+                bones
+                / run_time
+            )
+
             quick_print(
                 MODE_NAMES[mode],
-                run_time
+                run_time,
+                "bones/s",
+                bones_per_second,
+                "bones/min",
+                bones_per_second * 60
             )
 
     seed_count = len(
@@ -158,6 +212,16 @@ def benchmark_case(
             / seed_count
         )
 
+        bones = expected_bones(
+            world_size,
+            target_percent
+        )
+
+        bones_per_second = (
+            bones
+            / average
+        )
+
         quick_print(
             MODE_NAMES[mode],
             "avg",
@@ -165,7 +229,18 @@ def benchmark_case(
             "min",
             minimums[mode],
             "max",
-            maximums[mode]
+            maximums[mode],
+            "tail",
+            target_tail_length(
+                world_size,
+                target_percent
+            ),
+            "bones",
+            bones,
+            "bones/s",
+            bones_per_second,
+            "bones/min",
+            bones_per_second * 60
         )
 
 
