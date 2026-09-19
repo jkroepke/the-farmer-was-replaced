@@ -16,6 +16,7 @@
 # used to select the final leaderboard algorithm.
 
 
+BENCH_VERSION = "maze-v1"
 BENCH_SPEEDUP = 64
 BENCH_VERBOSE = False
 BENCH_GREEDY_AFTER = 30
@@ -90,6 +91,11 @@ def run_one(
 
 
 def main():
+    quick_print(
+        "BENCHMARK VERSION",
+        BENCH_VERSION
+    )
+
     if get_world_size() != 32:
         quick_print(
             "MAZE BENCH NEEDS 32x32 WORLD",
