@@ -3336,6 +3336,18 @@ def spec_search_worker(
     )
 
 
+SPEC_NEAREST4_32 = [
+    [0, 0, 4], [4, 0, 4], [8, 0, 4], [12, 0, 4],
+    [16, 0, 4], [20, 0, 4], [24, 0, 4], [28, 0, 4],
+    [0, 4, 4], [4, 4, 4], [8, 4, 4], [20, 4, 4],
+    [24, 4, 4], [28, 4, 4], [0, 8, 4], [4, 8, 4],
+    [24, 8, 4], [28, 8, 4], [0, 12, 4], [28, 12, 4],
+    [0, 20, 4], [28, 20, 4], [0, 24, 4], [4, 24, 4],
+    [24, 24, 4], [28, 24, 4], [0, 28, 4], [4, 28, 4],
+    [8, 28, 4], [20, 28, 4], [24, 28, 4], [28, 28, 4]
+]
+
+
 def spec_layout_square(
     layout_mode,
     index
@@ -3354,6 +3366,11 @@ def spec_layout_square(
                 index // 8
             ) * 4,
             4
+        ]
+
+    if layout_mode == 3:
+        return SPEC_NEAREST4_32[
+            index
         ]
 
     # 32 of the 36 non-overlapping 5x5 slots in a 6x6 grid.
@@ -3953,6 +3970,191 @@ def spec_spawn_route(
         29, 28, 27, 26, 25, 24,
         30, 31
     ]
+
+
+def spec_map_bfs_tree_branch(
+    layout_mode,
+    start,
+    count,
+    start_gold,
+    start_substance,
+    reuse_limit
+):
+    if count > 1:
+        second_count = count // 2
+        first_count = count - second_count
+
+        drone = spawn_drone(
+            spec_map_bfs_tree_branch,
+            layout_mode,
+            start + first_count,
+            second_count,
+            start_gold,
+            start_substance,
+            reuse_limit
+        )
+
+        if drone == None:
+            return False
+
+        return spec_map_bfs_tree_branch(
+            layout_mode,
+            start,
+            first_count,
+            start_gold,
+            start_substance,
+            reuse_limit
+        )
+
+    square = spec_layout_square(
+        layout_mode,
+        start
+    )
+
+    origin = spec_packed_origin(
+        square
+    )
+
+    return spec_map_bfs_worker(
+        origin[0],
+        origin[1],
+        square[2],
+        start_gold,
+        start_substance,
+        reuse_limit
+    )
+
+
+def spec_bush_ready_state():
+    cost = get_cost(
+        Entities.Bush
+    )
+
+    for item in cost:
+        return [
+            item,
+            num_items(item),
+            cost[item]
+        ]
+
+    return [
+        None,
+        0,
+        0
+    ]
+
+
+def spec_run_map_bfs_tree_spawn(
+    layout_mode,
+    reuse_limit,
+    label
+):
+    clear()
+
+    start_gold = num_items(
+        Items.Gold
+    )
+
+    start_substance = num_items(
+        Items.Weird_Substance
+    )
+
+    ready = spec_bush_ready_state()
+
+    ready_item = ready[0]
+    ready_start = ready[1]
+    ready_cost = ready[2]
+
+    drone = spawn_drone(
+        spec_map_bfs_tree_branch,
+        layout_mode,
+        1,
+        31,
+        start_gold,
+        start_substance,
+        reuse_limit
+    )
+
+    if drone == None:
+        return
+
+    square = spec_layout_square(
+        layout_mode,
+        0
+    )
+
+    origin = spec_packed_origin(
+        square
+    )
+
+    if not spec_move_to(
+        origin[0],
+        origin[1]
+    ):
+        return
+
+    if not plant(
+        Entities.Bush
+    ):
+        return
+
+    if ready_item != None:
+        ready_target = (
+            ready_start
+            - ready_cost * 32
+        )
+
+        while (
+            num_items(
+                ready_item
+            )
+            > ready_target
+        ):
+            pass
+    else:
+        # Defensive fallback for a future zero-cost Bush.
+        index = 1
+
+        while index < 32:
+            child_square = spec_layout_square(
+                layout_mode,
+                index
+            )
+            child_origin = spec_packed_origin(
+                child_square
+            )
+
+            spec_wait_for_bush(
+                child_origin[0],
+                child_origin[1]
+            )
+
+            index += 1
+
+        spec_move_to(
+            origin[0],
+            origin[1]
+        )
+
+    quick_print(
+        label,
+        "TREE READY",
+        31
+    )
+
+    if not spec_relocate(
+        square[2]
+    ):
+        return
+
+    spec_map_bfs_run(
+        origin[0],
+        origin[1],
+        square[2],
+        start_gold,
+        True,
+        reuse_limit
+    )
 
 
 def spec_run_map_bfs_route_spawn(
@@ -5085,11 +5287,25 @@ def run_special():
             "UNIFORM5 MAP BFS ROUTE"
         )
 
-    else:
+    elif BENCH_MODE == 33:
         spec_run_map_bfs_route_spawn(
             1,
             300,
             "UNIFORM4 MAP BFS ROUTE"
+        )
+
+    elif BENCH_MODE == 34:
+        spec_run_map_bfs_tree_spawn(
+            1,
+            300,
+            "UNIFORM4 MAP BFS TREE"
+        )
+
+    else:
+        spec_run_map_bfs_tree_spawn(
+            3,
+            300,
+            "NEAREST4 MAP BFS TREE"
         )
 
     spec_report_result(
