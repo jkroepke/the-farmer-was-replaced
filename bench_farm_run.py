@@ -79,6 +79,11 @@ REFERENCE_TARGET_GAINS = [
 
 REFERENCE_SEED = 1
 
+# Dedicated Power throughput is secondary to crop throughput under
+# self-powered conditions. Keep it available for targeted diagnostics,
+# but do not make the default suite wait for it.
+RUN_POWER_BENCHMARK = False
+
 POWER_MODES = [
     20,
     21,
@@ -86,10 +91,8 @@ POWER_MODES = [
     23
 ]
 
-# 100k was unnecessary for first-pass discrimination.
-# 20k is still large enough to amortize setup while keeping all source
-# references practical to run for three seeds.
-POWER_TARGET_GAIN = 20000
+# Small diagnostic target when RUN_POWER_BENCHMARK is enabled.
+POWER_TARGET_GAIN = 5000
 
 MODE_NAMES = [
     "current-l-production",
@@ -392,13 +395,14 @@ def run_benchmarks():
 
     benchmark_crop_references()
 
-    quick_print(
-        "POWER FINAL",
-        "target-gain",
-        POWER_TARGET_GAIN
-    )
+    if RUN_POWER_BENCHMARK:
+        quick_print(
+            "POWER FINAL",
+            "target-gain",
+            POWER_TARGET_GAIN
+        )
 
-    benchmark_power()
+        benchmark_power()
 
     quick_print(
         "FARM BENCH SUITE DONE"
