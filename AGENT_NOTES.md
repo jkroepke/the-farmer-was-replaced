@@ -9,7 +9,8 @@ The automation is split into modules:
 - `utils.py` — movement, affordability, water helpers
 - `workers.py` — multi-drone worker pool and hats
 - `farm.py` — normal mixed farm, sunflowers, carrots, resources, polyculture
-- `maze.py` — persistent Maze reuse using the reference tree-rebalancing strategy
+- `maze.py` — Gold/Maze dispatcher plus persistent reference-Maze fallback
+- `maze_parallel.py` — adaptive parallel 4x4/3x3 Maze production using the benchmarked zapakh-style solver
 - `pumpkin.py` — full-field giant pumpkin job
 - `cactus.py` — full-field cactus job
 - `unlocks.py` — upgrade selection, cost analysis, resource focus, unlock purchases
