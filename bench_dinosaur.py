@@ -2274,19 +2274,20 @@ def run_reddit_coil_strike():
         * world_size
     )
 
+    # Source-near state:
     # 0=coil, 1=strike, 2=pre-return, 3=return.
     phase = 0
     path_progress = 1
+    fix_flag = False
     loops = 0
 
-    # The source starts by leaving the initial Apple toward (0,1).
+    # The source measures the initial Apple at (0,0), then leaves it
+    # toward (0,1). setup_cycle() already populated NEXT_APPLE.
     if not coil_move_to(
         0,
         1
     ):
         return False
-
-    coil_refresh_apple()
 
     while (
         CURRENT_TAIL_LENGTH
@@ -2298,12 +2299,15 @@ def run_reddit_coil_strike():
         if NEXT_APPLE == None:
             return False
 
-        # The source switches to its safe path only when a complete
-        # coil/strike/return cycle reaches the origin again.
+        # The source enters the deterministic safe phase only after a
+        # complete return to the origin resets its path counter.
         if (
             path_progress == 0
             and (
-                CURRENT_TAIL_LENGTH
+                (
+                    CURRENT_TAIL_LENGTH
+                    - 1
+                )
                 * 100
                 >= board
                 * coil_cutoff_percent()
@@ -2312,10 +2316,15 @@ def run_reddit_coil_strike():
             return run_coil_safe_finish()
 
         if phase == 0:
-            # Coil: create a predictable vertical zig-zag body.
-            if NEXT_APPLE[0] == get_pos_x():
-                old_y = get_pos_y()
-
+            # COIL
+            #
+            # Build a known vertical zig-zag body. Apples on the current
+            # column are consumed immediately because that does not leave
+            # the safe coil corridor.
+            if (
+                NEXT_APPLE[0]
+                == get_pos_x()
+            ):
                 if not coil_move_to(
                     NEXT_APPLE[0],
                     NEXT_APPLE[1]
@@ -2324,13 +2333,21 @@ def run_reddit_coil_strike():
 
                 coil_refresh_apple()
 
+                # Source behavior: after refreshing the Apple target,
+                # compare from the CURRENT y position to the NEW Apple.
+                # The old port incorrectly used the pre-move y value.
                 if NEXT_APPLE != None:
                     path_progress += abs(
-                        old_y
+                        get_pos_y()
                         - NEXT_APPLE[1]
                     )
+
             else:
-                if get_pos_x() % 2 == 0:
+                if (
+                    get_pos_x()
+                    % 2
+                    == 0
+                ):
                     if not coil_move_to(
                         get_pos_x(),
                         world_size - 1
@@ -2359,9 +2376,17 @@ def run_reddit_coil_strike():
                     world_size
                 )
 
-            if path_progress > CURRENT_TAIL_LENGTH:
+            # Flekay/Reddit source tracks tail segments, while our
+            # CURRENT_TAIL_LENGTH tracks occupied cells (head + tail).
+            if (
+                path_progress
+                > CURRENT_TAIL_LENGTH - 1
+            ):
                 phase = 1
 
+                # The original aligns to the north edge when the next
+                # Apple lies on the transition column. This piece was
+                # missing from the first local translation.
                 if (
                     NEXT_APPLE != None
                     and NEXT_APPLE[0]
@@ -2375,6 +2400,30 @@ def run_reddit_coil_strike():
 
                     coil_refresh_apple()
 
+                    if fix_flag:
+                        if (
+                            get_pos_x()
+                            != world_size - 2
+                        ):
+                            if baseline_move(
+                                East
+                            ) < 0:
+                                return False
+
+                        if not coil_move_to(
+                            get_pos_x(),
+                            world_size - 1
+                        ):
+                            return False
+
+                        fix_flag = False
+                    else:
+                        if not coil_move_to(
+                            get_pos_x(),
+                            world_size - 1
+                        ):
+                            return False
+
             if (
                 get_pos_x()
                 >= world_size - 1
@@ -2382,7 +2431,10 @@ def run_reddit_coil_strike():
                 phase = 2
 
         elif phase == 1:
-            # Strike: only chase Apples further east in the open area.
+            # STRIKE
+            #
+            # Apples farther east and away from the bottom return row are
+            # in the open strike region and can be chased directly.
             if (
                 NEXT_APPLE[0]
                 == world_size - 1
@@ -2390,6 +2442,7 @@ def run_reddit_coil_strike():
                 > get_pos_y()
             ):
                 phase = 2
+                fix_flag = True
 
             elif (
                 NEXT_APPLE[0]
@@ -2410,12 +2463,12 @@ def run_reddit_coil_strike():
                     == world_size - 1
                 ):
                     phase = 2
+
             else:
                 phase = 2
 
         elif phase == 2:
-            # Pre-return: consume a downward Apple on the east edge,
-            # otherwise descend to the south-east corner.
+            # PRE-RETURN
             if (
                 NEXT_APPLE[0]
                 == world_size - 1
@@ -2429,6 +2482,7 @@ def run_reddit_coil_strike():
                     return False
 
                 coil_refresh_apple()
+
             else:
                 if not coil_move_to(
                     world_size - 1,
@@ -2445,8 +2499,7 @@ def run_reddit_coil_strike():
                 phase = 3
 
         else:
-            # Return: take a bottom-row Apple when available, then
-            # return to the origin and begin the next coil.
+            # RETURN
             if NEXT_APPLE[1] == 0:
                 if not coil_move_to(
                     NEXT_APPLE[0],
@@ -2455,6 +2508,7 @@ def run_reddit_coil_strike():
                     return False
 
                 coil_refresh_apple()
+
             else:
                 if not coil_move_to(
                     0,
